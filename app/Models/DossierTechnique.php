@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -9,18 +8,10 @@ class DossierTechnique extends Model
     protected $table = 'dossiers_techniques';
 
     protected $fillable = [
-        'lot_id',
-        'statut',
-        'progression',
-        'date_sortie',
-        'reference',
-        // checklist
-        'montage_dossier',
-        'bon_pour_ccp',
-        'controle',
-        'mise_a_jour',
-        'secretariat',
-        'signature',
+        'lot_id', 'zone_groupe_id',
+        'statut', 'progression',
+        'montage_dossier', 'bon_pour_ccp', 'controle',
+        'mise_a_jour', 'secretariat', 'signature',
     ];
 
     protected $casts = [
@@ -32,10 +23,11 @@ class DossierTechnique extends Model
         'signature'       => 'boolean',
     ];
 
-    // =============================================
-    // Calcul automatique de la progression
-    // =============================================
-    public static array $etapes = [
+    public function lot()        { return $this->belongsTo(Lot::class); }
+    public function zoneGroupe() { return $this->belongsTo(ZoneGroupe::class, 'zone_groupe_id'); }
+
+    // Poids de chaque étape
+    public static array $poids = [
         'montage_dossier' => 40,
         'bon_pour_ccp'    => 10,
         'controle'        => 15,
@@ -47,7 +39,7 @@ class DossierTechnique extends Model
     public function calculerProgression(): int
     {
         $total = 0;
-        foreach (self::$etapes as $champ => $poids) {
+        foreach (self::$poids as $champ => $poids) {
             if ($this->$champ) $total += $poids;
         }
         return $total;
@@ -55,14 +47,9 @@ class DossierTechnique extends Model
 
     public function calculerStatut(): string
     {
-        $p = $this->calculerProgression();
-        if ($p === 0)   return 'none';
-        if ($p === 100) return 'complet';
+        $prog = $this->calculerProgression();
+        if ($prog === 0)   return 'none';
+        if ($prog === 100) return 'complet';
         return 'en_cours';
-    }
-
-    public function lot()
-    {
-        return $this->belongsTo(Lot::class);
     }
 }

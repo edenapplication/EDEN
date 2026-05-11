@@ -207,6 +207,9 @@
                 <a href="{{ route('import-export.index') }}">
                     <span>🔄</span> Import / Export
                 </a>
+                <a href="{{ route('visites.index') }}">
+                    <span>🚶</span> Registre des visites
+                </a>
             </div>
 
         </div>

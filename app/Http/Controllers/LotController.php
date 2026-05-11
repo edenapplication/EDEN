@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Models\Lot;
 use App\Models\Client;
 use App\Models\DossierClient;
+use App\Models\DossierTechnique;
 
 class LotController extends Controller
 {
@@ -32,49 +33,38 @@ class LotController extends Controller
             $lot->code   = $request->code;
             $lot->type   = $request->type;
 
-            // ✅ DOSSIER CLIENT
             if ($request->dossier_client_id) {
                 $lot->dossier_client_id = $request->dossier_client_id;
             }
 
-            // ✅ CLIENT — on ne met à jour owner_name QUE si c'est implantation_prevue
-            // et seulement si le lot n'a pas encore de client
+            // CLIENT — owner_name figé à implantation_prevue uniquement
             if ($request->type === 'implantation_prevue') {
-                // Seulement si pas encore de client sur ce lot
                 if (!$lot->client_id) {
                     $clientId = $request->client_id;
-
-                    // Ou récupérer via le dossier
                     if (!$clientId && $request->dossier_client_id) {
                         $d = DossierClient::find($request->dossier_client_id);
                         if ($d) $clientId = $d->client_id;
                     }
-
                     if ($clientId) {
                         $lot->client_id  = $clientId;
                         $client          = Client::find($clientId);
-                        $lot->owner_name = $client?->name; // ✅ Posé UNE SEULE fois
+                        $lot->owner_name = $client?->name;
                     }
                 }
-                // Date et superficie
                 $lot->date_prevue = $request->date_prevue ?: null;
                 $lot->superficie  = $request->superficie;
 
             } elseif ($request->type === 'deja_implante') {
-                // ✅ Pas de mise à jour du client ni de owner_name
                 $lot->date_confirmee = $request->date_confirmee ?: null;
                 $lot->superficie     = $request->superficie;
 
             } elseif ($request->type === 'dossier_technique') {
-                // ✅ Pas de mise à jour du client ni de owner_name
                 $lot->date_confirmee = $request->date_confirmee ?: null;
 
             } elseif ($request->type === 'morcellement') {
-    
-    $lot->superficie        = $request->superficie;
-    $lot->date_morcellement = $request->date_morcellement ?: null;
-    
-}
+                $lot->superficie        = $request->superficie;
+                $lot->date_morcellement = $request->date_morcellement ?: null;
+            }
 
             $lot->color = match ($request->type) {
                 'implantation_prevue'=> '#6c757d',
@@ -85,6 +75,16 @@ class LotController extends Controller
             };
 
             $lot->save();
+
+            // ✅ CRÉER AUTOMATIQUEMENT LE DOSSIER TECHNIQUE
+            // uniquement si le lot est affecté à un client existant
+            if ($lot->client_id) {
+                DossierTechnique::firstOrCreate(
+                    ['lot_id' => $lot->id, 'zone_groupe_id' => null],
+                    ['progression' => 0, 'statut' => 'none']
+                );
+            }
+
             return response()->json(['success' => true]);
 
         } catch (\Throwable $e) {
@@ -114,9 +114,7 @@ class LotController extends Controller
             $lot->origine    = $request->origine;
             $lot->superficie = $request->superficie;
             $lot->type       = null;
-           $lot->color = $request->origine === 'eden'
-    ? 'rgba(13, 110, 253, 0.25)'
-    : null;
+            $lot->color      = $request->origine === 'eden' ? 'rgba(13, 110, 253, 0.25)' : null;
             $lot->save();
 
             return response()->json(['success' => true]);
@@ -145,7 +143,7 @@ class LotController extends Controller
             'dossiers.conducteur',
             'dossiers.grandSite',
             'dossiers.paiements',
-            'lots.dossier',
+            'lots.dossierTechnique',
             'lots.tf.site.grandSite',
         ])->findOrFail($id);
 
@@ -185,16 +183,18 @@ class LotController extends Controller
                 'code'             => strtoupper($lot->code),
                 'type'             => $lot->type ? str_replace('_', ' ', $lot->type) : null,
                 'color'            => match($lot->type) {
-                    'implantation_prevue' => '#090a0a',
-                    'deja_implante'       => '#28a745',
-                    'dossier_technique'   => '#ff0019',
-                    'morcellement'        => '#ff7605',
+                    'implantation_prevue' => '#7c3aed',
+                    'deja_implante'       => '#16a34a',
+                    'dossier_technique'   => '#dc2626',
+                    'morcellement'        => '#ea580c',
                     default               => '#0d6efd',
                 },
-                'prog'             => $lot->dossier?->progression ?? 0,
+                // ✅ Lien vers le dossier technique si existant
+                'dossier_id'       => $lot->dossierTechnique?->id,
+                'dossier_url'      => $lot->dossierTechnique ? "/admin/dossier/{$lot->id}" : null,
+                'prog'             => $lot->dossierTechnique?->progression ?? 0,
                 'date_prevue'      => $lot->date_prevue?->format('d/m/Y'),
                 'date_confirmee'   => $lot->date_confirmee?->format('d/m/Y'),
-                'date_sortie'      => $lot->dossier?->date_sortie,
                 'date_morcellement'=> $lot->date_morcellement?->format('d/m/Y'),
             ]),
         ]);
@@ -239,35 +239,88 @@ class LotController extends Controller
     }
 
     public function vendus(Request $request)
-    {
-        $query = Lot::with([
-            'client', 'tf.site.grandSite',
-            'dossierClient.commercial', 'dossierClient.paiements',
-            'dossier',
+{
+    $query = Lot::with([
+        'client', 'tf.site.grandSite',
+        'dossierClient.paiements',
+        'dossierTechnique',
+    ]);
+
+    // ✅ Seulement les lots avec un client
+    $query->whereNotNull('client_id');
+
+    if ($request->filled('grand_site'))
+        $query->whereHas('tf.site', fn($q) => $q->where('grand_site_id', $request->grand_site));
+    if ($request->filled('site'))
+        $query->whereHas('tf', fn($q) => $q->where('site_id', $request->site));
+    if ($request->filled('tf'))
+        $query->where('tf_id', $request->tf);
+    if ($request->filled('bloc'))
+        $query->where('code', 'LIKE', $request->bloc . '%');
+    if ($request->filled('search')) {
+        $s = $request->search;
+        $query->where(fn($q) => $q
+            ->where('owner_name', 'LIKE', "%{$s}%")
+            ->orWhereHas('client', fn($c) => $c->where('name', 'LIKE', "%{$s}%")->orWhere('phone', 'LIKE', "%{$s}%"))
+        );
+    }
+
+    $lots = $query->get();
+
+    // ✅ Zones groupes avec client
+    $zgQuery = \App\Models\ZoneGroupe::with([
+        'client', 'tf.site.grandSite',
+        'dossierClient',
+        'dossierTechnique',
+    ])->whereNotNull('client_id');
+
+    if ($request->filled('grand_site'))
+        $zgQuery->whereHas('tf.site', fn($q) => $q->where('grand_site_id', $request->grand_site));
+    if ($request->filled('site'))
+        $zgQuery->whereHas('tf', fn($q) => $q->where('site_id', $request->site));
+    if ($request->filled('tf'))
+        $zgQuery->where('tf_id', $request->tf);
+    if ($request->filled('search')) {
+        $s = $request->search;
+        $zgQuery->where(fn($q) => $q
+            ->where('owner_name', 'LIKE', "%{$s}%")
+            ->orWhereHas('client', fn($c) => $c->where('name', 'LIKE', "%{$s}%")->orWhere('phone', 'LIKE', "%{$s}%"))
+        );
+    }
+
+    $zonesGroupes = $zgQuery->get();
+
+    $grandsites = \App\Models\GrandSite::orderBy('nom')->get();
+    $sites      = \App\Models\Site::when($request->grand_site, fn($q) => $q->where('grand_site_id', $request->grand_site))->orderBy('name')->get();
+    $tfs        = \App\Models\Tf::when($request->site, fn($q) => $q->where('site_id', $request->site))->orderBy('title')->get();
+    $blocs      = Lot::pluck('code')->map(fn($c) => strtoupper(substr($c, 0, 1)))->unique()->sort()->values();
+
+    return view('admin.lots.vendus', compact('lots', 'zonesGroupes', 'grandsites', 'sites', 'tfs', 'blocs'));
+}
+
+public function clientVisites($clientId)
+{
+    $client = \App\Models\Client::findOrFail($clientId);
+
+    $visiteur = \App\Models\Visiteur::where('nom', $client->name)
+                ->orWhere('numero', $client->phone)
+                ->first();
+
+    if (!$visiteur) return response()->json([]);
+
+    $visites = \App\Models\Visite::where('visiteur_id', $visiteur->id)
+        ->orderBy('date_visite', 'desc')
+        ->limit(20)
+        ->get()
+        ->map(fn($v) => [
+            'date'          => $v->date_visite,
+            'heure_arrivee' => $v->heure_arrivee ? substr($v->heure_arrivee, 0, 5) : null,
+            'heure_depart'  => $v->heure_depart  ? substr($v->heure_depart,  0, 5) : null,
+            'type'          => $v->type_personne,
+            'note'          => $v->note,
         ]);
 
-        if ($request->filled('grand_site'))
-            $query->whereHas('tf.site', fn($q) => $q->where('grand_site_id', $request->grand_site));
-        if ($request->filled('site'))
-            $query->whereHas('tf', fn($q) => $q->where('site_id', $request->site));
-        if ($request->filled('tf'))
-            $query->where('tf_id', $request->tf);
-        if ($request->filled('bloc'))
-            $query->where('code', 'LIKE', $request->bloc . '%');
-        if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where(fn($q) => $q
-                ->where('owner_name', 'LIKE', "%{$s}%")
-                ->orWhereHas('client', fn($c) => $c->where('name', 'LIKE', "%{$s}%")->orWhere('phone', 'LIKE', "%{$s}%"))
-            );
-        }
+    return response()->json($visites);
+}
 
-        $lots       = $query->get();
-        $grandsites = \App\Models\GrandSite::orderBy('nom')->get();
-        $sites      = \App\Models\Site::when($request->grand_site, fn($q) => $q->where('grand_site_id', $request->grand_site))->orderBy('name')->get();
-        $tfs        = \App\Models\Tf::when($request->site, fn($q) => $q->where('site_id', $request->site))->orderBy('title')->get();
-        $blocs      = Lot::pluck('code')->map(fn($c) => strtoupper(substr($c, 0, 1)))->unique()->sort()->values();
-
-        return view('admin.lots.vendus', compact('lots', 'grandsites', 'sites', 'tfs', 'blocs'));
-    }
 }

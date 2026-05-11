@@ -13,6 +13,19 @@ use App\Http\Controllers\SuiviClientController;
 use App\Http\Controllers\AgentCommercialController;
 use App\Http\Controllers\RapportController;
 use App\Http\Controllers\ImportExportController;
+use App\Http\Controllers\VisiteController;
+use App\Http\Controllers\ZoneGroupeController;
+
+// ── RH ──────────────────────────────────────────────────────
+use App\Http\Controllers\RH\DashboardRHController;
+use App\Http\Controllers\RH\EmployeController;
+use App\Http\Controllers\RH\PaieController;
+use App\Http\Controllers\RH\AbsenceController;
+use App\Http\Controllers\RH\PretController;
+use App\Http\Controllers\RH\SanctionController;
+use App\Http\Controllers\RH\RetardController;
+use App\Http\Controllers\RH\DirectionController;
+
 
 Route::get('/', fn() => redirect()->route('grand-sites.index'));
 
@@ -51,10 +64,19 @@ Route::prefix('admin')->group(function () {
     Route::get('/lots/client-panel/{id}',[LotController::class, 'clientPanel'])->name('lots.clientPanel');
     Route::get('/lots/{id}/hover-info',  [LotController::class, 'hoverInfo'])->name('lots.hoverInfo');
     Route::put('/lots/{id}',             [LotController::class, 'update'])->name('lots.update');
+    Route::get('/lots/client-visites/{clientId}', [LotController::class, 'clientVisites'])->name('lots.clientVisites');
 
-    // DOSSIER TECHNIQUE (checklist)
-    Route::get('/dossier/{lot}',         [DossierTechniqueController::class, 'show'])->name('dossier.show');
-    Route::post('/dossier/toggle/{lot}', [DossierTechniqueController::class, 'toggle'])->name('dossier.toggle');
+    // ZONES GROUPES
+Route::post('/zone-groupes',          [ZoneGroupeController::class, 'store'])->name('zone-groupes.store');
+Route::put('/zone-groupes/{id}',      [ZoneGroupeController::class, 'update'])->name('zone-groupes.update');
+Route::delete('/zone-groupes/{id}',   [ZoneGroupeController::class, 'destroy'])->name('zone-groupes.destroy');
+Route::get('/zone-groupes/{id}/panel',[ZoneGroupeController::class, 'panel'])->name('zone-groupes.panel');
+
+  // Dossier technique
+Route::get('/dossier/{lot}',               [DossierTechniqueController::class, 'show'])->name('dossier.show');
+Route::post('/dossier/toggle/{lot}',       [DossierTechniqueController::class, 'toggle'])->name('dossier.toggle');
+Route::get('/dossier-zone/{zone}',         [DossierTechniqueController::class, 'showZone'])->name('dossier.zone.show');
+Route::post('/dossier-zone/toggle/{zone}', [DossierTechniqueController::class, 'toggleZone'])->name('dossier.zone.toggle');
 
     // PAIEMENTS DOSSIER — nouvelle logique
     Route::post('/paiements-dossier/{dossierId}',   [PaiementDossierController::class, 'store'])->name('paiements-dossier.store');
@@ -81,6 +103,7 @@ Route::prefix('admin')->group(function () {
     Route::get('/suivi-client/{id}/edit',     [SuiviClientController::class, 'edit'])->name('suivi-client.edit');
     Route::put('/suivi-client/{id}',          [SuiviClientController::class, 'update'])->name('suivi-client.update');
     Route::get('/suivi-client/{id}/dossiers', [SuiviClientController::class, 'dossiers'])->name('suivi-client.dossiers');
+    Route::delete('/suivi-client/{id}', [SuiviClientController::class, 'destroy'])->name('suivi-client.destroy');
 
     // RAPPORT
     Route::get('/rapport',              [RapportController::class, 'index'])->name('rapport.index');
@@ -94,4 +117,83 @@ Route::prefix('admin')->group(function () {
     Route::get('/import-export',        [ImportExportController::class, 'index'])->name('import-export.index');
     Route::post('/import-export/export',[ImportExportController::class, 'export'])->name('import-export.export');
     Route::post('/import-export/import',[ImportExportController::class, 'import'])->name('import-export.import');
+
+    // VISITES
+Route::get('/visites',              [VisiteController::class, 'index'])->name('visites.index');
+Route::post('/visites',             [VisiteController::class, 'store'])->name('visites.store');
+Route::put('/visites/{id}',         [VisiteController::class, 'update'])->name('visites.update');
+Route::delete('/visites/{id}',      [VisiteController::class, 'destroy'])->name('visites.destroy');
+Route::get('/visites/export',       [VisiteController::class, 'export'])->name('visites.export');
+Route::post('/visites/import',      [VisiteController::class, 'import'])->name('visites.import');
+Route::get('/visites/visiteur-search', [VisiteController::class, 'visiteurSearch'])->name('visites.visiteurSearch');
+
+});
+
+
+Route::prefix('rh')->group(function () {
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardRHController::class, 'index'])->name('rh.dashboard');
+
+    // ── Employés — fixes avant {id} ──────────────────────────
+    Route::get('/employes',                        [EmployeController::class, 'index'])->name('rh.employes.index');
+    Route::get('/employes/create',                 [EmployeController::class, 'create'])->name('rh.employes.create');
+    Route::get('/employes/export',                 [EmployeController::class, 'export'])->name('rh.employes.export');
+    Route::post('/employes',                       [EmployeController::class, 'store'])->name('rh.employes.store');
+    Route::get('/employes/{id}',                   [EmployeController::class, 'show'])->name('rh.employes.show');
+    Route::get('/employes/{id}/edit',              [EmployeController::class, 'edit'])->name('rh.employes.edit');
+    Route::put('/employes/{id}',                   [EmployeController::class, 'update'])->name('rh.employes.update');
+    Route::delete('/employes/{id}',                [EmployeController::class, 'destroy'])->name('rh.employes.destroy');
+    Route::post('/employes/{id}/documents',        [EmployeController::class, 'uploadDocument'])->name('rh.employes.documents.store');
+    Route::get('/employes/{id}/documents/{docId}', [EmployeController::class, 'downloadDocument'])->name('rh.employes.documents.download');
+    Route::delete('/employes/documents/{docId}',   [EmployeController::class, 'deleteDocument'])->name('rh.employes.documents.destroy');
+
+    // ── Paie — fixes avant {id} ──────────────────────────────
+    Route::get('/paie',                  [PaieController::class, 'index'])->name('rh.paie.index');
+    Route::get('/paie/create',           [PaieController::class, 'create'])->name('rh.paie.create');
+    Route::get('/paie/recapitulatif',    [PaieController::class, 'recapitulatif'])->name('rh.paie.recapitulatif');
+    Route::post('/paie/generer-masse',   [PaieController::class, 'genererMasse'])->name('rh.paie.generer');
+    Route::post('/paie',                 [PaieController::class, 'store'])->name('rh.paie.store');
+    Route::get('/paie/{id}',             [PaieController::class, 'show'])->name('rh.paie.show');
+    Route::get('/paie/{id}/pdf',         [PaieController::class, 'pdf'])->name('rh.paie.pdf');
+    Route::put('/paie/{id}',             [PaieController::class, 'update'])->name('rh.paie.update');
+    Route::delete('/paie/{id}',          [PaieController::class, 'destroy'])->name('rh.paie.destroy');
+    Route::post('/paie/{id}/valider',    [PaieController::class, 'valider'])->name('rh.paie.valider');
+
+    // ── Absences ──────────────────────────────────────────────
+    Route::get('/absences',                        [AbsenceController::class, 'index'])->name('rh.absences.index');
+    Route::post('/absences',                       [AbsenceController::class, 'store'])->name('rh.absences.store');
+    Route::put('/absences/{id}',                   [AbsenceController::class, 'update'])->name('rh.absences.update');
+    Route::delete('/absences/{id}',                [AbsenceController::class, 'destroy'])->name('rh.absences.destroy');
+    Route::post('/absences/{id}/approuver',        [AbsenceController::class, 'approuver'])->name('rh.absences.approuver');
+    Route::post('/absences/{id}/refuser',          [AbsenceController::class, 'refuser'])->name('rh.absences.refuser');
+
+    // ── Prêts ─────────────────────────────────────────────────
+    Route::get('/prets',                 [PretController::class, 'index'])->name('rh.prets.index');
+    Route::post('/prets',                [PretController::class, 'store'])->name('rh.prets.store');
+    Route::put('/prets/{id}',            [PretController::class, 'update'])->name('rh.prets.update');
+    Route::delete('/prets/{id}',         [PretController::class, 'destroy'])->name('rh.prets.destroy');
+
+    // ── Sanctions ─────────────────────────────────────────────
+    Route::get('/sanctions',             [SanctionController::class, 'index'])->name('rh.sanctions.index');
+    Route::post('/sanctions',            [SanctionController::class, 'store'])->name('rh.sanctions.store');
+    Route::put('/sanctions/{id}',        [SanctionController::class, 'update'])->name('rh.sanctions.update');
+    Route::delete('/sanctions/{id}',     [SanctionController::class, 'destroy'])->name('rh.sanctions.destroy');
+
+    // ── Retards ───────────────────────────────────────────────
+    Route::get('/retards',               [RetardController::class, 'index'])->name('rh.retards.index');
+    Route::post('/retards',              [RetardController::class, 'store'])->name('rh.retards.store');
+    Route::put('/retards/{id}',          [RetardController::class, 'update'])->name('rh.retards.update');
+    Route::delete('/retards/{id}',       [RetardController::class, 'destroy'])->name('rh.retards.destroy');
+
+    // ── Directions / Services / Postes ────────────────────────
+    Route::get('/directions',            [DirectionController::class, 'index'])->name('rh.directions.index');
+    Route::post('/directions',           [DirectionController::class, 'storeDirection'])->name('rh.directions.store');
+    Route::put('/directions/{id}',       [DirectionController::class, 'updateDirection'])->name('rh.directions.update');
+    Route::delete('/directions/{id}',    [DirectionController::class, 'destroyDirection'])->name('rh.directions.destroy');
+    Route::post('/services',             [DirectionController::class, 'storeService'])->name('rh.services.store');
+    Route::put('/services/{id}',         [DirectionController::class, 'updateService'])->name('rh.services.update');
+    Route::delete('/services/{id}',      [DirectionController::class, 'destroyService'])->name('rh.services.destroy');
+    Route::post('/postes',               [DirectionController::class, 'storePoste'])->name('rh.postes.store');
+    Route::delete('/postes/{id}',        [DirectionController::class, 'destroyPoste'])->name('rh.postes.destroy');
 });

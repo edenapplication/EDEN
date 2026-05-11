@@ -31,24 +31,47 @@ class SuiviClientController extends Controller
     }
 
     public function index(Request $request)
-    {
-        $query = Client::with(['dossiers.grandSite'])
-            ->when($request->search, fn($q) =>
-                $q->where('name', 'LIKE', "%{$request->search}%")
-                  ->orWhere('phone', 'LIKE', "%{$request->search}%")
-            );
+{
+    $query = Client::with(['dossiers.grandSite']);
 
-        $clients = $query->latest()->paginate(20);
-        return view('admin.suivi_client.index', compact('clients'));
+    if ($request->filled('search')) {
+        $s = $request->search;
+        $query->where(fn($q) =>
+            $q->where('name',  'LIKE', "%{$s}%")
+              ->orWhere('phone', 'LIKE', "%{$s}%")
+        );
     }
 
-    public function create(Request $request)
-{
-    $options   = $this->options();
-    $clientId  = $request->client_id;
-    $clientPre = $clientId ? Client::find($clientId) : null;
-    return view('admin.suivi_client.create', compact('options', 'clientPre'));
+    if ($request->filled('grand_site_id')) {
+        $query->whereHas('dossiers', fn($q) =>
+            $q->where('grand_site_id', $request->grand_site_id)
+        );
+    }
+
+    if ($request->filled('direction')) {
+        $query->whereHas('dossiers', fn($q) =>
+            $q->where('direction', $request->direction)
+        );
+    }
+
+    $clients    = $query->latest()->paginate(15)->withQueryString();
+    $grandsites = GrandSite::orderBy('nom')->get();
+
+    // ✅ Si requête AJAX → retourner uniquement la liste partielle
+    if ($request->ajax() || $request->get('ajax')) {
+        return view('admin.suivi_client._liste', compact('clients'));
+    }
+
+    return view('admin.suivi_client.index', compact('clients', 'grandsites'));
 }
+
+    public function create(Request $request)
+    {
+        $options   = $this->options();
+        $clientId  = $request->client_id;
+        $clientPre = $clientId ? Client::find($clientId) : null;
+        return view('admin.suivi_client.create', compact('options', 'clientPre'));
+    }
 
     public function store(Request $request)
     {
@@ -66,13 +89,12 @@ class SuiviClientController extends Controller
             'prix_superficie'     => 'nullable|numeric',
         ]);
 
-        // CLIENT
-$client = Client::firstOrCreate(
-    ['phone' => $request->phone],
-    ['name'  => $request->name]   // ✅ nom enregistré seulement à la création
-);
+        // CLIENT — nom figé à la création, jamais modifié
+        $client = Client::firstOrCreate(
+            ['phone' => $request->phone],
+            ['name'  => $request->name]
+        );
 
-        // Créer acteurs si nouveaux
         $agentId = $request->agent_commercial_id;
         if (!$agentId && $request->agent_nom) {
             $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
@@ -91,7 +113,6 @@ $client = Client::firstOrCreate(
             $facilitateurId = $f->id;
         }
 
-        // DOSSIER CLIENT — un client peut avoir plusieurs dossiers
         DossierClient::create([
             'client_id'           => $client->id,
             'nom_dossier'         => $request->nom_dossier,
@@ -105,7 +126,7 @@ $client = Client::firstOrCreate(
             'prix_superficie'     => $request->prix_superficie,
         ]);
 
-        return redirect()->route('suivi-client.index')->with('success', 'Client et dossier créés');
+       return redirect()->route('suivi-client.show', $client->id)->with('success', 'Client et dossier créés');
     }
 
     public function show($id)
@@ -124,16 +145,28 @@ $client = Client::firstOrCreate(
         return view('admin.suivi_client.show', compact('client'));
     }
 
-    public function edit($id)
-    {
-        $client  = Client::with('dossiers')->findOrFail($id);
-        $options = $this->options();
-        return view('admin.suivi_client.edit', compact('client', 'options'));
-    }
+    public function edit(Request $request, $id)
+{
+    $client    = Client::with('dossiers')->findOrFail($id);
+    $options   = $this->options();
+    $clientPre = null;
+
+    // Charger le dossier sélectionné (via query string) ou le premier par défaut
+    $dossierId = $request->dossier_id ?? $client->dossiers->first()?->id;
+    $dossier   = $client->dossiers->firstWhere('id', $dossierId)
+                 ?? $client->dossiers->first();
+
+    return view('admin.suivi_client.edit', compact('client', 'options', 'clientPre', 'dossier'));
+}
 
     public function update(Request $request, $id)
     {
         $client = Client::findOrFail($id);
+
+        // ✅ Mettre à jour le téléphone du client
+        if ($request->filled('phone')) {
+            $client->update(['phone' => $request->phone]);
+        }
 
         $agentId = $request->agent_commercial_id;
         if (!$agentId && $request->agent_nom) {
@@ -153,9 +186,10 @@ $client = Client::firstOrCreate(
             $facilitateurId = $f->id;
         }
 
-        // Si dossier_id fourni → modifier ce dossier
-        if ($request->dossier_id) {
-            $dossier = DossierClient::where('id', $request->dossier_id)
+        $dossierId = $request->dossier_id ?? $client->dossiers->first()?->id;
+
+        if ($dossierId) {
+            $dossier = DossierClient::where('id', $dossierId)
                 ->where('client_id', $client->id)
                 ->firstOrFail();
 
@@ -172,7 +206,16 @@ $client = Client::firstOrCreate(
             ]);
         }
 
-        return redirect()->route('suivi-client.show', $client->id)->with('success', 'Mis à jour');
+        return redirect()->route('suivi-client.show', $client->id)->with('success', 'Mis à jour avec succès');
+    }
+
+    // ✅ Supprimer un client
+    public function destroy($id)
+    {
+        $client = Client::findOrFail($id);
+        $client->dossiers()->delete();
+        $client->delete();
+        return redirect()->route('suivi-client.index')->with('success', 'Client supprimé');
     }
 
     public function dossiers($id)

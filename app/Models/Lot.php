@@ -28,4 +28,10 @@ class Lot extends Model
     public function dossier()     { return $this->hasOne(DossierTechnique::class); }
     public function reservedClient() { return $this->belongsTo(Client::class, 'reserved_client_id'); }
     public function dossierClient() { return $this->belongsTo(DossierClient::class); }
+
+    public function dossierTechnique()
+{
+    return $this->hasOne(\App\Models\DossierTechnique::class, 'lot_id')
+                ->whereNull('zone_groupe_id');
+}
 }
