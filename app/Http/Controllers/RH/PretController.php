@@ -10,58 +10,86 @@ class PretController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Pret::with('employe');
-        if ($request->filled('statut'))  $query->where('statut', $request->statut);
-        if ($request->filled('type'))    $query->where('type',   $request->type);
-        if ($request->filled('employe')) $query->whereHas('employe', fn($q) => $q->where('nom', 'LIKE', "%{$request->employe}%"));
+        $query = Pret::with('employe.direction');
 
-        $prets    = $query->orderBy('date_debut', 'desc')->paginate(20)->withQueryString();
+        if ($request->filled('employe_id'))
+            $query->where('employe_id', $request->employe_id);
+        if ($request->filled('statut'))
+            $query->where('statut', $request->statut);
+        if ($request->filled('type'))
+            $query->where('type', $request->type);
+
+        $prets    = $query->orderByDesc('date_debut')->get();
         $employes = Employe::where('actif', true)->orderBy('nom')->get();
-        $totalEnCours = Pret::where('statut', 'en_cours')->sum('montant');
 
-        return view('rh.prets.index', compact('prets', 'employes', 'totalEnCours'));
+        return view('rh.prets.index', compact('prets', 'employes'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'employe_id'  => 'required|exists:rh_employes,id',
-            'type'        => 'required|in:pret,acompte',
-            'montant'     => 'required|numeric|min:1',
-            'date_debut'  => 'required|date',
+            'employe_id'    => 'required|exists:rh_employes,id',
+            'type'          => 'required|in:acompte,pret',
+            'montant'       => 'required|numeric|min:1',
+            'date_demande'  => 'required|date',
+            'duree_mois'    => 'nullable|integer|min:1',
+            'motif'         => 'nullable|string|max:255',
         ]);
 
         $mensualite = null;
-        if ($request->duree_mois > 0) {
-            $mensualite = round($request->montant / $request->duree_mois, 2);
+        if ($request->type === 'pret' && $request->duree_mois > 0) {
+            $mensualite = round($request->montant / $request->duree_mois, 0);
+        } elseif ($request->type === 'acompte') {
+            $mensualite = $request->montant; // remboursé en une fois
         }
 
-        $pret = Pret::create(array_merge($request->all(), ['mensualite' => $mensualite]));
-        return response()->json(['success' => true, 'pret' => $pret->load('employe')]);
+        Pret::create([
+            'employe_id'       => $request->employe_id,
+            'type'             => $request->type,
+            'montant'          => $request->montant,
+            'montant_rembourse'=> 0,
+            'duree_mois'       => $request->duree_mois,
+            'mensualite'       => $mensualite,
+            'date_demande'     => $request->date_demande,
+            'motif'            => $request->motif,
+            'statut'           => 'en_cours',
+        ]);
+
+        return back()->with('success', 'Prêt/acompte enregistré');
     }
 
     public function update(Request $request, $id)
-{
-    $pret = Pret::findOrFail($id);
+    {
+        $pret = Pret::findOrFail($id);
 
-    // Si on envoie un montant de remboursement à ajouter
-    if ($request->filled('montant_rembourse_ajout')) {
-        $pret->montant_rembourse += $request->montant_rembourse_ajout;
-        if ($pret->montant_rembourse >= $pret->montant) {
-            $pret->montant_rembourse = $pret->montant;
-            $pret->statut = 'remboursé';
+        // ✅ Remboursement
+        if ($request->filled('montant_rembourse_ajout')) {
+            $ajout = floatval($request->montant_rembourse_ajout);
+            if ($ajout <= 0) return back()->with('error', 'Montant invalide.');
+
+            $pret->montant_rembourse += $ajout;
+
+            if ($pret->montant_rembourse >= $pret->montant) {
+                $pret->montant_rembourse = $pret->montant;
+                $pret->statut           = 'rembourse';
+            }
+
+            $pret->save();
+            return back()->with('success', 'Remboursement enregistré');
         }
-        $pret->save();
-        return response()->json(['success' => true]);
-    }
 
-    $pret->update($request->all());
-    return response()->json(['success' => true]);
-}
+        // ✅ Modification du statut
+        if ($request->filled('statut')) {
+            $pret->update(['statut' => $request->statut]);
+            return back()->with('success', 'Statut mis à jour');
+        }
+
+        return back()->with('error', 'Aucune donnée à mettre à jour.');
+    }
 
     public function destroy($id)
     {
         Pret::findOrFail($id)->delete();
-        return response()->json(['success' => true]);
+        return back()->with('success', 'Prêt supprimé');
     }
 }

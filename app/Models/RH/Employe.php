@@ -50,10 +50,24 @@ class Employe extends Model
     }
 
     public static function genererMatricule(): string
-    {
-        $dernier = static::latest('id')->value('matricule');
-        if (!$dernier) return 'EDG-0001';
-        $num = (int) substr($dernier, -4) + 1;
-        return 'EDG-' . str_pad($num, 4, '0', STR_PAD_LEFT);
+{
+    $mois   = now()->format('m');   // 04
+    $annee  = now()->format('y');   // 26
+    $prefix = "EDG_{$mois}_{$annee}_";
+
+    // Trouver le dernier matricule de ce mois/année
+    $dernier = static::where('matricule', 'LIKE', $prefix . '%')
+                      ->orderByDesc('id')
+                      ->value('matricule');
+
+    if (!$dernier) {
+        $num = 1;
+    } else {
+        // Extraire le numéro : EDG_04_26_0003 → 3
+        $num = (int) substr($dernier, strrpos($dernier, '_') + 1) + 1;
     }
+
+    return $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
+}
+
 }

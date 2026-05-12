@@ -3,72 +3,28 @@
 
 <style>
 .btn-outline-secondary:hover { background-color:#e5e7eb; color:#111; }
-
 #legend-fixe {
     position:fixed; bottom:20px; right:20px;
-    background:white; border:1px solid #e2e8f0;
-    border-radius:12px; padding:12px 16px;
-    box-shadow:0 4px 16px rgba(0,0,0,0.12);
+    background:white; border:1px solid #e2e8f0; border-radius:12px;
+    padding:12px 16px; box-shadow:0 4px 16px rgba(0,0,0,0.12);
     z-index:999; min-width:175px; font-size:12px;
 }
 #legend-fixe h6 { font-weight:700; margin-bottom:8px; font-size:12px; color:#1e3a5f; }
 .leg-item { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
 .leg-dot  { width:14px; height:14px; border-radius:3px; flex-shrink:0; border:2px solid transparent; }
-
-#toolbar {
-    display:flex; align-items:center; gap:8px;
-    margin-bottom:8px; font-size:13px;
-    background:#f8fafc; border-radius:8px; padding:8px 12px;
-    border:1px solid #e2e8f0;
-}
-.tool-btn {
-    padding:5px 12px; border-radius:6px; border:none;
-    font-size:12px; font-weight:600; cursor:pointer; transition:0.15s;
-}
+#toolbar { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px; background:#f8fafc; border-radius:8px; padding:8px 12px; border:1px solid #e2e8f0; }
+.tool-btn { padding:5px 12px; border-radius:6px; border:none; font-size:12px; font-weight:600; cursor:pointer; transition:0.15s; }
 .tool-btn.active { background:#f59e0b; color:white; }
 .tool-btn:not(.active) { background:#e2e8f0; color:#374151; }
 .tool-btn:hover:not(.active) { background:#d1d5db; }
-
-/* CARTE — scroll pour déplacer */
-#tf-map-container {
-    overflow:auto;
-    position:relative;
-    max-height:calc(100vh - 220px);
-    min-height:500px;
-    cursor:default;
-    user-select:none;
-    background:#f9fafb;
-}
+#tf-map-container { overflow:auto; position:relative; max-height:calc(100vh - 220px); min-height:500px; cursor:default; user-select:none; background:#f9fafb; }
 #tf-map-container.zone-drawing { cursor:crosshair; }
-#map-inner {
-    display:inline-block;
-    transform-origin:0 0;
-    position:relative;
-}
-
+#map-inner { display:inline-block; transform-origin:0 0; position:relative; }
 .client-search-wrap { position:relative; }
-.client-dropdown {
-    position:absolute; top:100%; left:0; right:0;
-    background:white; border:1px solid #ddd; border-radius:8px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
-    z-index:999999; max-height:200px; overflow-y:auto; display:none;
-}
-.client-option {
-    padding:8px 12px; cursor:pointer; font-size:13px;
-    border-bottom:1px solid #f8fafc;
-    display:flex; justify-content:space-between; align-items:center;
-}
+.client-dropdown { position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:999999; max-height:200px; overflow-y:auto; display:none; }
+.client-option { padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid #f8fafc; display:flex; justify-content:space-between; align-items:center; }
 .client-option:hover { background:#eff6ff; }
-
-#clientPanel {
-    display:none; position:fixed; top:70px;
-    z-index:99999; width:300px;
-    max-height:calc(100vh - 90px); overflow-y:auto;
-    background:white; border-radius:14px;
-    box-shadow:0 8px 28px rgba(0,0,0,0.18);
-    padding:16px; font-size:12px;
-    border-top:4px solid #0d6efd; pointer-events:auto;
-}
+#clientPanel { display:none; position:fixed; top:70px; z-index:99999; width:300px; max-height:calc(100vh - 90px); overflow-y:auto; background:white; border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,0.18); padding:16px; font-size:12px; border-top:4px solid #0d6efd; pointer-events:auto; }
 #clientPanel h6 { font-weight:800; color:#1e3a5f; margin-bottom:2px; font-size:14px; }
 .cp-dossier-section { border-radius:8px; padding:10px; margin-bottom:8px; background:#f8fafc; border-left:3px solid #0d6efd; }
 .cp-pay-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid #f1f5f9; }
@@ -78,32 +34,13 @@
 .btn-pay-small { background:#28a745; color:white; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; transition:0.15s; margin-top:6px; width:100%; }
 .btn-pay-small:hover { background:#1e7e34; }
 .cp-lot-card { border-left:3px solid #ccc; padding:6px 8px; margin-bottom:8px; background:#f8fafc; border-radius:6px; }
-
 #lotModal { pointer-events:auto; z-index:99998; }
-#zoneGroupeModal {
-    display:none; position:fixed; top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    background:white; padding:20px; border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.3);
-    z-index:99999; width:450px; max-height:92vh; overflow-y:auto;
-    pointer-events:auto;
-}
-#paiementDossierModal {
-    display:none; position:fixed; top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    background:white; padding:20px; border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.25);
-    z-index:1000000; width:380px; pointer-events:auto;
-}
+#zoneGroupeModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:99999; width:450px; max-height:92vh; overflow-y:auto; pointer-events:auto; }
+#paiementDossierModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.25); z-index:1000000; width:380px; pointer-events:auto; }
 #modalOverlay { pointer-events:none; }
-.badge-next-step {
-    background:linear-gradient(135deg,#4D96FF,#0d6efd);
-    color:white; font-size:11px; padding:3px 10px;
-    border-radius:20px; font-weight:600; margin-left:8px;
-}
+.badge-next-step { background:linear-gradient(135deg,#4D96FF,#0d6efd); color:white; font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; margin-left:8px; }
 </style>
 
-{{-- HEADER --}}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div style="flex:1;">
         <a href="{{ route('tf.show', $tf->id) }}"
@@ -119,13 +56,11 @@
 </div>
 
 @if($tf->file_path)
-<div style="margin-top:8px; border:1px solid #ddd; border-radius:10px; padding:12px;">
-
-    {{-- BARRE OUTILS --}}
+<div style="margin-top:8px;border:1px solid #ddd;border-radius:10px;padding:12px;">
     <div id="toolbar">
         <span style="font-weight:700;color:#1e3a5f;">🛠️ Outil :</span>
-        <button id="toolSelect"    class="tool-btn active" onclick="setTool('select')">🖱️ Sélection</button>
-        <button id="toolZoneDessin" class="tool-btn"       onclick="setTool('zone')">✏️ Dessiner zone</button>
+        <button id="toolSelect"     class="tool-btn active" onclick="setTool('select')">🖱️ Sélection</button>
+        <button id="toolZoneDessin" class="tool-btn"        onclick="setTool('zone')">✏️ Dessiner zone</button>
         <span id="toolHint" style="font-size:11px;color:#64748b;margin-left:6px;"></span>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
             <span style="font-size:12px;">🔍 Zoom :</span>
@@ -134,17 +69,14 @@
             <button onclick="resetZoom()" class="tool-btn" style="padding:3px 8px;font-size:11px;">↺ Reset</button>
         </div>
     </div>
-
     @php
         $svgPath = storage_path('app/public/' . $tf->file_path);
         $ext     = pathinfo($tf->file_path, PATHINFO_EXTENSION);
     @endphp
     @if($ext === 'svg')
-        {{-- Le container scrollable, l'inner contient le SVG et le canvas overlay --}}
         <div id="tf-map-container">
             <div id="map-inner">
                 {!! file_get_contents($svgPath) !!}
-                {{-- Canvas transparent par-dessus pour le dessin --}}
                 <canvas id="draw-canvas" style="position:absolute;top:0;left:0;pointer-events:none;"></canvas>
             </div>
         </div>
@@ -152,10 +84,8 @@
 </div>
 @endif
 
-{{-- OVERLAY --}}
 <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:99996;pointer-events:none;"></div>
 
-{{-- MODAL ORIGINE --}}
 <div id="originModal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:24px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:99999;width:320px;text-align:center;pointer-events:auto;">
     <h4 style="color:#1e3a5f;margin-bottom:4px;">📍 Origine du lot</h4>
     <p style="color:#64748b;font-size:13px;margin-bottom:16px;">Zone : <strong id="originZoneLabel">-</strong></p>
@@ -170,13 +100,9 @@
     <button onclick="closeAllModals()" class="btn btn-light btn-sm mt-3 w-100">Annuler</button>
 </div>
 
-{{-- MODAL LOT --}}
 <div id="lotModal" style="display:none;position:fixed;top:50%;transform:translateY(-50%);background:white;padding:20px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:99998;width:420px;max-height:92vh;overflow-y:auto;pointer-events:auto;">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <div>
-            <h4 class="mb-0">📦 Lot</h4>
-            <div id="lotEtapeInfo" style="font-size:12px;color:#64748b;margin-top:2px;"></div>
-        </div>
+        <div><h4 class="mb-0">📦 Lot</h4><div id="lotEtapeInfo" style="font-size:12px;color:#64748b;margin-top:2px;"></div></div>
         <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
     <p>Zone : <strong id="zoneLabel">-</strong></p>
@@ -203,61 +129,40 @@
     </div>
     <div id="dossierSelectField" style="display:none;" class="mt-2">
         <label style="font-weight:600;color:#374151;">📂 Lier au dossier client</label>
-        <select id="selected_dossier_id" class="form-control form-control-sm mt-1">
-            <option value="">-- Choisir un dossier --</option>
-        </select>
+        <select id="selected_dossier_id" class="form-control form-control-sm mt-1"><option value="">-- Choisir un dossier --</option></select>
         <div id="dossier_selected_info" style="display:none;margin-top:6px;padding:6px 10px;background:#eff6ff;border-radius:6px;font-size:12px;color:#1e3a5f;"></div>
     </div>
-    <div id="datePrevueGroup" style="display:none;" class="mt-2">
-        <label>Date prévue</label><input type="date" id="date_prevue" class="form-control">
-    </div>
-    <div id="dateConfirmeeGroup" class="mt-2" style="display:none;">
-        <label>Date confirmée</label><input type="date" id="date_confirmee" class="form-control">
-    </div>
-    <div id="dateMorcellementGroup" class="mt-2" style="display:none;">
-        <label>Date morcellement</label><input type="date" id="date_morcellement" class="form-control">
-    </div>
-    <div id="superficieField" class="mt-2" style="display:none;">
-        <label>Superficie (m²)</label><input type="number" id="superficie" class="form-control">
-    </div>
+    <div id="datePrevueGroup" style="display:none;" class="mt-2"><label>Date prévue</label><input type="date" id="date_prevue" class="form-control"></div>
+    <div id="dateConfirmeeGroup" class="mt-2" style="display:none;"><label>Date confirmée</label><input type="date" id="date_confirmee" class="form-control"></div>
+    <div id="dateMorcellementGroup" class="mt-2" style="display:none;"><label>Date morcellement</label><input type="date" id="date_morcellement" class="form-control"></div>
+    <div id="superficieField" class="mt-2" style="display:none;"><label>Superficie (m²)</label><input type="number" id="superficie" class="form-control"></div>
     <div class="d-flex justify-content-end gap-2 mt-4">
         <button onclick="closeModal()" class="btn btn-light">Annuler</button>
         <button onclick="saveLot()" class="btn btn-success">Enregistrer</button>
     </div>
 </div>
 
-{{-- MODAL ZONE GROUPE --}}
 <div id="zoneGroupeModal">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="mb-0">🟡 Zone groupée</h4>
-            <div id="zgEtapeInfo" style="font-size:12px;color:#64748b;margin-top:2px;"></div>
-        </div>
+        <div><h4 class="mb-0">🟡 Zone groupée</h4><div id="zgEtapeInfo" style="font-size:12px;color:#64748b;margin-top:2px;"></div></div>
         <button onclick="closeZoneGroupeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
-
     <div class="mb-3">
         <label style="font-weight:600;font-size:13px;">🏷️ Nom ou client</label>
         <div class="client-search-wrap mt-1">
-            <input type="text" id="zg_client_search" class="form-control"
-                   placeholder="🔍 Chercher client ou saisir un nom..." autocomplete="off">
+            <input type="text" id="zg_client_search" class="form-control" placeholder="🔍 Chercher client ou saisir un nom..." autocomplete="off">
             <div class="client-dropdown" id="zg_client_dropdown"></div>
         </div>
         <input type="hidden" id="zg_client_id">
         <div id="zg_client_info" style="display:none;margin-top:6px;padding:6px 10px;background:#ecfdf5;border-radius:6px;font-size:12px;color:#065f46;"></div>
     </div>
-
     <div id="zg_clientExistantInfo" style="display:none;padding:8px 12px;background:#f0f7ff;border-radius:8px;font-size:12px;color:#1e3a5f;margin-bottom:10px;border-left:3px solid #0d6efd;">
         👤 <strong id="zg_clientExistantNom"></strong>
     </div>
-
     <div id="zg_dossierSelectField" style="display:none;" class="mb-3">
         <label style="font-weight:600;font-size:13px;">📂 Dossier client</label>
-        <select id="zg_dossier_id" class="form-control form-control-sm mt-1">
-            <option value="">-- Choisir --</option>
-        </select>
+        <select id="zg_dossier_id" class="form-control form-control-sm mt-1"><option value="">-- Choisir --</option></select>
     </div>
-
     <div class="mb-3">
         <label style="font-weight:600;font-size:13px;">Type</label>
         <select id="zg_type" class="form-control" onchange="zgTypeChange()">
@@ -268,53 +173,34 @@
             <option value="morcellement">Morcellement</option>
         </select>
     </div>
-    <div id="zg_datePrevueGroup" style="display:none;" class="mb-3">
-        <label style="font-weight:600;font-size:13px;">Date prévue</label>
-        <input type="date" id="zg_date_prevue" class="form-control">
-    </div>
-    <div id="zg_dateConfirmeeGroup" style="display:none;" class="mb-3">
-        <label style="font-weight:600;font-size:13px;">Date confirmée</label>
-        <input type="date" id="zg_date_confirmee" class="form-control">
-    </div>
-    <div id="zg_dateMorcellementGroup" style="display:none;" class="mb-3">
-        <label style="font-weight:600;font-size:13px;">Date morcellement</label>
-        <input type="date" id="zg_date_morcellement" class="form-control">
-    </div>
-
+    <div id="zg_datePrevueGroup" style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date prévue</label><input type="date" id="zg_date_prevue" class="form-control"></div>
+    <div id="zg_dateConfirmeeGroup" style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date confirmée</label><input type="date" id="zg_date_confirmee" class="form-control"></div>
+    <div id="zg_dateMorcellementGroup" style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date morcellement</label><input type="date" id="zg_date_morcellement" class="form-control"></div>
     <div id="zg_superficie_info" style="background:#fef9c3;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:12px;display:none;">
         📐 Superficie totale : <strong id="zg_superficie_val">0</strong> m²
     </div>
-
     <div id="zg_deleteBtn" style="display:none;margin-bottom:10px;">
         <button onclick="supprimerZoneGroupe()" class="btn btn-outline-danger btn-sm w-100">🗑 Supprimer cette zone</button>
     </div>
-
     <div class="d-flex justify-content-end gap-2">
         <button onclick="closeZoneGroupeModal()" class="btn btn-light">Annuler</button>
         <button onclick="saveZoneGroupe()" class="btn btn-warning" style="color:white;">💾 Enregistrer</button>
     </div>
 </div>
 
-{{-- PANNEAU CLIENT --}}
 <div id="clientPanel">
     <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <h6 id="cp-name">-</h6>
-            <div id="cp-phone" style="color:#64748b;font-size:11px;"></div>
-        </div>
+        <div><h6 id="cp-name">-</h6><div id="cp-phone" style="color:#64748b;font-size:11px;"></div></div>
         <button onclick="document.getElementById('clientPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
     <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px;border-top:1px solid #f1f5f9;padding-top:8px;">📂 Dossiers client</div>
     <div id="cp-dossiers"></div>
     <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px;border-top:1px solid #f1f5f9;padding-top:8px;margin-top:8px;">📦 Lots attribués</div>
     <div id="cp-lots"></div>
-    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px;border-top:1px solid #f1f5f9;padding-top:8px;margin-top:8px;">
-    🚶 Historique visites
-</div>
-<div id="cp-visites"></div>
+    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px;border-top:1px solid #f1f5f9;padding-top:8px;margin-top:8px;">🚶 Historique visites</div>
+    <div id="cp-visites"></div>
 </div>
 
-{{-- MODAL PAIEMENT --}}
 <div id="paiementDossierModal">
     <h5 style="font-weight:700;color:#1e3a5f;margin-bottom:14px;">💰 Paiement — <span id="pay-dossier-nom"></span></h5>
     <div class="mb-2"><label style="font-size:12px;font-weight:600;">Montant (FCFA)</label><input type="number" id="pay-montant" class="form-control form-control-sm"></div>
@@ -326,7 +212,6 @@
     </div>
 </div>
 
-{{-- LÉGENDE --}}
 <div id="legend-fixe">
     <h6>📌 Légende</h6>
     <div class="leg-item"><div class="leg-dot" style="background:transparent;border:2px dashed #aaa;"></div> Non défini</div>
@@ -351,23 +236,33 @@ const tfId         = "{{ $tf->id }}";
 const CSRF         = "{{ csrf_token() }}";
 
 // ============================================================
+// COULEURS ALÉATOIRES STABLES PAR ZONE (basées sur l'id)
+// ============================================================
+const PALETTE_BORDURES = [
+    '#e11d48','#7c3aed','#0284c7','#059669','#d97706',
+    '#db2777','#4f46e5','#0891b2','#16a34a','#dc2626',
+    '#9333ea','#2563eb','#0d9488','#ca8a04','#c026d3',
+];
+function couleurZone(zgId) {
+    return PALETTE_BORDURES[zgId % PALETTE_BORDURES.length];
+}
+
+// ============================================================
 // ÉTAT
 // ============================================================
-let currentZone          = null;
-let originZone           = null;
-let searchTimer          = null;
-let zgSearchTimer        = null;
-let currentDossierId     = null;
-let cachedDossiers       = [];
-let zgCachedDossiers     = [];
-let currentZoneGroupeId  = null;
+let currentZone             = null;
+let originZone              = null;
+let searchTimer             = null;
+let zgSearchTimer           = null;
+let currentDossierId        = null;
+let cachedDossiers          = [];
+let zgCachedDossiers        = [];
+let currentZoneGroupeId     = null;
 let currentZoneGroupePoints = [];
 let currentZoneGroupeLotIds = [];
-
-// Dessin
-let currentTool    = 'select';
-let drawingPoints  = []; // points SVG en cours
-let isDrawing      = false;
+let currentTool             = 'select';
+let drawingPoints           = [];
+let isDrawing               = false;
 
 // ============================================================
 // REFS DOM
@@ -394,43 +289,32 @@ const container             = document.getElementById('tf-map-container');
 const mapInner              = document.getElementById('map-inner');
 const canvas                = document.getElementById('draw-canvas');
 const ctx                   = canvas.getContext('2d');
-
-// ============================================================
-// ZOOM — barre seulement, scroll = déplacement
-// ============================================================
-const ZOOM_KEY = 'tf_zoom_{{ $tf->id }}';
+const ZOOM_KEY              = 'tf_zoom_{{ $tf->id }}';
 
 function getSVG() { return mapInner?.querySelector('svg'); }
 
+// ============================================================
+// ZOOM
+// ============================================================
 function appliquerZoom(val) {
     const scale = val / 100;
-    mapInner.style.transform = `scale(${scale})`;
+    mapInner.style.transform       = `scale(${scale})`;
     mapInner.style.transformOrigin = '0 0';
     document.getElementById('svg-zoom-val').innerText = val + '%';
     redessinerCanvas();
     sessionStorage.setItem(ZOOM_KEY, val);
 }
-
-function resetZoom() {
-    document.getElementById('svg-zoom').value = 100;
-    appliquerZoom(100);
-}
-
-document.getElementById('svg-zoom').addEventListener('input', function() {
-    appliquerZoom(parseInt(this.value));
-});
+function resetZoom() { document.getElementById('svg-zoom').value = 100; appliquerZoom(100); }
+document.getElementById('svg-zoom').addEventListener('input', function() { appliquerZoom(parseInt(this.value)); });
 
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Restaurer zoom
     const savedZoom = sessionStorage.getItem(ZOOM_KEY);
     const zoomVal   = savedZoom ? parseInt(savedZoom) : 100;
     document.getElementById('svg-zoom').value = zoomVal;
     appliquerZoom(zoomVal);
-
-    // Synchroniser canvas avec SVG
     syncCanvas();
     initSVG();
     dessinerZonesGroupes();
@@ -441,8 +325,8 @@ function syncCanvas() {
     if (!svg) return;
     const w = svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800;
     const h = svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600;
-    canvas.width  = parseFloat(w);
-    canvas.height = parseFloat(h);
+    canvas.width        = parseFloat(w);
+    canvas.height       = parseFloat(h);
     canvas.style.width  = parseFloat(w) + 'px';
     canvas.style.height = parseFloat(h) + 'px';
 }
@@ -452,55 +336,43 @@ function syncCanvas() {
 // ============================================================
 function setTool(tool) {
     currentTool = tool;
-    document.getElementById('toolSelect').classList.toggle('active',    tool === 'select');
+    document.getElementById('toolSelect').classList.toggle('active',     tool === 'select');
     document.getElementById('toolZoneDessin').classList.toggle('active', tool === 'zone');
     container.classList.toggle('zone-drawing', tool === 'zone');
-
     const hint = document.getElementById('toolHint');
     if (tool === 'zone') {
-        hint.innerText = '💡 Cliquez pour placer des points • Cliquez sur le 1er point (🟡) pour fermer la zone';
-        // Activer les clics sur le canvas
+        hint.innerText = '💡 Cliquez pour placer des points • Cliquez sur le 1er point 🟡 pour fermer';
         canvas.style.pointerEvents = 'auto';
-        canvas.style.cursor = 'crosshair';
+        canvas.style.cursor        = 'crosshair';
     } else {
-        hint.innerText = '';
+        hint.innerText             = '';
         canvas.style.pointerEvents = 'none';
-        canvas.style.cursor = 'default';
+        canvas.style.cursor        = 'default';
         annulerDessin();
     }
 }
 
 // ============================================================
-// CONVERSION COORDONNÉES ÉCRAN → SVG
+// COORDONNÉES
 // ============================================================
 function ecranVersSVG(e) {
     const rect  = canvas.getBoundingClientRect();
     const scale = parseInt(document.getElementById('svg-zoom').value) / 100;
-    return {
-        x: (e.clientX - rect.left)  / scale,
-        y: (e.clientY - rect.top)   / scale,
-    };
+    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
 }
 
 // ============================================================
-// DESSIN ZONE — clic par clic, fermeture sur 1er point
+// DESSIN ZONE
 // ============================================================
 canvas.addEventListener('click', function(e) {
     if (currentTool !== 'zone') return;
-
     const pt = ecranVersSVG(e);
-
-    // Si au moins 3 points et on clique près du premier → fermer
     if (drawingPoints.length >= 3) {
         const premier = drawingPoints[0];
         const dist    = Math.hypot(pt.x - premier.x, pt.y - premier.y);
         const seuil   = 15 / (parseInt(document.getElementById('svg-zoom').value) / 100);
-        if (dist < seuil) {
-            finaliserDessin();
-            return;
-        }
+        if (dist < seuil) { finaliserDessin(); return; }
     }
-
     drawingPoints.push(pt);
     isDrawing = true;
     redessinerCanvas();
@@ -508,33 +380,22 @@ canvas.addEventListener('click', function(e) {
 
 canvas.addEventListener('mousemove', function(e) {
     if (currentTool !== 'zone' || drawingPoints.length === 0) return;
-    const pt = ecranVersSVG(e);
-    redessinerCanvas(pt); // passer le curseur pour afficher ligne dynamique
+    redessinerCanvas(ecranVersSVG(e));
 });
 
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && currentTool === 'zone') {
-        annulerDessin();
-        setTool('select');
-    }
+    if (e.key === 'Escape' && currentTool === 'zone') { annulerDessin(); setTool('select'); }
 });
 
 function redessinerCanvas(cursorPt) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     if (drawingPoints.length === 0) return;
-
     const scale = parseInt(document.getElementById('svg-zoom').value) / 100;
-
     ctx.save();
-    ctx.scale(1, 1); // canvas déjà en coords SVG
-
-    // Polygone en cours
     ctx.beginPath();
     ctx.moveTo(drawingPoints[0].x, drawingPoints[0].y);
     drawingPoints.forEach((p, i) => { if (i > 0) ctx.lineTo(p.x, p.y); });
     if (cursorPt) ctx.lineTo(cursorPt.x, cursorPt.y);
-
     ctx.closePath();
     ctx.fillStyle   = 'rgba(245,158,11,0.15)';
     ctx.fill();
@@ -543,17 +404,13 @@ function redessinerCanvas(cursorPt) {
     ctx.setLineDash([8 / scale, 4 / scale]);
     ctx.stroke();
     ctx.setLineDash([]);
-
-    // Points
     drawingPoints.forEach((p, i) => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, i === 0 ? 8 / scale : 5 / scale, 0, Math.PI * 2);
         ctx.fillStyle   = i === 0 ? '#f59e0b' : '#fff';
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth   = 2 / scale;
-        ctx.fill();
-        ctx.stroke();
-        // Croix sur le 1er point pour indiquer la fermeture
+        ctx.fill(); ctx.stroke();
         if (i === 0 && drawingPoints.length >= 3) {
             ctx.fillStyle = '#1e3a5f';
             ctx.font      = `bold ${12/scale}px sans-serif`;
@@ -561,83 +418,65 @@ function redessinerCanvas(cursorPt) {
             ctx.fillText('✕', p.x, p.y + 1);
         }
     });
-
     ctx.restore();
 }
 
 function annulerDessin() {
-    drawingPoints = [];
-    isDrawing     = false;
+    drawingPoints = []; isDrawing = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function finaliserDessin() {
-    if (drawingPoints.length < 3) {
-        alert('Il faut au moins 3 points pour créer une zone.');
-        return;
-    }
-
-    // Calculer lots inclus et superficie
+    if (drawingPoints.length < 3) { alert('Il faut au moins 3 points.'); return; }
     const lotIdsInclus = trouverLotsInclus(drawingPoints);
-    const superfTotale = lots
-        .filter(l => lotIdsInclus.includes(l.id))
-        .reduce((sum, l) => sum + (parseFloat(l.superficie) || 0), 0);
-
+    const superfTotale = lots.filter(l => lotIdsInclus.includes(l.id)).reduce((s, l) => s + (parseFloat(l.superficie) || 0), 0);
     currentZoneGroupeId     = null;
-    currentZoneGroupePoints = drawingPoints.map(p => ({ x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100 }));
+    currentZoneGroupePoints = drawingPoints.map(p => ({ x: Math.round(p.x*100)/100, y: Math.round(p.y*100)/100 }));
     currentZoneGroupeLotIds = lotIdsInclus;
-
-    // Réinitialiser le modal zone groupe
-    document.getElementById('zg_superficie_info').style.display = 'block';
-    document.getElementById('zg_superficie_val').innerText = superfTotale.toLocaleString('fr-FR');
-    document.getElementById('zg_deleteBtn').style.display  = 'none';
-    document.getElementById('zgEtapeInfo').innerText        = '';
-    document.getElementById('zg_type').value                = '';
-    document.getElementById('zg_type').disabled             = false;
+    document.getElementById('zg_superficie_info').style.display     = 'block';
+    document.getElementById('zg_superficie_val').innerText           = superfTotale.toLocaleString('fr-FR');
+    document.getElementById('zg_deleteBtn').style.display            = 'none';
+    document.getElementById('zgEtapeInfo').innerText                  = '';
+    document.getElementById('zg_type').value                          = '';
+    document.getElementById('zg_type').disabled                       = false;
     Array.from(document.getElementById('zg_type').options).forEach(o => o.disabled = false);
-    document.getElementById('zg_client_id').value           = '';
-    document.getElementById('zg_client_search').value       = '';
-    document.getElementById('zg_client_search').style.display = 'block';
-    document.getElementById('zg_client_info').style.display = 'none';
-    document.getElementById('zg_clientExistantInfo').style.display = 'none';
-    document.getElementById('zg_dossierSelectField').style.display = 'none';
-    document.getElementById('zg_date_prevue').value         = '';
-    document.getElementById('zg_date_confirmee').value      = '';
-    document.getElementById('zg_date_morcellement').value   = '';
+    document.getElementById('zg_client_id').value                     = '';
+    document.getElementById('zg_client_search').value                 = '';
+    document.getElementById('zg_client_search').style.display         = 'block';
+    document.getElementById('zg_client_info').style.display           = 'none';
+    document.getElementById('zg_clientExistantInfo').style.display    = 'none';
+    document.getElementById('zg_dossierSelectField').style.display    = 'none';
+    document.getElementById('zg_date_prevue').value                   = '';
+    document.getElementById('zg_date_confirmee').value                = '';
+    document.getElementById('zg_date_morcellement').value             = '';
     zgTypeChange();
-
-    // Garder le dessin visible sur le canvas pendant que le modal est ouvert
     modalOverlay.style.display = 'block';
     document.getElementById('zoneGroupeModal').style.display = 'block';
-
     setTool('select');
 }
 
 // ============================================================
-// TROUVER LES LOTS DANS LE POLYGONE
+// POINT DANS POLYGONE
 // ============================================================
 function pointInPolygon(pt, poly) {
     let inside = false;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
         const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
-        if (((yi > pt.y) !== (yj > pt.y)) && (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi) + xi))
-            inside = !inside;
+        if (((yi > pt.y) !== (yj > pt.y)) && (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi) + xi)) inside = !inside;
     }
     return inside;
 }
 
 function trouverLotsInclus(poly) {
-    const svg = getSVG();
-    if (!svg) return [];
+    const svg = getSVG(); if (!svg) return [];
     const inclus = [];
     svg.querySelectorAll('path').forEach(el => {
         try {
             const bbox = el.getBBox();
-            const cx   = bbox.x + bbox.width  / 2;
-            const cy   = bbox.y + bbox.height / 2;
-            if (pointInPolygon({ x: cx, y: cy }, poly)) {
-                const zoneId = (el.getAttribute('id') || '').trim().toLowerCase();
-                const lot = lots.find(l => (l.code || '').trim().toLowerCase() === zoneId);
+            const cx = bbox.x + bbox.width/2, cy = bbox.y + bbox.height/2;
+            if (pointInPolygon({x:cx,y:cy}, poly)) {
+                const zoneId = (el.getAttribute('id')||'').trim().toLowerCase();
+                const lot = lots.find(l => (l.code||'').trim().toLowerCase() === zoneId);
                 if (lot) inclus.push(lot.id);
             }
         } catch(e) {}
@@ -646,39 +485,83 @@ function trouverLotsInclus(poly) {
 }
 
 // ============================================================
-// DESSINER LES ZONES GROUPES SUR LE SVG
+// UTILITAIRES SVG TEXTE
+// ============================================================
+function mkText(x, y, txt, fs, fw, fill, sw) {
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','central');
+    t.setAttribute('font-size', fs); t.setAttribute('font-weight', fw);
+    t.setAttribute('fill', fill); t.setAttribute('stroke','#fff');
+    t.setAttribute('stroke-width', sw); t.setAttribute('paint-order','stroke');
+    t.textContent = txt;
+    return t;
+}
+
+// Crée des éléments <text> avec retour à la ligne automatique dans un bbox
+function mkTextMultiline(svg, cx, cyStart, txt, fontSize, fontWeight, fill, strokeW, maxWidth) {
+    const mots = txt.split(' ');
+    const lignes = [];
+    let ligne = '';
+    // Estimation grossière : 0.6 * fontSize par caractère
+    const charW = parseFloat(fontSize) * 0.6;
+    mots.forEach(mot => {
+        const test = ligne ? ligne + ' ' + mot : mot;
+        if (test.length * charW > maxWidth && ligne) {
+            lignes.push(ligne);
+            ligne = mot;
+        } else {
+            ligne = test;
+        }
+    });
+    if (ligne) lignes.push(ligne);
+    const lineH = parseFloat(fontSize) * 1.3;
+    const totalH = lignes.length * lineH;
+    let y = cyStart - totalH / 2 + lineH / 2;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.pointerEvents = 'none';
+    lignes.forEach(l => {
+        g.appendChild(mkText(cx, y, l, fontSize, fontWeight, fill, strokeW));
+        y += lineH;
+    });
+    return { g, hauteur: totalH };
+}
+
+// ============================================================
+// DESSINER LES ZONES GROUPES
 // ============================================================
 function dessinerZonesGroupes() {
-    const svg = getSVG();
-    if (!svg) return;
-
+    const svg = getSVG(); if (!svg) return;
     svg.querySelectorAll('.zone-groupe-el').forEach(el => el.remove());
 
     zonesGroupes.forEach(zg => {
         if (!zg.points || zg.points.length < 3) return;
 
+        const couleur   = couleurZone(zg.id);
         const ptsStr    = zg.points.map(p => `${p.x},${p.y}`).join(' ');
-        const fillColor = zg.type ? hexToRgba(getColor(zg.type), 0.20) : 'rgba(245,158,11,0.08)';
 
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        // Fond : transparent si pas de type, couleur du type sinon
+        const fillColor = zg.type ? hexToRgba(getColor(zg.type), 0.22) : 'transparent';
+
+        const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
         poly.setAttribute('points', ptsStr);
         poly.setAttribute('fill', fillColor);
-        poly.setAttribute('stroke', '#f59e0b');
-        poly.setAttribute('stroke-width', '4');
-        poly.setAttribute('stroke-linejoin', 'round');
+        poly.setAttribute('stroke', couleur);
+        poly.setAttribute('stroke-width', '5');
+        poly.setAttribute('stroke-linejoin','round');
         poly.style.cursor = 'pointer';
         poly.classList.add('zone-groupe-el');
         poly.dataset.zgId = zg.id;
-        poly.addEventListener('click', function(e) {
-            e.stopPropagation();
-            ouvrirZoneGroupeExistante(zg);
-        });
+        poly.addEventListener('click', function(e) { e.stopPropagation(); ouvrirZoneGroupeExistante(zg); });
         svg.appendChild(poly);
 
-        // Labels
+        // Calculer le bbox du polygone
         const xs = zg.points.map(p => p.x), ys = zg.points.map(p => p.y);
-        const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-        const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        const cx   = (minX + maxX) / 2;
+        const largeur = maxX - minX;
+        const hauteurZone = maxY - minY;
 
         const nomTxt  = zg.owner_name || zg.nom || '';
         const supTxt  = zg.superficie_totale ? parseFloat(zg.superficie_totale).toLocaleString('fr-FR') + ' m²' : '';
@@ -687,36 +570,140 @@ function dessinerZonesGroupes() {
         else if (zg.type === 'deja_implante'  && zg.date_confirmee)    dateTxt = formatDate(zg.date_confirmee);
         else if (zg.type === 'morcellement'   && zg.date_morcellement) dateTxt = formatDate(zg.date_morcellement);
 
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.style.pointerEvents = 'none';
-        g.classList.add('zone-groupe-el');
+        // Taille de police adaptée à la zone (min 10, max 18)
+        const fontSize = Math.min(18, Math.max(10, Math.floor(largeur / 10)));
 
-        let yOff = cy - (nomTxt ? 10 : 0) - (supTxt ? 6 : 0);
+        // Calculer la hauteur totale des blocs de texte
+        const nbLignesNom = nomTxt ? Math.ceil(nomTxt.length * fontSize * 0.6 / largeur) || 1 : 0;
+        const ligneH      = fontSize * 1.3;
+        const totalTxtH   = (nbLignesNom * ligneH) + (supTxt ? ligneH : 0) + (dateTxt ? ligneH : 0);
+        let   yOff        = (minY + maxY) / 2 - totalTxtH / 2;
+
+        const gAll = document.createElementNS('http://www.w3.org/2000/svg','g');
+        gAll.style.pointerEvents = 'none';
+        gAll.classList.add('zone-groupe-el');
 
         if (nomTxt) {
-            g.appendChild(mkText(cx, yOff, nomTxt, '14', '800', '#1e293b', '3'));
-            yOff += 18;
+            const { g: gNom, hauteur: hNom } = mkTextMultiline(svg, cx, yOff + (nbLignesNom * ligneH) / 2, nomTxt, String(fontSize), '800', couleur, '3', largeur - 10);
+            gAll.appendChild(gNom);
+            yOff += hNom + 4;
         }
         if (supTxt) {
-            g.appendChild(mkText(cx, yOff, supTxt, '11', '700', '#1d4ed8', '2.5'));
-            yOff += 14;
+            gAll.appendChild(mkText(cx, yOff + ligneH/2, supTxt, String(Math.max(9, fontSize - 2)), '700', '#1d4ed8', '2.5'));
+            yOff += ligneH + 2;
         }
         if (dateTxt) {
-            g.appendChild(mkText(cx, yOff, dateTxt, '10', '500', '#374151', '2'));
+            gAll.appendChild(mkText(cx, yOff + ligneH/2, dateTxt, String(Math.max(8, fontSize - 3)), '500', '#374151', '2'));
         }
-        svg.appendChild(g);
+
+        svg.appendChild(gAll);
     });
 }
 
-function mkText(x, y, txt, fs, fw, fill, sw) {
-    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    t.setAttribute('x', x); t.setAttribute('y', y);
-    t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
-    t.setAttribute('font-size', fs); t.setAttribute('font-weight', fw);
-    t.setAttribute('fill', fill); t.setAttribute('stroke', '#fff');
-    t.setAttribute('stroke-width', sw); t.setAttribute('paint-order', 'stroke');
-    t.textContent = txt;
-    return t;
+// ============================================================
+// COULEURS
+// ============================================================
+function getColor(type) {
+    return { implantation_prevue:'#7c3aed', deja_implante:'#16a34a', dossier_technique:'#dc2626', morcellement:'#ea580c' }[type] || '#0d6efd';
+}
+function hexToRgba(hex, alpha) {
+    if (!hex || !hex.startsWith('#')) return `rgba(245,158,11,${alpha})`;
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+function formatDate(s) {
+    if (!s) return '';
+    const d = new Date(s);
+    return isNaN(d) ? s : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+// ============================================================
+// INIT SVG
+// ============================================================
+function initSVG() {
+    const svg = getSVG(); if (!svg) return;
+
+    // Lots masqués : encadrés par une zone AVEC type
+    const lotIdsMasques = new Set();
+    zonesGroupes.forEach(zg => {
+        if (zg.type && zg.lot_ids && zg.lot_ids.length > 0)
+            zg.lot_ids.forEach(id => lotIdsMasques.add(id));
+    });
+
+    svg.querySelectorAll('path').forEach(el => {
+        const zoneId = (el.getAttribute('id')||'').trim().toLowerCase();
+        const lot    = lots.find(l => (l.code||'').trim().toLowerCase() === zoneId);
+
+        el.style.cursor      = 'pointer';
+        el.style.strokeWidth = '2.5px';
+
+        // Lot masqué par une zone typée → transparent
+        if (lot && lotIdsMasques.has(lot.id)) {
+            el.style.stroke          = 'transparent';
+            el.style.fill            = 'transparent';
+            el.style.strokeDasharray = '';
+            el.addEventListener('click', function(e) {
+                if (currentTool !== 'select') return;
+                openModal(zoneId, lot);
+            });
+            return;
+        }
+
+        if (!lot || !lot.origine) {
+            el.style.stroke = '#bbb'; el.style.fill = 'transparent'; el.style.strokeDasharray = '2,2';
+        } else if (lot.origine === 'famille') {
+            el.style.stroke = '#c8a882'; el.style.fill = 'rgba(250,245,238,0.35)'; el.style.strokeDasharray = '';
+        } else if (lot.origine === 'eden') {
+            el.style.strokeDasharray = '';
+            if (!lot.type) {
+                el.style.stroke = '#0d6efd'; el.style.fill = 'rgba(13,110,253,0.25)';
+            } else {
+                const color = getColor(lot.type);
+                el.style.stroke = color; el.style.fill = hexToRgba(color, 0.40);
+                afficherInfoSurLot(svg, el, lot);
+            }
+        }
+
+        el.addEventListener('click', function(e) {
+            if (currentTool !== 'select') return;
+            if (e.ctrlKey)             { openOriginModal(zoneId, lot); return; }
+            if (!lot || !lot.origine)  { openOriginModal(zoneId, lot); return; }
+            if (lot.origine === 'famille') { openOriginModal(zoneId, lot); return; }
+            if (lot.origine === 'eden')    { openModal(zoneId, lot); }
+        });
+    });
+}
+
+// Afficher nom + date sur un lot individuel avec texte adapté à la taille
+function afficherInfoSurLot(svg, pathEl, lot) {
+    try {
+        const bbox = pathEl.getBBox();
+        const cx = bbox.x + bbox.width/2, cy = bbox.y + bbox.height/2;
+        const largeur = bbox.width;
+
+        let dateTxt = '';
+        if (lot.type === 'implantation_prevue' && lot.date_prevue)       dateTxt = formatDate(lot.date_prevue);
+        else if (lot.type === 'deja_implante'  && lot.date_confirmee)    dateTxt = formatDate(lot.date_confirmee);
+        else if (lot.type === 'morcellement'   && lot.date_morcellement) dateTxt = formatDate(lot.date_morcellement);
+        const nomTxt = lot.owner_name || '';
+        if (!nomTxt && !dateTxt) return;
+
+        const fontSize = Math.min(13, Math.max(7, Math.floor(largeur / 8)));
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.style.pointerEvents = 'none';
+
+        let yOff = cy - (dateTxt ? fontSize * 0.7 : 0);
+
+        if (nomTxt) {
+            const { g: gNom } = mkTextMultiline(svg, cx, yOff, nomTxt, String(fontSize), '700', '#1e293b', '2.5', largeur - 4);
+            g.appendChild(gNom);
+            yOff += fontSize * 1.4;
+        }
+        if (dateTxt) {
+            g.appendChild(mkText(cx, yOff, dateTxt, String(Math.max(6, fontSize - 1)), '500', '#374151', '2'));
+        }
+        svg.appendChild(g);
+    } catch(e) {}
 }
 
 // ============================================================
@@ -738,39 +725,33 @@ function ouvrirZoneGroupeExistante(zg) {
         etapeInfoEl.innerText = 'Aucune étape définie';
     }
 
-    // Superficie
-    const superfTotale = lots
-        .filter(l => (currentZoneGroupeLotIds || []).includes(l.id))
-        .reduce((sum, l) => sum + (parseFloat(l.superficie) || 0), 0);
+    const superfTotale = lots.filter(l => (currentZoneGroupeLotIds||[]).includes(l.id))
+        .reduce((s,l) => s + (parseFloat(l.superficie)||0), 0);
     document.getElementById('zg_superficie_info').style.display = 'block';
     document.getElementById('zg_superficie_val').innerText = (superfTotale || zg.superficie_totale || 0).toLocaleString('fr-FR');
 
-    // Client
     if (zg.client_id) {
         document.getElementById('zg_clientExistantInfo').style.display = 'block';
         document.getElementById('zg_clientExistantNom').innerText = zg.owner_name || '-';
-        document.getElementById('zg_client_search').style.display = 'none';
-        document.getElementById('zg_client_id').value = zg.client_id;
+        document.getElementById('zg_client_search').style.display  = 'none';
+        document.getElementById('zg_client_id').value              = zg.client_id;
         chargerDossiersZG(zg.client_id, zg.dossier_client_id);
         loadClientPanel(zg.client_id);
     } else {
         document.getElementById('zg_clientExistantInfo').style.display = 'none';
-        document.getElementById('zg_client_search').style.display = 'block';
-        document.getElementById('zg_client_search').value = zg.nom || '';
-        document.getElementById('zg_client_id').value = '';
-        document.getElementById('zg_dossierSelectField').style.display = 'none';
+        document.getElementById('zg_client_search').style.display       = 'block';
+        document.getElementById('zg_client_search').value               = zg.nom || '';
+        document.getElementById('zg_client_id').value                   = '';
+        document.getElementById('zg_dossierSelectField').style.display  = 'none';
     }
-
     document.getElementById('zg_client_info').style.display = 'none';
 
-    // Type & options
     const zgTypeEl = document.getElementById('zg_type');
     zgTypeEl.disabled = false;
     Array.from(zgTypeEl.options).forEach(o => o.disabled = false);
 
     if (etapeSuivante === null) {
-        zgTypeEl.disabled = true;
-        zgTypeEl.value = zg.type || '';
+        zgTypeEl.disabled = true; zgTypeEl.value = zg.type || '';
     } else if (zg.type) {
         zgTypeEl.value = etapeSuivante;
         const ordre = ['implantation_prevue','deja_implante','dossier_technique','morcellement'];
@@ -791,30 +772,25 @@ function ouvrirZoneGroupeExistante(zg) {
     document.getElementById('zg_date_morcellement').value = zg.date_morcellement ? zg.date_morcellement.substring(0,10) : '';
 
     zgTypeChange();
-
     document.getElementById('zg_deleteBtn').style.display = 'block';
     modalOverlay.style.display = 'block';
     document.getElementById('zoneGroupeModal').style.display = 'block';
 }
 
 // ============================================================
-// RECHERCHE CLIENT ZONE GROUPE
+// RECHERCHE CLIENT — zone groupe
 // ============================================================
 document.getElementById('zg_client_search').addEventListener('input', function() {
-    const q  = this.value.trim();
-    const dd = document.getElementById('zg_client_dropdown');
+    const q = this.value.trim(), dd = document.getElementById('zg_client_dropdown');
     clearTimeout(zgSearchTimer);
     if (q.length < 1) { dd.style.display = 'none'; return; }
     zgSearchTimer = setTimeout(() => {
-        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(clients => {
+        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`).then(r => r.json()).then(clients => {
             if (!clients.length) { dd.style.display = 'none'; return; }
             dd.innerHTML = clients.map(c =>
                 `<div class="client-option" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone??''}">
                     <strong>${c.name}</strong><small>${c.phone??''}</small>
-                </div>`
-            ).join('');
+                </div>`).join('');
             dd.style.display = 'block';
             dd.querySelectorAll('.client-option').forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -833,16 +809,14 @@ document.getElementById('zg_client_search').addEventListener('input', function()
 });
 
 function chargerDossiersZG(clientId, selectedId) {
-    fetch(`/admin/lots/client-panel/${clientId}`)
-    .then(r => r.json())
-    .then(data => {
+    fetch(`/admin/lots/client-panel/${clientId}`).then(r => r.json()).then(data => {
         zgCachedDossiers = data.dossiers || [];
         const sel = document.getElementById('zg_dossier_id');
         sel.innerHTML = '<option value="">-- Choisir un dossier --</option>';
         zgCachedDossiers.forEach(d => {
             const opt = document.createElement('option');
-            opt.value    = d.id;
-            opt.innerText= d.nom + (d.prix_ref !== '-' ? ' — ' + d.prix_ref + ' FCFA' : '');
+            opt.value = d.id;
+            opt.innerText = d.nom + (d.prix_ref !== '-' ? ' — ' + d.prix_ref + ' FCFA' : '');
             if (selectedId && d.id == selectedId) opt.selected = true;
             sel.appendChild(opt);
         });
@@ -858,55 +832,36 @@ function zgTypeChange() {
 }
 
 // ============================================================
-// SAUVEGARDER ZONE GROUPE
+// SAVE / DELETE ZONE GROUPE
 // ============================================================
 function saveZoneGroupe() {
     if (!currentZoneGroupePoints || currentZoneGroupePoints.length < 3) {
         alert('Aucune zone dessinée (minimum 3 points requis).');
         return;
     }
-
     const clientId = document.getElementById('zg_client_id').value || null;
     const nom      = document.getElementById('zg_client_search').value.trim() || null;
     const type     = document.getElementById('zg_type').value || null;
-
-    const payload = {
-        tf_id:             tfId,
-        client_id:         clientId,
+    const payload  = {
+        tf_id: tfId, client_id: clientId,
         dossier_client_id: document.getElementById('zg_dossier_id').value || null,
-        nom:               nom,
-        points:            currentZoneGroupePoints,
-        lot_ids:           currentZoneGroupeLotIds,
-        type,
+        nom, points: currentZoneGroupePoints, lot_ids: currentZoneGroupeLotIds, type,
         date_prevue:       document.getElementById('zg_date_prevue').value       || null,
         date_confirmee:    document.getElementById('zg_date_confirmee').value    || null,
         date_morcellement: document.getElementById('zg_date_morcellement').value || null,
     };
-
     const url    = currentZoneGroupeId ? `/admin/zone-groupes/${currentZoneGroupeId}` : '/admin/zone-groupes';
     const method = currentZoneGroupeId ? 'PUT' : 'POST';
-
-    fetch(url, {
-        method,
-        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify(payload)
-    })
+    fetch(url, { method, headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF}, body:JSON.stringify(payload) })
     .then(r => r.json())
-    .then(data => {
-        if (data.success) location.reload();
-        else alert(data.message || 'Erreur lors de l\'enregistrement');
-    })
+    .then(data => { if (data.success) location.reload(); else alert(data.message || 'Erreur'); })
     .catch(e => alert('Erreur réseau : ' + e.message));
 }
 
 function supprimerZoneGroupe() {
     if (!confirm('Supprimer cette zone ?')) return;
-    fetch(`/admin/zone-groupes/${currentZoneGroupeId}`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': CSRF }
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); });
+    fetch(`/admin/zone-groupes/${currentZoneGroupeId}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF} })
+    .then(r => r.json()).then(data => { if (data.success) location.reload(); });
 }
 
 function closeZoneGroupeModal() {
@@ -915,12 +870,11 @@ function closeZoneGroupeModal() {
     document.getElementById('clientPanel').style.display = 'none';
     document.getElementById('zg_type').disabled = false;
     Array.from(document.getElementById('zg_type').options).forEach(o => o.disabled = false);
-    // Effacer le canvas uniquement si on annule (pas après save)
     annulerDessin();
 }
 
 // ============================================================
-// AUTOCOMPLETE CLIENT (modal lot)
+// AUTOCOMPLETE CLIENT — modal lot
 // ============================================================
 clientSearch.addEventListener('input', function() {
     const q = this.value.trim();
@@ -931,15 +885,12 @@ clientSearch.addEventListener('input', function() {
     clearTimeout(searchTimer);
     if (q.length < 1) { clientDropdown.style.display = 'none'; return; }
     searchTimer = setTimeout(() => {
-        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(clients => {
+        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`).then(r => r.json()).then(clients => {
             if (!clients.length) { clientDropdown.style.display = 'none'; return; }
             clientDropdown.innerHTML = clients.map(c =>
                 `<div class="client-option" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone??''}">
                     <strong>${c.name}</strong><small>${c.phone??''}</small>
-                </div>`
-            ).join('');
+                </div>`).join('');
             clientDropdown.style.display = 'block';
             clientDropdown.querySelectorAll('.client-option').forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -974,9 +925,7 @@ function resetDossierSelect() {
 // PANNEAU CLIENT
 // ============================================================
 function loadClientPanel(clientId) {
-    fetch(`/admin/lots/client-panel/${clientId}`)
-    .then(r => r.json())
-    .then(data => {
+    fetch(`/admin/lots/client-panel/${clientId}`).then(r => r.json()).then(data => {
         document.getElementById('cp-name').innerText  = data.name;
         document.getElementById('cp-phone').innerText = '📞 ' + (data.phone || '-');
         cachedDossiers = data.dossiers || [];
@@ -984,8 +933,8 @@ function loadClientPanel(clientId) {
         selectedDossierId.innerHTML = '<option value="">-- Choisir un dossier --</option>';
         cachedDossiers.forEach(d => {
             const opt = document.createElement('option');
-            opt.value    = d.id;
-            opt.innerText= d.nom + (d.prix_ref !== '-' ? ' — ' + d.prix_ref + ' FCFA' : '');
+            opt.value = d.id;
+            opt.innerText = d.nom + (d.prix_ref !== '-' ? ' — ' + d.prix_ref + ' FCFA' : '');
             selectedDossierId.appendChild(opt);
         });
         if (cachedDossiers.length > 0) {
@@ -1020,67 +969,43 @@ function loadClientPanel(clientId) {
                 </div>`;
             }).join('');
 
-        const lotsData = data.lots;
-        document.getElementById('cp-lots').innerHTML = !lotsData.length
-    ? '<div style="color:#94a3b8;font-size:11px;">Aucun lot</div>'
-    : lotsData.map(l => {
-        const progColor = l.prog < 40 ? '#dc3545' : (l.prog < 75 ? '#fd7e14' : '#28a745');
-        return `<div class="cp-lot-card" style="border-left-color:${l.color};">
-            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-                <strong style="font-size:12px;">${l.code}</strong>
-                <span style="font-size:10px;color:${l.color};font-weight:600;">${l.type??'Sans type'}</span>
-            </div>
-            ${l.date_prevue    ? `<div style="font-size:10px;color:#64748b;">📅 ${l.date_prevue}</div>` : ''}
-            ${l.date_confirmee ? `<div style="font-size:10px;color:#64748b;">✅ ${l.date_confirmee}</div>` : ''}
-            ${l.prog > 0 ? `
-                <div class="cp-prog-wrap mt-1">
-                    <div class="cp-prog-fill" style="width:${l.prog}%;background:${progColor};"></div>
-                </div>
-                <div style="font-size:10px;text-align:right;color:${progColor};font-weight:600;">${l.prog}%</div>` : ''}
-            ${l.dossier_url ? `
-                <a href="${l.dossier_url}"
-                   style="display:block;margin-top:6px;background:#1d4ed8;color:white;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;text-decoration:none;text-align:center;">
-                    📁 Voir le dossier technique
-                </a>` : ''}
-        </div>`;
-    }).join('');
-// ✅ HISTORIQUE DES VISITES
-fetch(`/admin/visites/visiteur-search?q=${encodeURIComponent(data.name)}`)
-.then(r => r.json())
-.then(visiteurs => {
-    const v = visiteurs.find(x => x.nom === data.name || x.numero === data.phone);
-    if (!v) {
-        document.getElementById('cp-visites').innerHTML =
-            '<div style="color:#94a3b8;font-size:11px;">Aucune visite enregistrée</div>';
-        return;
-    }
-    fetch(`/admin/visites?ajax=1&nom=${encodeURIComponent(data.name)}`)
-    .then(r => r.text())
-    .then(() => {
-        // On fait une requête directe vers la liste des visites de ce visiteur
+        document.getElementById('cp-lots').innerHTML = !data.lots.length
+            ? '<div style="color:#94a3b8;font-size:11px;">Aucun lot</div>'
+            : data.lots.map(l => {
+                const progColor = l.prog < 40 ? '#dc3545' : (l.prog < 75 ? '#fd7e14' : '#28a745');
+                return `<div class="cp-lot-card" style="border-left-color:${l.color};">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                        <strong style="font-size:12px;">${l.code}</strong>
+                        <span style="font-size:10px;color:${l.color};font-weight:600;">${l.type??'Sans type'}</span>
+                    </div>
+                    ${l.date_prevue    ? `<div style="font-size:10px;color:#64748b;">📅 ${l.date_prevue}</div>`    : ''}
+                    ${l.date_confirmee ? `<div style="font-size:10px;color:#64748b;">✅ ${l.date_confirmee}</div>` : ''}
+                    ${l.prog > 0 ? `<div class="cp-prog-wrap mt-1"><div class="cp-prog-fill" style="width:${l.prog}%;background:${progColor};"></div></div>
+                    <div style="font-size:10px;text-align:right;color:${progColor};font-weight:600;">${l.prog}%</div>` : ''}
+                    ${l.dossier_url ? `<a href="${l.dossier_url}" style="display:block;margin-top:6px;background:#1d4ed8;color:white;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;text-decoration:none;text-align:center;">📁 Voir le dossier technique</a>` : ''}
+                </div>`;
+            }).join('');
+
+        // Visites
         fetch(`/admin/lots/client-visites/${clientId}`)
         .then(r => r.json())
         .then(visites => {
             if (!visites.length) {
-                document.getElementById('cp-visites').innerHTML =
-                    '<div style="color:#94a3b8;font-size:11px;">Aucune visite</div>';
+                document.getElementById('cp-visites').innerHTML = '<div style="color:#94a3b8;font-size:11px;">Aucune visite enregistrée</div>';
                 return;
             }
             document.getElementById('cp-visites').innerHTML = visites.slice(0,5).map(v =>
                 `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px;">
                     <span>📅 ${v.date} ${v.type === 'client' ? '💳' : ''}</span>
-                    <span style="color:#64748b;">${v.heure_arrivee ?? '--'} → ${v.heure_depart ?? '--'}</span>
+                    <span style="color:#64748b;">${v.heure_arrivee??'--'} → ${v.heure_depart??'--'}</span>
                 </div>`
             ).join('') + (visites.length > 5 ? `<div style="font-size:10px;color:#94a3b8;text-align:right;">${visites.length} visites au total</div>` : '');
         }).catch(() => {
-            document.getElementById('cp-visites').innerHTML =
-                '<div style="color:#94a3b8;font-size:11px;">—</div>';
+            document.getElementById('cp-visites').innerHTML = '<div style="color:#94a3b8;font-size:11px;">—</div>';
         });
-    });
-});
 
-positionClientPanel();
-document.getElementById('clientPanel').style.display = 'block';
+        positionClientPanel();
+        document.getElementById('clientPanel').style.display = 'block';
     });
 }
 
@@ -1097,23 +1022,20 @@ function updateDossierInfo(d) {
 }
 
 selectedDossierId.addEventListener('change', function() {
-    const d = cachedDossiers.find(x => x.id == this.value);
-    updateDossierInfo(d || null);
+    updateDossierInfo(cachedDossiers.find(x => x.id == this.value) || null);
 });
 
 function positionClientPanel() {
-    const modal  = document.getElementById('lotModal');
-    const panel  = document.getElementById('clientPanel');
+    const modal = document.getElementById('lotModal'), panel = document.getElementById('clientPanel');
     if (modal.style.display === 'none') return;
-    const rect   = modal.getBoundingClientRect();
-    const panelW = 310;
-    let   left   = rect.right + 14;
+    const rect = modal.getBoundingClientRect(), panelW = 310;
+    let left = rect.right + 14;
     if (left + panelW > window.innerWidth) left = rect.left - panelW - 14;
     panel.style.left = Math.max(4, left) + 'px';
 }
 
 // ============================================================
-// PAIEMENT DOSSIER
+// PAIEMENT
 // ============================================================
 function openPaiementDossier(dossierId, nom) {
     currentDossierId = dossierId;
@@ -1123,45 +1045,22 @@ function openPaiementDossier(dossierId, nom) {
     document.getElementById('pay-note').value    = '';
     document.getElementById('paiementDossierModal').style.display = 'block';
 }
-function closePaiementDossier() {
-    document.getElementById('paiementDossierModal').style.display = 'none';
-}
+function closePaiementDossier() { document.getElementById('paiementDossierModal').style.display = 'none'; }
 function savePaiementDossier() {
     const montant = document.getElementById('pay-montant').value;
     const date    = document.getElementById('pay-date').value;
     const note    = document.getElementById('pay-note').value;
     if (!montant || !date) { alert('Montant et date obligatoires.'); return; }
     fetch(`/admin/paiements-dossier/${currentDossierId}`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
         body:JSON.stringify({montant,date_paiement:date,note})
-    })
-    .then(r => r.json())
-    .then(data => {
+    }).then(r => r.json()).then(data => {
         if (data.success) {
             closePaiementDossier();
             const cid = selectedClientId.value || document.getElementById('zg_client_id').value;
-            if (cid) loadClientPanel(cid);
-            else location.reload();
+            if (cid) loadClientPanel(cid); else location.reload();
         } else alert(data.message || 'Erreur');
     });
-}
-
-// ============================================================
-// COULEURS
-// ============================================================
-function getColor(type) {
-    return { implantation_prevue:'#7c3aed', deja_implante:'#16a34a', dossier_technique:'#dc2626', morcellement:'#ea580c' }[type] || '#0d6efd';
-}
-function hexToRgba(hex, alpha) {
-    if (!hex || !hex.startsWith('#')) return `rgba(245,158,11,${alpha})`;
-    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-    return `rgba(${r},${g},${b},${alpha})`;
-}
-function formatDate(s) {
-    if (!s) return '';
-    const d = new Date(s);
-    return isNaN(d) ? s : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
 }
 
 // ============================================================
@@ -1175,14 +1074,12 @@ function getEtapeSuivante(lot) {
     return null;
 }
 const etapeLabels = {
-    implantation_prevue:'Implantation prévue',
-    deja_implante:'Déjà implanté',
-    dossier_technique:'Dossier technique',
-    morcellement:'Morcellement',
+    implantation_prevue:'Implantation prévue', deja_implante:'Déjà implanté',
+    dossier_technique:'Dossier technique',     morcellement:'Morcellement',
 };
 
 // ============================================================
-// LISTENER TYPE (modal lot)
+// TYPE LISTENER (modal lot)
 // ============================================================
 lotType.addEventListener('change', function() {
     const type = this.value;
@@ -1192,84 +1089,6 @@ lotType.addEventListener('change', function() {
     if (type === 'dossier_technique')   { dateConfirmeeGroup.style.display='block'; }
     if (type === 'morcellement')        { dateMorcellementGroup.style.display='block'; superficieField.style.display='block'; }
 });
-
-// ============================================================
-// INIT SVG — attacher les événements aux paths
-// ============================================================
-function initSVG() {
-    const svg = getSVG();
-    if (!svg) return;
-
-    // ✅ Construire la liste des lots masqués (encadrés par une zone avec type)
-    const lotIdsMasques = new Set();
-    zonesGroupes.forEach(zg => {
-        if (zg.type && zg.lot_ids && zg.lot_ids.length > 0) {
-            zg.lot_ids.forEach(id => lotIdsMasques.add(id));
-        }
-    });
-
-    svg.querySelectorAll('path').forEach(el => {
-        const zoneId = (el.getAttribute('id') || '').trim().toLowerCase();
-        const lot    = lots.find(l => (l.code || '').trim().toLowerCase() === zoneId);
-
-        el.style.cursor      = 'pointer';
-        el.style.strokeWidth = '2.5px';
-
-        // ✅ Si ce lot est dans une zone typée → rendre transparent
-        if (lot && lotIdsMasques.has(lot.id)) {
-            el.style.stroke          = 'transparent';
-            el.style.fill            = 'transparent';
-            el.style.strokeDasharray = '';
-            el.addEventListener('click', function(e) {
-                if (currentTool !== 'select') return;
-                openModal(zoneId, lot);
-            });
-            return;
-        }
-
-        if (!lot || !lot.origine) {
-            el.style.stroke = '#bbb'; el.style.fill = 'transparent'; el.style.strokeDasharray = '2,2';
-        } else if (lot.origine === 'famille') {
-            el.style.stroke = '#c8a882'; el.style.fill = 'rgba(250,245,238,0.35)'; el.style.strokeDasharray = '';
-        } else if (lot.origine === 'eden') {
-            el.style.strokeDasharray = '';
-            if (!lot.type) {
-                el.style.stroke = '#0d6efd'; el.style.fill = 'rgba(13,110,253,0.25)';
-            } else {
-                const color = getColor(lot.type);
-                el.style.stroke = color;
-                el.style.fill   = hexToRgba(color, 0.40);
-                afficherInfoSurLot(svg, el, lot);
-            }
-        }
-
-        el.addEventListener('click', function(e) {
-            if (currentTool !== 'select') return;
-            if (e.ctrlKey)             { openOriginModal(zoneId, lot); return; }
-            if (!lot || !lot.origine)  { openOriginModal(zoneId, lot); return; }
-            if (lot.origine === 'famille') { openOriginModal(zoneId, lot); return; }
-            if (lot.origine === 'eden')    { openModal(zoneId, lot); }
-        });
-    });
-}
-
-function afficherInfoSurLot(svg, pathEl, lot) {
-    try {
-        const bbox = pathEl.getBBox();
-        const cx = bbox.x + bbox.width/2, cy = bbox.y + bbox.height/2;
-        let dateTxt = '';
-        if (lot.type === 'implantation_prevue' && lot.date_prevue)       dateTxt = formatDate(lot.date_prevue);
-        else if (lot.type === 'deja_implante'  && lot.date_confirmee)    dateTxt = formatDate(lot.date_confirmee);
-        else if (lot.type === 'morcellement'   && lot.date_morcellement) dateTxt = formatDate(lot.date_morcellement);
-        const nomTxt = lot.owner_name || '';
-        if (!nomTxt && !dateTxt) return;
-        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-        g.style.pointerEvents = 'none';
-        if (nomTxt) g.appendChild(mkText(cx, dateTxt?cy-6:cy, nomTxt, '10', '700', '#1e293b', '2.5'));
-        if (dateTxt) g.appendChild(mkText(cx, nomTxt?cy+9:cy, dateTxt, '9', '500', '#374151', '2'));
-        svg.appendChild(g);
-    } catch(e) {}
-}
 
 // ============================================================
 // MODALS LOT
@@ -1295,16 +1114,13 @@ function openModal(zoneId, lot = null) {
     const etapeSuivante = getEtapeSuivante(lot);
     const aDejaClient   = !!lot?.client_id;
     const clientExistEl = document.getElementById('clientExistantInfo');
-
     clientSearchField.style.display = 'none';
     clientExistEl.style.display     = 'none';
     document.getElementById('client_selected_info').style.display = 'none';
     document.getElementById('clientPanel').style.display = 'none';
-    selectedClientId.value = '';
-    clientSearch.value     = '';
+    selectedClientId.value = ''; clientSearch.value = '';
 
     const etapeInfoEl = document.getElementById('lotEtapeInfo');
-
     if (etapeSuivante === null) {
         etapeInfoEl.innerHTML = '<span style="color:#28a745;">✅ Toutes les étapes sont complètes</span>';
         lotType.value = ''; lotType.disabled = true;
@@ -1362,12 +1178,9 @@ function setOrigin(value) {
     const sup = document.getElementById('origine_superficie').value;
     if (!sup || parseFloat(sup) <= 0) { alert('Superficie obligatoire.'); return; }
     fetch('/admin/lots/set-origin', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
         body:JSON.stringify({ svg_id:originZone.zoneId, tf_id:tfId, origine:value, superficie:sup })
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); else alert(data.message||'Erreur'); });
+    }).then(r => r.json()).then(data => { if (data.success) location.reload(); else alert(data.message||'Erreur'); });
 }
 
 // ============================================================
@@ -1376,79 +1189,51 @@ function setOrigin(value) {
 function saveLot() {
     const url = currentZone.lotId ? `/admin/lots/${currentZone.lotId}` : '/admin/lots/store';
     fetch(url, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
         body:JSON.stringify({
-            _method:           currentZone.lotId ? 'PUT' : 'POST',
-            tf_id:             currentZone.tfId,
-            svg_id:            currentZone.zoneId,
-            code:              zoneLabel.innerText.toLowerCase(),
-            type:              lotType.value,
-            client_id:         selectedClientId.value || null,
-            dossier_client_id: selectedDossierId.value || null,
-            superficie:        superficie.value,
-            date_prevue:       date_prevue.value,
-            date_confirmee:    date_confirmee.value,
-            date_morcellement: date_morcellement.value,
+            _method: currentZone.lotId ? 'PUT' : 'POST', tf_id:currentZone.tfId,
+            svg_id:currentZone.zoneId, code:zoneLabel.innerText.toLowerCase(),
+            type:lotType.value, client_id:selectedClientId.value||null,
+            dossier_client_id:selectedDossierId.value||null,
+            superficie:superficie.value, date_prevue:date_prevue.value,
+            date_confirmee:date_confirmee.value, date_morcellement:date_morcellement.value,
         })
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); else alert(data.message||'Erreur'); });
+    }).then(r => r.json()).then(data => { if (data.success) location.reload(); else alert(data.message||'Erreur'); });
 }
 
 // ============================================================
-// IMPRIMER — sérialise SVG + zones groupes dessinées dessus
+// IMPRIMER
 // ============================================================
 function imprimerCarte() {
-    const svg = getSVG();
-    if (!svg) { window.print(); return; }
-
-    // Cloner le SVG pour l'impression (inclut les zones groupes déjà dessinées sur le SVG)
+    const svg = getSVG(); if (!svg) { window.print(); return; }
     const clone = svg.cloneNode(true);
-
-    // Injecter les styles inline sur les paths du clone
     svg.querySelectorAll('path').forEach((el, i) => {
         const clonePath = clone.querySelectorAll('path')[i];
         if (clonePath) {
-            clonePath.setAttribute('fill',   el.style.fill   || 'transparent');
-            clonePath.setAttribute('stroke', el.style.stroke || '#bbb');
+            clonePath.setAttribute('fill',         el.style.fill   || 'transparent');
+            clonePath.setAttribute('stroke',       el.style.stroke || '#bbb');
             clonePath.setAttribute('stroke-width', el.style.strokeWidth || '2px');
-            if (el.style.strokeDasharray)
-                clonePath.setAttribute('stroke-dasharray', el.style.strokeDasharray);
+            if (el.style.strokeDasharray) clonePath.setAttribute('stroke-dasharray', el.style.strokeDasharray);
         }
     });
-
-    // S'assurer que le SVG a une taille explicite
     const vb = svg.viewBox?.baseVal;
     if (vb && vb.width > 0) {
-        clone.setAttribute('width',  vb.width);
-        clone.setAttribute('height', vb.height);
+        clone.setAttribute('width', vb.width); clone.setAttribute('height', vb.height);
     } else {
-        const rect = svg.getBoundingClientRect();
+        const rect  = svg.getBoundingClientRect();
         const scale = parseInt(document.getElementById('svg-zoom').value) / 100;
-        clone.setAttribute('width',  rect.width  / scale);
-        clone.setAttribute('height', rect.height / scale);
+        clone.setAttribute('width', rect.width/scale); clone.setAttribute('height', rect.height/scale);
     }
-
     const svgData = new XMLSerializer().serializeToString(clone);
     const blob    = new Blob([svgData], { type:'image/svg+xml;charset=utf-8' });
     const url     = URL.createObjectURL(blob);
-
-    const w = window.open('', '_blank');
-    w.document.write(`<!DOCTYPE html><html><head>
-    <title>Carte — {{ $tf->title }}</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:sans-serif;padding:20px;background:white;}
-        h2{color:#1e3a5f;margin-bottom:12px;font-size:16px;}
-        img{max-width:100%;height:auto;display:block;border:1px solid #e2e8f0;border-radius:6px;}
-        .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;font-size:11px;}
-        .leg{display:flex;align-items:center;gap:5px;}
-        .dot{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
-        @media print{body{padding:8px;}}
-    </style>
-    </head><body>
-    <h2>🗺️ {{ $tf->title }}</h2>
+    const w = window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>Carte — {{ $tf->title }}</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:sans-serif;padding:20px;background:white;}
+    h2{color:#1e3a5f;margin-bottom:12px;font-size:16px;}img{max-width:100%;height:auto;display:block;border:1px solid #e2e8f0;border-radius:6px;}
+    .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;font-size:11px;}.leg{display:flex;align-items:center;gap:5px;}
+    .dot{width:14px;height:14px;border-radius:3px;flex-shrink:0;}@media print{body{padding:8px;}}</style>
+    </head><body><h2>🗺️ {{ $tf->title }}</h2>
     <img src="${url}" onload="URL.revokeObjectURL('${url}')">
     <div class="legend">
         <div class="leg"><div class="dot" style="background:#faf5ee;border:2px solid #c8a882;"></div>Famille</div>
@@ -1459,11 +1244,7 @@ function imprimerCarte() {
         <div class="leg"><div class="dot" style="background:#ea580c;"></div>Morcellement</div>
         <div class="leg"><div class="dot" style="background:transparent;border:3px solid #f59e0b;"></div>Zone groupée</div>
     </div>
-    <script>
-        window.addEventListener('load', function() {
-            setTimeout(function() { window.print(); }, 800);
-        });
-    <\/script>
+    <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},800);});<\/script>
     </body></html>`);
     w.document.close();
 }
