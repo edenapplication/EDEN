@@ -49,23 +49,25 @@ class Employe extends Model
         return max(0, $this->solde_conges - $this->conges_pris);
     }
 
-    public static function genererMatricule(): string
+  public static function genererMatricule(?string $dateIntegration = null): string
 {
-    $mois   = now()->format('m');   // 04
-    $annee  = now()->format('y');   // 26
+    // Utiliser la date d'intégration fournie, sinon la date du jour
+    $date = $dateIntegration
+        ? \Carbon\Carbon::parse($dateIntegration)
+        : now();
+
+    $mois   = $date->format('m');  // 04
+    $annee  = $date->format('y');  // 26
     $prefix = "EDG_{$mois}_{$annee}_";
 
-    // Trouver le dernier matricule de ce mois/année
+    // Trouver le dernier numéro pour ce préfixe
     $dernier = static::where('matricule', 'LIKE', $prefix . '%')
                       ->orderByDesc('id')
                       ->value('matricule');
 
-    if (!$dernier) {
-        $num = 1;
-    } else {
-        // Extraire le numéro : EDG_04_26_0003 → 3
-        $num = (int) substr($dernier, strrpos($dernier, '_') + 1) + 1;
-    }
+    $num = $dernier
+        ? (int) substr($dernier, strrpos($dernier, '_') + 1) + 1
+        : 1;
 
     return $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
 }

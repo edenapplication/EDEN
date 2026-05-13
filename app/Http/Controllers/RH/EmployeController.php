@@ -63,7 +63,7 @@ class EmployeController extends Controller
     public function create()
     {
         $options   = $this->options();
-        $matricule = Employe::genererMatricule();
+        $matricule = 'EDG_MM_AA_XXXX';
         return view('rh.employes.create', compact('options', 'matricule'));
     }
 
@@ -80,7 +80,7 @@ class EmployeController extends Controller
 
         $employe = Employe::create(array_merge(
             $request->all(),
-            ['matricule' => Employe::genererMatricule()]
+            ['matricule' => Employe::genererMatricule($request->date_integration)]
         ));
 
         return redirect()->route('rh.employes.show', $employe->id)
