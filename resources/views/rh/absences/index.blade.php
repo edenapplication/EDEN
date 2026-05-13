@@ -2,218 +2,233 @@
 @section('content')
 
 <style>
-.abs-table { width:100%; border-collapse:collapse; font-size:12px; background:white; }
-.abs-table thead tr { background:#1e3a5f; color:white; }
-.abs-table thead th { padding:10px 8px; font-weight:600; text-align:left; white-space:nowrap; }
-.abs-table tbody tr:nth-child(even) { background:#f8fafc; }
-.abs-table tbody tr:hover { background:#eff6ff; }
-.abs-table tbody td { padding:8px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
-.modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:540px; max-height:90vh; overflow-y:auto; }
+.modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:500px; max-height:90vh; overflow-y:auto; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 style="color:#1e3a5f;font-weight:800;">🗓️ Suivi des absences</h2>
-    <button onclick="openModal()" class="btn btn-primary">+ Nouvelle absence</button>
+    <h2 style="color:#1e3a5f;font-weight:800;">🗓️ Absences & Permissions</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ route('rh.absences.pdf-liste') }}{{ request()->getQueryString() ? '?'.request()->getQueryString() : '' }}"
+           class="btn btn-outline-secondary btn-sm">🖨️ Imprimer liste</a>
+        <button onclick="openModal('addModal')" class="btn btn-primary">+ Nouvelle demande</button>
+    </div>
 </div>
 
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+@endif
+
 {{-- FILTRES --}}
-<form method="GET" style="background:white;border-radius:12px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:16px;">
-    <div class="row g-2 align-items-end">
-        <div class="col-md-3">
-            <select name="employe_id" class="form-control form-control-sm">
-                <option value="">Tous les employés</option>
-                @foreach($employes as $e)
-                    <option value="{{ $e->id }}" {{ request('employe_id')==$e->id?'selected':'' }}>{{ $e->nom }} {{ $e->prenom }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-md-2">
-            <select name="type_absence" class="form-control form-control-sm">
-                <option value="">Tous types</option>
-                @foreach(['Congés','Maladie','Permission personnelle','Mission','Maternité','Paternité','Décès','Sans solde','Autre'] as $t)
-                    <option value="{{ $t }}" {{ request('type_absence')===$t?'selected':'' }}>{{ $t }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-md-2">
-            <select name="statut" class="form-control form-control-sm">
-                <option value="">Tous statuts</option>
-                <option value="en_attente"  {{ request('statut')==='en_attente' ?'selected':'' }}>En attente</option>
-                <option value="approuvé"    {{ request('statut')==='approuvé'   ?'selected':'' }}>Approuvé</option>
-                <option value="refusé"      {{ request('statut')==='refusé'     ?'selected':'' }}>Refusé</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <input type="month" name="mois" class="form-control form-control-sm" value="{{ request('mois') }}">
-        </div>
-        <div class="col-md-3 d-flex gap-1">
-            <button type="submit" class="btn btn-primary btn-sm">🔍 Filtrer</button>
-            <a href="{{ route('rh.absences.index') }}" class="btn btn-outline-secondary btn-sm">✖</a>
-        </div>
-    </div>
+<form method="GET" class="d-flex gap-2 mb-4 flex-wrap">
+    <select name="employe_id" class="form-control form-control-sm" style="max-width:220px;" onchange="this.form.submit()">
+        <option value="">👤 Tous les employés</option>
+        @foreach($employes as $e)
+            <option value="{{ $e->id }}" {{ request('employe_id') == $e->id ? 'selected':'' }}>{{ $e->nom }} {{ $e->prenom }}</option>
+        @endforeach
+    </select>
+    <select name="statut" class="form-control form-control-sm" style="max-width:160px;" onchange="this.form.submit()">
+        <option value="">🔄 Tous statuts</option>
+        <option value="en_attente" {{ request('statut') === 'en_attente' ? 'selected':'' }}>En attente</option>
+        <option value="approuvé"   {{ request('statut') === 'approuvé'   ? 'selected':'' }}>Approuvé</option>
+        <option value="refusé"     {{ request('statut') === 'refusé'     ? 'selected':'' }}>Refusé</option>
+    </select>
+    <input type="month" name="mois" class="form-control form-control-sm" style="max-width:160px;" value="{{ request('mois') }}" onchange="this.form.submit()">
+    <a href="{{ route('rh.absences.index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
 </form>
 
-{{-- TABLEAU --}}
-<div style="overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
-<table class="abs-table">
-    <thead>
+{{-- TABLE --}}
+<div class="card p-0 overflow-hidden">
+<table class="table table-hover table-bordered mb-0" style="font-size:12px;">
+    <thead class="table-dark">
         <tr>
-            <th>Référence</th><th>Employé</th><th>Direction</th><th>Type</th>
-            <th>Début</th><th>Fin</th><th>Reprise</th><th>Jours</th>
-            <th>Motif</th><th>Statut</th><th>Actions</th>
+            <th>Réf.</th>
+            <th>Employé</th>
+            <th>Direction</th>
+            <th>Type</th>
+            <th>Début</th>
+            <th>Fin</th>
+            <th>Jours</th>
+            <th>Statut</th>
+            <th>Motif</th>
+            <th>ACTIONS</th>
         </tr>
     </thead>
     <tbody>
     @forelse($absences as $a)
         <tr>
-            <td style="color:#1d4ed8;font-weight:700;">{{ $a->reference ?? '-' }}</td>
-            <td style="font-weight:600;">{{ $a->employe?->nom }} {{ $a->employe?->prenom }}</td>
+            <td style="color:#1d4ed8;font-weight:700;">{{ $a->reference }}</td>
+            <td><strong>{{ $a->employe?->nom }} {{ $a->employe?->prenom }}</strong></td>
             <td>{{ $a->employe?->direction?->nom ?? '-' }}</td>
-            <td>
-                <span style="font-size:10px;padding:2px 8px;border-radius:8px;background:#f1f5f9;color:#475569;font-weight:600;">
-                    {{ $a->type_absence }}
-                </span>
-            </td>
+            <td>{{ $a->type_absence }}</td>
             <td>{{ $a->date_debut?->format('d/m/Y') }}</td>
             <td>{{ $a->date_fin?->format('d/m/Y') }}</td>
-            <td>{{ $a->date_reprise?->format('d/m/Y') ?? '-' }}</td>
-            <td style="font-weight:700;color:#1d4ed8;">{{ $a->nombre_jours }}</td>
-            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="{{ $a->motif }}">{{ $a->motif ?? '-' }}</td>
+            <td style="font-weight:700;text-align:center;">{{ $a->nombre_jours }}</td>
             <td>
-                <span style="font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;background:{{ $a->statut==='approuvé'?'#dcfce7':($a->statut==='refusé'?'#fee2e2':'#fef9c3')}};color:{{ $a->statut==='approuvé'?'#15803d':($a->statut==='refusé'?'#b91c1c':'#92400e')}};">
-                    {{ $a->statut }}
+                <span style="font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;background:{{ $a->statut==='approuvé'?'#dcfce7':($a->statut==='refusé'?'#fee2e2':'#fef9c3')}};color:{{ $a->statut==='approuvé'?'#15803d':($a->statut==='refusé'?'#b91c1c':'#854d0e')}};">
+                    {{ ucfirst($a->statut) }}
                 </span>
             </td>
+            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $a->motif }}">{{ $a->motif ?? '-' }}</td>
             <td>
-                <div class="d-flex gap-1">
+                <div class="d-flex gap-1 flex-wrap">
+                    {{-- Modifier --}}
+                    <button onclick="openEditModal({{ $a->id }}, {{ $a->employe_id }}, '{{ $a->type_absence }}', '{{ $a->date_debut?->format('Y-m-d') }}', '{{ $a->date_fin?->format('Y-m-d') }}', '{{ addslashes($a->motif) }}', '{{ addslashes($a->note) }}')"
+                            class="btn btn-warning btn-sm" style="font-size:10px;">✏️</button>
+                    {{-- Imprimer --}}
+                    <a href="{{ route('rh.absences.pdf', $a->id) }}" class="btn btn-secondary btn-sm" style="font-size:10px;">🖨️</a>
                     @if($a->statut === 'en_attente')
-                        <button onclick="approuver({{ $a->id }})" style="background:#dcfce7;color:#15803d;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">✅</button>
-                        <button onclick="refuser({{ $a->id }})" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">❌</button>
+                        <form action="{{ route('rh.absences.approuver', $a->id) }}" method="POST" style="display:inline">
+                            @csrf
+                            <button class="btn btn-success btn-sm" style="font-size:10px;">✅</button>
+                        </form>
+                        <form action="{{ route('rh.absences.refuser', $a->id) }}" method="POST" style="display:inline">
+                            @csrf
+                            <button class="btn btn-danger btn-sm" style="font-size:10px;">❌</button>
+                        </form>
                     @endif
-                    <button onclick="supprimerAbs({{ $a->id }})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;">🗑</button>
+                    {{-- Supprimer --}}
+                    <form action="{{ route('rh.absences.destroy', $a->id) }}" method="POST" style="display:inline"
+                          onsubmit="return confirm('Supprimer cette absence ?')">
+                        @csrf @method('DELETE')
+                        <button class="btn btn-outline-danger btn-sm" style="font-size:10px;">🗑</button>
+                    </form>
                 </div>
             </td>
         </tr>
     @empty
-        <tr><td colspan="11" class="text-center text-muted py-4">Aucune absence</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-4">Aucune absence enregistrée</td></tr>
     @endforelse
     </tbody>
 </table>
 </div>
-<div class="mt-3">{{ $absences->links() }}</div>
 
-{{-- MODAL AJOUT ABSENCE --}}
-<div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
-<div class="modal-box" id="absModal">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 style="color:#1e3a5f;font-weight:800;">🗓️ Nouvelle absence</h5>
-        <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;">✕</button>
+{{-- MODAL AJOUT --}}
+<div class="modal-overlay" id="overlayAdd" onclick="closeModal('addModal')"></div>
+<div class="modal-box" id="addModal">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 style="color:#1e3a5f;font-weight:800;">🗓️ Nouvelle demande</h5>
+        <button onclick="closeModal('addModal')" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div class="row g-3">
-        <div class="col-12">
-            <label class="form-label fw-semibold">Employé</label>
-            <select id="abs_employe" class="form-control">
-                <option value="">-- Choisir --</option>
-                @foreach($employes as $e)
-                    <option value="{{ $e->id }}">{{ $e->nom }} {{ $e->prenom }} ({{ $e->matricule }})</option>
-                @endforeach
-            </select>
+    <form method="POST" action="{{ route('rh.absences.store') }}">
+        @csrf
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label fw-semibold">Employé <span class="text-danger">*</span></label>
+                <select name="employe_id" class="form-control" required>
+                    <option value="">-- Choisir --</option>
+                    @foreach($employes as $e)
+                        <option value="{{ $e->id }}">{{ $e->nom }} {{ $e->prenom }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
+                <select name="type_absence" class="form-control" required>
+                    @foreach(['Congé annuel','Congé maladie','Permission','Congé maternité','Congé paternité','Absence injustifiée','Autre'] as $t)
+                        <option value="{{ $t }}">{{ $t }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Date début <span class="text-danger">*</span></label>
+                <input type="date" name="date_debut" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Date fin <span class="text-danger">*</span></label>
+                <input type="date" name="date_fin" class="form-control" required>
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Motif</label>
+                <input type="text" name="motif" class="form-control" placeholder="Raison de l'absence">
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Note / Remarques</label>
+                <textarea name="note" class="form-control" rows="5" placeholder="Informations complémentaires, précisions, pièces justificatives..."></textarea>
+            </div>
         </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Type d'absence</label>
-            <select id="abs_type" class="form-control">
-                @foreach(['Congés','Maladie','Permission personnelle','Mission','Maternité','Paternité','Décès','Sans solde','Autre'] as $t)
-                    <option value="{{ $t }}">{{ $t }}</option>
-                @endforeach
-            </select>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" onclick="closeModal('addModal')" class="btn btn-light">Annuler</button>
+            <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
         </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Type de journée</label>
-            <select id="abs_journee" class="form-control">
-                <option value="journée complète">Journée complète</option>
-                <option value="demi-journée">Demi-journée</option>
-            </select>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Date début</label>
-            <input type="date" id="abs_debut" class="form-control">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Date fin</label>
-            <input type="date" id="abs_fin" class="form-control">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Date reprise</label>
-            <input type="date" id="abs_reprise" class="form-control">
-        </div>
-        <div class="col-12">
-            <label class="form-label fw-semibold">Motif</label>
-            <textarea id="abs_motif" class="form-control" rows="2"></textarea>
-        </div>
-        <div class="col-12">
-            <label class="form-label fw-semibold">Observations</label>
-            <input type="text" id="abs_obs" class="form-control" placeholder="Visa RH, remarques...">
-        </div>
+    </form>
+</div>
+
+{{-- MODAL MODIFICATION --}}
+<div class="modal-overlay" id="overlayEdit" onclick="closeModal('editModal')"></div>
+<div class="modal-box" id="editModal">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 style="color:#1e3a5f;font-weight:800;">✏️ Modifier la demande</h5>
+        <button onclick="closeModal('editModal')" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div class="d-flex justify-content-end gap-2 mt-4">
-        <button onclick="closeModal()" class="btn btn-light">Annuler</button>
-        <button onclick="sauvegarderAbs()" class="btn btn-primary">💾 Enregistrer</button>
-    </div>
+    <form id="editForm" method="POST" action="">
+        @csrf @method('PUT')
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label fw-semibold">Employé</label>
+                <select name="employe_id" class="form-control" required id="edit_employe_id">
+                    @foreach($employes as $e)
+                        <option value="{{ $e->id }}">{{ $e->nom }} {{ $e->prenom }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Type</label>
+                <select name="type_absence" class="form-control" id="edit_type">
+                    @foreach(['Congé annuel','Congé maladie','Permission','Congé maternité','Congé paternité','Absence injustifiée','Autre'] as $t)
+                        <option value="{{ $t }}">{{ $t }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Date début</label>
+                <input type="date" name="date_debut" class="form-control" id="edit_debut">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Date fin</label>
+                <input type="date" name="date_fin" class="form-control" id="edit_fin">
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Motif</label>
+                <input type="text" name="motif" class="form-control" id="edit_motif">
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Note / Remarques</label>
+                <textarea name="note" class="form-control" rows="6" id="edit_note" placeholder="Informations complémentaires..."></textarea>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" onclick="closeModal('editModal')" class="btn btn-light">Annuler</button>
+            <button type="submit" class="btn btn-warning">💾 Mettre à jour</button>
+        </div>
+    </form>
 </div>
 
 @endsection
 @section('scripts')
 <script>
-const csrf = '{{ csrf_token() }}';
-
-function openModal() {
-    document.getElementById('overlay').style.display = 'block';
-    document.getElementById('absModal').style.display = 'block';
+function openModal(id) {
+    document.getElementById('overlay' + id.replace('Modal','').replace('add','Add').replace('edit','Edit')).style.display = 'block';
+    document.getElementById(id).style.display = 'block';
 }
-function closeModal() {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('absModal').style.display = 'none';
+function closeModal(id) {
+    document.getElementById('overlayAdd').style.display = 'none';
+    document.getElementById('overlayEdit').style.display = 'none';
+    document.getElementById(id).style.display = 'none';
 }
-
-function sauvegarderAbs() {
-    fetch('{{ route("rh.absences.store") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-        body: JSON.stringify({
-            employe_id:   document.getElementById('abs_employe').value,
-            type_absence: document.getElementById('abs_type').value,
-            type_journee: document.getElementById('abs_journee').value,
-            date_debut:   document.getElementById('abs_debut').value,
-            date_fin:     document.getElementById('abs_fin').value,
-            date_reprise: document.getElementById('abs_reprise').value || null,
-            motif:        document.getElementById('abs_motif').value,
-            observations: document.getElementById('abs_obs').value,
-        })
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); else alert(data.message || 'Erreur'); });
-}
-
-function approuver(id) {
-    if (!confirm('Approuver cette absence ?')) return;
-    fetch(`/admin/rh/absences/${id}/approuver`, {
-        method: 'POST', headers: { 'X-CSRF-TOKEN': csrf }
-    }).then(() => location.reload());
-}
-
-function refuser(id) {
-    if (!confirm('Refuser cette absence ?')) return;
-    fetch(`/admin/rh/absences/${id}/refuser`, {
-        method: 'POST', headers: { 'X-CSRF-TOKEN': csrf }
-    }).then(() => location.reload());
-}
-
-function supprimerAbs(id) {
-    if (!confirm('Supprimer ?')) return;
-    fetch(`/admin/rh/absences/${id}`, {
-        method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrf }
-    }).then(() => location.reload());
+function openEditModal(id, employeId, type, debut, fin, motif, note) {
+    document.getElementById('editForm').action = `/rh/absences/${id}`;
+    document.getElementById('edit_employe_id').value = employeId;
+    document.getElementById('edit_type').value        = type;
+    document.getElementById('edit_debut').value       = debut;
+    document.getElementById('edit_fin').value         = fin;
+    document.getElementById('edit_motif').value       = motif;
+    document.getElementById('edit_note').value        = note;
+    document.getElementById('overlayEdit').style.display = 'block';
+    document.getElementById('editModal').style.display   = 'block';
 }
 </script>
 @endsection

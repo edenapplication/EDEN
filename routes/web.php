@@ -65,6 +65,7 @@ Route::prefix('admin')->group(function () {
     Route::get('/lots/{id}/hover-info',  [LotController::class, 'hoverInfo'])->name('lots.hoverInfo');
     Route::put('/lots/{id}',             [LotController::class, 'update'])->name('lots.update');
     Route::get('/lots/client-visites/{clientId}', [LotController::class, 'clientVisites'])->name('lots.clientVisites');
+    Route::delete('/lots/{id}',  [LotController::class, 'destroy'])->name('lots.destroy');
 
     // ZONES GROUPES
 Route::post('/zone-groupes',          [ZoneGroupeController::class, 'store'])->name('zone-groupes.store');
@@ -141,15 +142,18 @@ Route::prefix('rh')->group(function () {
     Route::get('/employes/export',                 [EmployeController::class, 'export'])->name('rh.employes.export');
     Route::post('/employes',                       [EmployeController::class, 'store'])->name('rh.employes.store');
     Route::get('/employes/{id}',                   [EmployeController::class, 'show'])->name('rh.employes.show');
+    Route::post('/employes/{id}/photo', [EmployeController::class, 'uploadPhoto'])->name('rh.employes.photo');
     Route::get('/employes/{id}/edit',              [EmployeController::class, 'edit'])->name('rh.employes.edit');
     Route::put('/employes/{id}',                   [EmployeController::class, 'update'])->name('rh.employes.update');
     Route::delete('/employes/{id}',                [EmployeController::class, 'destroy'])->name('rh.employes.destroy');
     Route::post('/employes/{id}/documents',        [EmployeController::class, 'uploadDocument'])->name('rh.employes.documents.store');
     Route::get('/employes/{id}/documents/{docId}', [EmployeController::class, 'downloadDocument'])->name('rh.employes.documents.download');
     Route::delete('/employes/documents/{docId}',   [EmployeController::class, 'deleteDocument'])->name('rh.employes.documents.destroy');
+    Route::get('/employes/{id}/pdf',    [EmployeController::class, 'pdfFiche'])->name('rh.employes.pdf');
 
     // ── Paie — fixes avant {id} ──────────────────────────────
     Route::get('/paie',                  [PaieController::class, 'index'])->name('rh.paie.index');
+    Route::get('/paie/pdf-liste', [PaieController::class, 'pdfListe'])->name('rh.paie.pdf-liste');
     Route::get('/paie/create',           [PaieController::class, 'create'])->name('rh.paie.create');
     Route::get('/paie/recapitulatif',    [PaieController::class, 'recapitulatif'])->name('rh.paie.recapitulatif');
     Route::post('/paie/generer-masse',   [PaieController::class, 'genererMasse'])->name('rh.paie.generer');
@@ -159,6 +163,7 @@ Route::prefix('rh')->group(function () {
     Route::put('/paie/{id}',             [PaieController::class, 'update'])->name('rh.paie.update');
     Route::delete('/paie/{id}',          [PaieController::class, 'destroy'])->name('rh.paie.destroy');
     Route::post('/paie/{id}/valider',    [PaieController::class, 'valider'])->name('rh.paie.valider');
+    Route::get('/paie/pdf-liste',        [PaieController::class, 'pdfListe'])->name('rh.paie.pdf-liste');
 
     // ── Absences ──────────────────────────────────────────────
     Route::get('/absences',                        [AbsenceController::class, 'index'])->name('rh.absences.index');
@@ -167,6 +172,8 @@ Route::prefix('rh')->group(function () {
     Route::delete('/absences/{id}',                [AbsenceController::class, 'destroy'])->name('rh.absences.destroy');
     Route::post('/absences/{id}/approuver',        [AbsenceController::class, 'approuver'])->name('rh.absences.approuver');
     Route::post('/absences/{id}/refuser',          [AbsenceController::class, 'refuser'])->name('rh.absences.refuser');
+    Route::get('/absences/{id}/pdf',     [AbsenceController::class, 'pdf'])->name('rh.absences.pdf');
+    Route::get('/absences/liste-pdf',    [AbsenceController::class, 'pdfListe'])->name('rh.absences.pdf-liste');
 
     // ── Prêts ─────────────────────────────────────────────────
     Route::get('/prets',                 [PretController::class, 'index'])->name('rh.prets.index');
@@ -177,14 +184,17 @@ Route::prefix('rh')->group(function () {
     // ── Sanctions ─────────────────────────────────────────────
     Route::get('/sanctions',             [SanctionController::class, 'index'])->name('rh.sanctions.index');
     Route::post('/sanctions',            [SanctionController::class, 'store'])->name('rh.sanctions.store');
+    Route::get('/sanctions/pdf-liste',  [SanctionController::class, 'pdfListe'])->name('rh.sanctions.pdf-liste');
     Route::put('/sanctions/{id}',        [SanctionController::class, 'update'])->name('rh.sanctions.update');
     Route::delete('/sanctions/{id}',     [SanctionController::class, 'destroy'])->name('rh.sanctions.destroy');
 
     // ── Retards ───────────────────────────────────────────────
     Route::get('/retards',               [RetardController::class, 'index'])->name('rh.retards.index');
     Route::post('/retards',              [RetardController::class, 'store'])->name('rh.retards.store');
+    Route::get('/retards/pdf-liste',    [RetardController::class,  'pdfListe'])->name('rh.retards.pdf-liste');
     Route::put('/retards/{id}',          [RetardController::class, 'update'])->name('rh.retards.update');
     Route::delete('/retards/{id}',       [RetardController::class, 'destroy'])->name('rh.retards.destroy');
+    Route::get('/retards/par-direction', [RetardController::class, 'parDirection'])->name('rh.retards.par-direction');
 
     // ── Directions / Services / Postes ────────────────────────
     Route::get('/directions',            [DirectionController::class, 'index'])->name('rh.directions.index');

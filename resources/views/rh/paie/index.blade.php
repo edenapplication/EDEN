@@ -15,6 +15,10 @@
     <h2 style="color:#1e3a5f;font-weight:800;">💰 Bulletins de paie</h2>
     <div class="d-flex gap-2">
         <a href="{{ route('rh.paie.create') }}" class="btn btn-primary btn-sm">+ Nouveau bulletin</a>
+        <a href="{{ route('rh.paie.pdf-liste', ['periode' => $periode]) }}"
+   class="btn btn-outline-danger btn-sm">
+    📄 Exporter PDF liste
+</a>
     </div>
 </div>
 

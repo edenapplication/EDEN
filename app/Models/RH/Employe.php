@@ -13,7 +13,7 @@ class Employe extends Model
         'type_contrat','categorie','date_integration','date_sortie','cause_depart','vague_paiement',
         'niveau_academique','specialite_academique','diplome_recrutement',
         'exp_poste_precedent','entreprise_precedente','duree_exp_precedente',
-        'salaire_base','solde_conges','conges_pris','actif','notes',
+        'salaire_base','solde_conges','conges_pris','actif','notes','photo_path',
     ];
 
     protected $casts = [

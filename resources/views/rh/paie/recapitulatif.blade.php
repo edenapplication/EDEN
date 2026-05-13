@@ -23,7 +23,8 @@
             <input type="month" name="periode" class="form-control form-control-sm"
                    value="{{ $periode }}" onchange="this.form.submit()">
         </form>
-        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">🖨️ Imprimer</button>
+        <a href="{{ route('rh.paie.recapitulatif', ['periode' => $periode, 'pdf' => 1]) }}"
+   class="btn btn-outline-danger btn-sm">📄 Télécharger PDF</a>
     </div>
 </div>
 

@@ -110,7 +110,7 @@
     </tbody>
 </table>
 </div>
-<div class="mt-3">{{ $sanctions->links() }}</div>
+{{--<div class="mt-3">{{ $sanctions->links() }}</div> --}}
 
 {{-- MODAL --}}
 <div class="modal-overlay" id="overlay" onclick="closeModal()"></div>

@@ -323,4 +323,17 @@ public function clientVisites($clientId)
     return response()->json($visites);
 }
 
+public function destroy($id)
+{
+    try {
+        $lot = Lot::findOrFail($id);
+        // Supprimer le dossier technique lié
+        \App\Models\DossierTechnique::where('lot_id', $id)->delete();
+        $lot->delete();
+        return response()->json(['success' => true]);
+    } catch (\Throwable $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
 }

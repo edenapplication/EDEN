@@ -137,6 +137,9 @@
     <div id="dateMorcellementGroup" class="mt-2" style="display:none;"><label>Date morcellement</label><input type="date" id="date_morcellement" class="form-control"></div>
     <div id="superficieField" class="mt-2" style="display:none;"><label>Superficie (m²)</label><input type="number" id="superficie" class="form-control"></div>
     <div class="d-flex justify-content-end gap-2 mt-4">
+        <div id="supprimerLotBtn" style="display:none;margin-bottom:10px;">
+    <button onclick="supprimerLot()" class="btn btn-outline-danger btn-sm w-100">🗑 Supprimer ce lot</button>
+</div>
         <button onclick="closeModal()" class="btn btn-light">Annuler</button>
         <button onclick="saveLot()" class="btn btn-success">Enregistrer</button>
     </div>
@@ -1118,6 +1121,8 @@ function openModal(zoneId, lot = null) {
     clientExistEl.style.display     = 'none';
     document.getElementById('client_selected_info').style.display = 'none';
     document.getElementById('clientPanel').style.display = 'none';
+    // Afficher le bouton supprimer uniquement si le lot existe
+document.getElementById('supprimerLotBtn').style.display = (lot && lot.id) ? 'block' : 'none';
     selectedClientId.value = ''; clientSearch.value = '';
 
     const etapeInfoEl = document.getElementById('lotEtapeInfo');
@@ -1248,5 +1253,19 @@ function imprimerCarte() {
     </body></html>`);
     w.document.close();
 }
+
+function supprimerLot() {
+    if (!confirm('Supprimer ce lot ? Cette action est irréversible.')) return;
+    fetch(`/admin/lots/${currentZone.lotId}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert(data.message || 'Erreur lors de la suppression');
+    });
+}
+
 </script>
 @endsection

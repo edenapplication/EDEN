@@ -4,6 +4,7 @@ namespace App\Http\Controllers\RH;
 use App\Http\Controllers\Controller;
 use App\Models\RH\BulletinPaie;
 use App\Models\RH\Employe;
+use App\Models\RH\Pret;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -12,20 +13,15 @@ class PaieController extends Controller
     public function index(Request $request)
     {
         $periode = $request->periode ?? now()->format('Y-m');
-        $vague   = $request->vague ?? null;
-
-        $query = BulletinPaie::with('employe.direction')
-            ->where('periode', $periode);
-
+        $vague   = $request->vague   ?? null;
+        $query   = BulletinPaie::with('employe.direction')->where('periode', $periode);
         if ($vague) $query->where('vague', $vague);
-
         $bulletins     = $query->orderBy('vague')->get();
         $totalNet      = $bulletins->sum('net_a_payer');
         $totalBrut     = $bulletins->sum('salaire_brut');
         $totalSanction = $bulletins->sum('montant_sanction');
         $totalAcompte  = $bulletins->sum('acompte');
-
-        return view('rh.paie.index', compact('bulletins', 'periode', 'vague', 'totalNet', 'totalBrut', 'totalSanction', 'totalAcompte'));
+        return view('rh.paie.index', compact('bulletins','periode','vague','totalNet','totalBrut','totalSanction','totalAcompte'));
     }
 
     public function create()
@@ -43,23 +39,17 @@ class PaieController extends Controller
             'date_paiement' => 'required|date',
             'salaire_brut'  => 'required|numeric|min:0',
         ]);
-
-        // Calculer automatiquement le salaire à l'heure
         $salaireHeure = $request->salaire_brut / 173.33;
         $montantHS    = round($request->nb_heures_sup * $salaireHeure, 2);
-
         $data = $request->all();
         $data['salaire_heure']      = round($salaireHeure, 4);
         $data['montant_heures_sup'] = $montantHS;
-
-        // Calcul net
         $brut      = $request->salaire_brut + $montantHS + ($request->prime ?? 0) + ($request->indemnite ?? 0) + ($request->montant_fixe ?? 1000);
-        $deductions= ($request->montant_retard ?? 0) + ($request->montant_absence ?? 0) + ($request->acompte ?? 0)
-                   + ($request->pret ?? 0) + ($request->montant_sanction ?? 0) + ($request->imputation_salaire ?? 0)
-                   + ($request->frais_bancaires ?? 0) + ($request->cnps ?? 0);
+        $deductions = ($request->montant_retard ?? 0) + ($request->montant_absence ?? 0) + ($request->acompte ?? 0)
+                    + ($request->pret ?? 0) + ($request->montant_sanction ?? 0) + ($request->imputation_salaire ?? 0)
+                    + ($request->frais_bancaires ?? 0) + ($request->cnps ?? 0);
         $data['net_a_payer'] = max(0, $brut - $deductions);
         $data['mois_annee']  = \Carbon\Carbon::createFromFormat('Y-m', $request->periode)->translatedFormat('F Y');
-
         BulletinPaie::create($data);
         return redirect()->route('rh.paie.index', ['periode' => $request->periode])->with('success', 'Bulletin créé');
     }
@@ -74,19 +64,16 @@ class PaieController extends Controller
     {
         $bulletin = BulletinPaie::findOrFail($id);
         if ($bulletin->statut === 'payé') return back()->with('error', 'Impossible de modifier un bulletin payé.');
-
         $data = $request->all();
         $salaireHeure = ($request->salaire_brut ?? $bulletin->salaire_brut) / 173.33;
         $montantHS    = round(($request->nb_heures_sup ?? 0) * $salaireHeure, 2);
         $data['salaire_heure']      = round($salaireHeure, 4);
         $data['montant_heures_sup'] = $montantHS;
-
         $brut      = ($request->salaire_brut ?? 0) + $montantHS + ($request->prime ?? 0) + ($request->indemnite ?? 0) + ($request->montant_fixe ?? 1000);
-        $deductions= ($request->montant_retard ?? 0) + ($request->montant_absence ?? 0) + ($request->acompte ?? 0)
-                   + ($request->pret ?? 0) + ($request->montant_sanction ?? 0) + ($request->imputation_salaire ?? 0)
-                   + ($request->frais_bancaires ?? 0) + ($request->cnps ?? 0);
+        $deductions = ($request->montant_retard ?? 0) + ($request->montant_absence ?? 0) + ($request->acompte ?? 0)
+                    + ($request->pret ?? 0) + ($request->montant_sanction ?? 0) + ($request->imputation_salaire ?? 0)
+                    + ($request->frais_bancaires ?? 0) + ($request->cnps ?? 0);
         $data['net_a_payer'] = max(0, $brut - $deductions);
-
         $bulletin->update($data);
         return back()->with('success', 'Bulletin mis à jour');
     }
@@ -113,23 +100,50 @@ class PaieController extends Controller
         return $pdf->download('bulletin_' . $bulletin->employe->matricule . '_' . $bulletin->periode . '.pdf');
     }
 
-    public function recapitulatif(Request $request)
+    // ✅ PDF liste des bulletins avec solde prêt restant
+    public function pdfListe(Request $request)
     {
         $periode  = $request->periode ?? now()->format('Y-m');
-        $bulletins = BulletinPaie::with('employe.direction')->where('periode', $periode)->get();
+        $bulletins = BulletinPaie::with('employe.direction')->where('periode', $periode)->orderBy('vague')->get();
 
-        $parDirection = $bulletins->groupBy('employe.direction.nom')->map(fn($g) => [
-            'nb'     => $g->count(),
-            'brut'   => $g->sum('salaire_brut'),
-            'net'    => $g->sum('net_a_payer'),
-            'hs'     => $g->sum('montant_heures_sup'),
-            'sanction'=> $g->sum('montant_sanction'),
-        ]);
+        // Ajouter le solde prêt restant pour chaque employé
+        $bulletins->each(function($b) {
+            $pretRestant = \App\Models\RH\Pret::where('employe_id', $b->employe_id)
+                ->where('statut', 'en_cours')
+                ->get()
+                ->sum(fn($p) => max(0, $p->montant - $p->montant_rembourse));
+            $b->pret_restant = $pretRestant;
+        });
 
-        return view('rh.paie.recapitulatif', compact('bulletins', 'periode', 'parDirection'));
+        $pdf = Pdf::loadView('rh.paie.pdf_liste', compact('bulletins', 'periode'))
+                   ->setPaper('a4', 'landscape');
+        return $pdf->download('bulletins_' . $periode . '.pdf');
     }
 
-    // Générer les bulletins en masse pour tous les employés actifs
+    public function recapitulatif(Request $request)
+{
+    $periode   = $request->periode ?? now()->format('Y-m');
+    $bulletins = BulletinPaie::with('employe.direction')->where('periode', $periode)->get();
+
+    $parDirection = $bulletins->groupBy('employe.direction.nom')->map(fn($g) => [
+        'nb'      => $g->count(),
+        'brut'    => $g->sum('salaire_brut'),
+        'net'     => $g->sum('net_a_payer'),
+        'hs'      => $g->sum('montant_heures_sup'),
+        'sanction'=> $g->sum('montant_sanction'),
+        'acomptes'=> $g->sum('acompte'),
+    ]);
+
+    if ($request->has('pdf')) {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rh.paie.recapitulatif_pdf',
+            compact('bulletins', 'periode', 'parDirection')
+        )->setPaper('a4', 'landscape');
+        return $pdf->download('recapitulatif_paie_' . $periode . '.pdf');
+    }
+
+    return view('rh.paie.recapitulatif', compact('bulletins', 'periode', 'parDirection'));
+}
+
     public function genererMasse(Request $request)
     {
         $request->validate([
@@ -137,17 +151,12 @@ class PaieController extends Controller
             'vague'         => 'required|in:VAGUE 1,VAGUE 2',
             'date_paiement' => 'required|date',
         ]);
-
-        $employes = Employe::where('actif', true)
-            ->where('vague_paiement', $request->vague)
-            ->get();
-
+        $employes = Employe::where('actif', true)->where('vague_paiement', $request->vague)->get();
         $crees = 0;
         foreach ($employes as $e) {
             $existe = BulletinPaie::where('employe_id', $e->id)
                 ->where('periode', $request->periode)
                 ->where('vague', $request->vague)->exists();
-
             if (!$existe) {
                 $sh  = $e->salaire_base / 173.33;
                 $net = $e->salaire_base + 1000;
@@ -166,7 +175,6 @@ class PaieController extends Controller
                 $crees++;
             }
         }
-
         return back()->with('success', "{$crees} bulletin(s) générés pour {$request->vague} — {$request->periode}");
     }
 }

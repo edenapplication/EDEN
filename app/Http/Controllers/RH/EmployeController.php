@@ -33,21 +33,18 @@ class EmployeController extends Controller
 
         if ($request->filled('search'))
             $query->where(fn($q) => $q
-                ->where('nom',       'LIKE', "%{$request->search}%")
-                ->orWhere('prenom',  'LIKE', "%{$request->search}%")
+                ->where('nom',        'LIKE', "%{$request->search}%")
+                ->orWhere('prenom',   'LIKE', "%{$request->search}%")
                 ->orWhere('matricule','LIKE', "%{$request->search}%")
                 ->orWhere('telephone','LIKE', "%{$request->search}%")
             );
 
         if ($request->filled('direction_id'))
             $query->where('direction_id', $request->direction_id);
-
         if ($request->filled('type_contrat'))
             $query->where('type_contrat', $request->type_contrat);
-
         if ($request->filled('statut'))
             $query->where('actif', $request->statut === 'actif');
-
         if ($request->filled('vague'))
             $query->where('vague_paiement', $request->vague);
 
@@ -159,6 +156,51 @@ class EmployeController extends Controller
     }
 
     // ============================================================
+    // PHOTO
+    // ============================================================
+    public function uploadPhoto(Request $request, $id)
+    {
+        $request->validate(['photo' => 'required|image|max:2048']);
+        $employe = Employe::findOrFail($id);
+
+        // ✅ Supprimer l'ancienne photo si elle existe
+        if ($employe->photo_path && Storage::disk('public')->exists($employe->photo_path)) {
+            Storage::disk('public')->delete($employe->photo_path);
+        }
+
+        $path = $request->file('photo')->store('rh/photos', 'public');
+        $employe->update(['photo_path' => $path]);
+        return back()->with('success', 'Photo mise à jour');
+    }
+
+    // ============================================================
+    // PDF FICHE EMPLOYÉ
+    // ============================================================
+    public function pdfFiche($id)
+    {
+        $employe = Employe::with([
+            'direction', 'service', 'poste',
+            'bulletins' => fn($q) => $q->orderBy('periode', 'desc')->limit(6),
+            'absences'  => fn($q) => $q->orderBy('date_debut', 'desc')->limit(10),
+            'prets'     => fn($q) => $q->where('statut', 'en_cours'),
+            'sanctions' => fn($q) => $q->orderBy('date', 'desc')->limit(5),
+            'retards'   => fn($q) => $q->orderByDesc('date')->limit(10),
+            'documents',
+        ])->findOrFail($id);
+
+        $totalAbsences   = $employe->absences->sum('nombre_jours');
+        $totalRetards    = $employe->retards->count();
+        $dernierBulletin = $employe->bulletins->first();
+        $pretRestant     = $employe->prets->sum(fn($p) => max(0, $p->montant - $p->montant_rembourse));
+
+        $pdf = Pdf::loadView('rh.employes.pdf_fiche',
+            compact('employe', 'totalAbsences', 'totalRetards', 'dernierBulletin', 'pretRestant')
+        )->setPaper('a4');
+
+        return $pdf->download('fiche_' . $employe->matricule . '.pdf');
+    }
+
+    // ============================================================
     // DOCUMENTS
     // ============================================================
     public function uploadDocument(Request $request, $id)
@@ -193,13 +235,12 @@ class EmployeController extends Controller
     }
 
     public function deleteDocument($docId)
-{
-    $doc = EmployeDocument::findOrFail($docId);
-
-    Storage::disk('public')->delete($doc->fichier_path);
-
-    $doc->delete();
-
-    return back()->with('success', 'Document supprimé');
-}
+    {
+        $doc = EmployeDocument::findOrFail($docId);
+        if (Storage::disk('public')->exists($doc->fichier_path)) {
+            Storage::disk('public')->delete($doc->fichier_path);
+        }
+        $doc->delete();
+        return back()->with('success', 'Document supprimé');
+    }
 }

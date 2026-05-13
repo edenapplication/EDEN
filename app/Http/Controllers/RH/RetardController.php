@@ -4,45 +4,82 @@ namespace App\Http\Controllers\RH;
 use App\Http\Controllers\Controller;
 use App\Models\RH\Retard;
 use App\Models\RH\Employe;
+use App\Models\RH\Direction;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RetardController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Retard::with('employe');
-        if ($request->filled('employe_id')) $query->where('employe_id', $request->employe_id);
+        $query = Retard::with('employe.direction.services', 'employe.service');
+
+        if ($request->filled('employe_id'))
+            $query->where('employe_id', $request->employe_id);
+        if ($request->filled('direction_id'))
+            $query->whereHas('employe', fn($q) => $q->where('direction_id', $request->direction_id));
         if ($request->filled('mois'))
-            $query->whereMonth('date', date('m', strtotime($request->mois.'-01')))
-                  ->whereYear('date',  date('Y', strtotime($request->mois.'-01')));
+            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$request->mois]);
 
-        $retards  = $query->orderBy('date', 'desc')->paginate(30)->withQueryString();
-        $employes = Employe::where('actif', true)->orderBy('nom')->get();
-        $totalDeductions = Retard::whereMonth('date', now()->month)->whereYear('date', now()->year)->sum('montant_deduction');
+        $retards    = $query->orderByDesc('date')->get();
+        $employes   = Employe::where('actif', true)->orderBy('nom')->get();
+        $directions = Direction::orderBy('nom')->get();
 
-        return view('rh.retards.index', compact('retards', 'employes', 'totalDeductions'));
+        $parDirection = $retards->groupBy('employe.direction.nom')->map(fn($g) => [
+            'nb'       => $g->count(),
+            'employes' => $g->groupBy('employe_id')->map(fn($ge) => [
+                'nom'     => $ge->first()->employe?->nom . ' ' . $ge->first()->employe?->prenom,
+                'nb'      => $ge->count(),
+                'service' => $ge->first()->employe?->service?->nom ?? '-',
+            ])->sortByDesc('nb')->values(),
+        ])->sortByDesc('nb');
+
+        $parService = $retards->groupBy('employe.service.nom')->map(fn($g) => [
+            'nb' => $g->count(),
+        ])->sortByDesc('nb');
+
+        return view('rh.retards.index', compact('retards','employes','directions','parDirection','parService'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'employe_id'    => 'required|exists:rh_employes,id',
-            'date'          => 'required|date',
-            'minutes_retard'=> 'required|integer|min:1',
+            'employe_id' => 'required|exists:rh_employes,id',
+            'date'       => 'required|date',
         ]);
-        $retard = Retard::create($request->all());
-        return response()->json(['success' => true, 'retard' => $retard->load('employe')]);
+        Retard::create($request->all());
+        return back()->with('success', 'Retard enregistré');
     }
 
     public function update(Request $request, $id)
     {
         Retard::findOrFail($id)->update($request->all());
-        return response()->json(['success' => true]);
+        return back()->with('success', 'Retard mis à jour');
     }
 
     public function destroy($id)
     {
         Retard::findOrFail($id)->delete();
-        return response()->json(['success' => true]);
+        return redirect()->route('rh.retards.index')->with('success', 'Retard supprimé');
+    }
+
+    public function pdfListe(Request $request)
+    {
+        $query = Retard::with('employe.direction');
+        if ($request->filled('employe_id'))
+            $query->where('employe_id', $request->employe_id);
+        if ($request->filled('direction_id'))
+            $query->whereHas('employe', fn($q) => $q->where('direction_id', $request->direction_id));
+        if ($request->filled('mois'))
+            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$request->mois]);
+
+        $retards    = $query->orderByDesc('date')->get();
+        $parDirection = $retards->groupBy('employe.direction.nom')->map(fn($g) => [
+            'nb' => $g->count(),
+        ]);
+
+        $pdf = Pdf::loadView('rh.retards.pdf_liste', compact('retards', 'parDirection'))
+                   ->setPaper('a4', 'landscape');
+        return $pdf->download('retards_' . now()->format('Y-m-d') . '.pdf');
     }
 }

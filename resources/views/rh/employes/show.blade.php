@@ -12,6 +12,27 @@
 .tab-panel { display:none; }
 .tab-panel.active { display:block; }
 .doc-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#f8fafc; border-radius:8px; margin-bottom:6px; border-left:3px solid #1d4ed8; }
+
+/* ✅ Avatar avec bouton photo */
+.avatar-wrap { position:relative; width:90px; height:90px; margin:0 auto; }
+.avatar-wrap img,
+.avatar-initiales {
+    width:90px; height:90px; border-radius:50%;
+    object-fit:cover; border:3px solid #1d4ed8;
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; font-weight:900; color:white;
+    background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+}
+.avatar-photo-btn {
+    position:absolute; bottom:0; right:0;
+    width:28px; height:28px; border-radius:50%;
+    background:#f59e0b; border:2px solid white;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:13px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+.avatar-photo-btn:hover { background:#d97706; }
+#photoInput { display:none; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -25,6 +46,7 @@
         </span>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ route('rh.employes.pdf', $employe->id) }}"  class="btn btn-outline-danger btn-sm">📄 Fiche PDF</a>
         <a href="{{ route('rh.employes.edit', $employe->id) }}" class="btn btn-warning btn-sm">✏️ Modifier</a>
         <a href="{{ route('rh.paie.create') }}?employe_id={{ $employe->id }}" class="btn btn-success btn-sm">💰 Bulletin</a>
     </div>
@@ -32,20 +54,44 @@
 
 <div class="row g-3">
 
-    {{-- Fiche résumé --}}
+    {{-- FICHE RÉSUMÉ --}}
     <div class="col-md-4">
         <div class="info-card">
             <h5>👤 Fiche employé</h5>
+
+            {{-- ✅ AVATAR AVEC BOUTON PHOTO --}}
             <div class="text-center mb-3">
-                <div style="width:80px;height:80px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:white;margin:0 auto;">
-                    {{ strtoupper(substr($employe->prenom,0,1)) }}{{ strtoupper(substr($employe->nom,0,1)) }}
+                <div class="avatar-wrap">
+                    @if($employe->photo_path)
+                        <img src="{{ asset('storage/' . $employe->photo_path) }}" alt="Photo" id="avatarImg">
+                    @else
+                        <div class="avatar-initiales" id="avatarImg">
+                            {{ strtoupper(substr($employe->prenom,0,1)) }}{{ strtoupper(substr($employe->nom,0,1)) }}
+                        </div>
+                    @endif
+
+                    {{-- Bouton symbole appareil photo --}}
+                    <div class="avatar-photo-btn" onclick="document.getElementById('photoInput').click()" title="Changer la photo">
+                        📷
+                    </div>
                 </div>
-                <div style="margin-top:8px;font-weight:700;font-size:15px;">{{ $employe->nom }} {{ $employe->prenom }}</div>
+
+                {{-- Formulaire caché upload photo --}}
+                <form id="photoForm" method="POST"
+                      action="{{ route('rh.employes.photo', $employe->id) }}"
+                      enctype="multipart/form-data">
+                    @csrf
+                    <input type="file" id="photoInput" name="photo" accept="image/*"
+                           onchange="document.getElementById('photoForm').submit()">
+                </form>
+
+                <div style="margin-top:10px;font-weight:700;font-size:15px;">{{ $employe->nom }} {{ $employe->prenom }}</div>
                 <div style="font-size:12px;color:#64748b;">{{ $employe->intitule_poste ?? 'Poste non défini' }}</div>
                 <span style="background:{{ $employe->actif?'#dcfce7':'#fee2e2'}};color:{{ $employe->actif?'#15803d':'#b91c1c'}};padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;">
                     {{ $employe->actif ? '✅ Actif' : '🚫 Archivé' }}
                 </span>
             </div>
+
             <div class="info-row"><span>Matricule</span><span>{{ $employe->matricule }}</span></div>
             <div class="info-row"><span>Sexe</span><span>{{ $employe->sexe === 'M' ? 'Masculin' : 'Féminin' }}</span></div>
             <div class="info-row"><span>Direction</span><span>{{ $employe->direction?->nom ?? '-' }}</span></div>
@@ -90,7 +136,7 @@
         </div>
     </div>
 
-    {{-- Onglets --}}
+    {{-- ONGLETS --}}
     <div class="col-md-8">
         <div class="info-card">
             <div class="d-flex gap-2 mb-3 flex-wrap">
@@ -102,7 +148,7 @@
                 <button class="tab-btn" onclick="showTab('t-docs', this)">📎 Documents</button>
             </div>
 
-            {{-- Infos --}}
+            {{-- INFOS --}}
             <div id="t-info" class="tab-panel active">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -128,7 +174,7 @@
                 </div>
             </div>
 
-            {{-- Bulletins --}}
+            {{-- BULLETINS --}}
             <div id="t-paie" class="tab-panel">
                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
                     <thead><tr style="background:#1e3a5f;color:white;">
@@ -151,7 +197,7 @@
                 </table>
             </div>
 
-            {{-- Absences --}}
+            {{-- ABSENCES --}}
             <div id="t-abs" class="tab-panel">
                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
                     <thead><tr style="background:#1e3a5f;color:white;">
@@ -174,7 +220,7 @@
                 </table>
             </div>
 
-            {{-- Prêts --}}
+            {{-- PRÊTS --}}
             <div id="t-pret" class="tab-panel">
                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
                     <thead><tr style="background:#1e3a5f;color:white;">
@@ -196,7 +242,7 @@
                 </table>
             </div>
 
-            {{-- Sanctions --}}
+            {{-- SANCTIONS --}}
             <div id="t-sanc" class="tab-panel">
                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
                     <thead><tr style="background:#1e3a5f;color:white;">
@@ -218,10 +264,8 @@
                 </table>
             </div>
 
-            {{-- Documents --}}
+            {{-- DOCUMENTS --}}
             <div id="t-docs" class="tab-panel">
-
-                {{-- Formulaire upload --}}
                 <form method="POST"
                       action="{{ route('rh.employes.documents.store', $employe->id) }}"
                       enctype="multipart/form-data"
@@ -231,8 +275,7 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
                             <label style="font-size:11px;font-weight:600;color:#64748b;">Nom</label>
-                            <input type="text" name="nom" class="form-control form-control-sm"
-                                   placeholder="Ex: CV 2024" required>
+                            <input type="text" name="nom" class="form-control form-control-sm" placeholder="Ex: CV 2024" required>
                         </div>
                         <div class="col-md-2">
                             <label style="font-size:11px;font-weight:600;color:#64748b;">Type</label>
@@ -259,7 +302,6 @@
                     </div>
                 </form>
 
-                {{-- Liste des documents --}}
                 @forelse($employe->documents as $doc)
                     <div class="doc-row">
                         <div>
@@ -268,17 +310,14 @@
                                 <span style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:4px;font-size:10px;margin-right:6px;">
                                     {{ strtoupper(str_replace('_', ' ', $doc->type)) }}
                                 </span>
-                                {{ $doc->fichier_nom }}
-                                — {{ $doc->taille_formattee }}
+                                {{ $doc->fichier_nom }} — {{ $doc->taille_formattee }}
                                 @if($doc->description) — {{ $doc->description }} @endif
                                 <span style="color:#94a3b8;margin-left:6px;">{{ $doc->created_at->format('d/m/Y') }}</span>
                             </div>
                         </div>
                         <div class="d-flex gap-2">
                             <a href="{{ route('rh.employes.documents.download', [$employe->id, $doc->id]) }}"
-                               class="btn btn-outline-primary btn-sm" style="font-size:11px;">
-                                ⬇️ Télécharger
-                            </a>
+                               class="btn btn-outline-primary btn-sm" style="font-size:11px;">⬇️ Télécharger</a>
                             <form action="{{ route('rh.employes.documents.destroy', $doc->id) }}" method="POST"
                                   onsubmit="return confirm('Supprimer ce document ?')">
                                 @csrf @method('DELETE')
@@ -287,9 +326,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="text-muted text-center py-4" style="font-size:13px;">
-                        📂 Aucun document enregistré pour cet employé
-                    </div>
+                    <div class="text-muted text-center py-4" style="font-size:13px;">📂 Aucun document enregistré</div>
                 @endforelse
             </div>
 

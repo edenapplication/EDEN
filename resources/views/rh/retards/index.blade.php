@@ -2,195 +2,232 @@
 @section('content')
 
 <style>
-.ret-table { width:100%; border-collapse:collapse; font-size:12px; background:white; }
-.ret-table thead tr { background:#1e3a5f; color:white; }
-.ret-table thead th { padding:10px 8px; font-weight:600; text-align:left; white-space:nowrap; }
-.ret-table tbody tr:nth-child(even) { background:#f8fafc; }
-.ret-table tbody tr:hover { background:#fffbeb; }
-.ret-table tbody td { padding:8px; border-bottom:1px solid #e2e8f0; }
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
 .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:480px; max-height:90vh; overflow-y:auto; }
+.stat-card { background:white; border-radius:10px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:10px; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 style="color:#1e3a5f;font-weight:800;">⏱️ Retards</h2>
-    <button onclick="openModal()" class="btn btn-warning">+ Nouveau retard</button>
+    <h2 style="color:#1e3a5f;font-weight:800;">⏰ Retards</h2>
+    <button onclick="openModal('addModal')" class="btn btn-primary">+ Enregistrer un retard</button>
 </div>
 
-{{-- KPI --}}
-<div class="row g-3 mb-3">
-    <div class="col-md-4">
-        <div style="background:white;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:3px solid #f59e0b;text-align:center;">
-            <div style="font-size:20px;font-weight:800;color:#f59e0b;">{{ $retards->count() }}</div>
-            <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Retards enregistrés</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div style="background:white;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:3px solid #dc2626;text-align:center;">
-            <div style="font-size:20px;font-weight:800;color:#dc2626;">{{ number_format($totalDeductions, 0, ',', ' ') }}</div>
-            <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Total déductions ce mois (FCFA)</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div style="background:white;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:3px solid #16a34a;text-align:center;">
-            <div style="font-size:20px;font-weight:800;color:#16a34a;">{{ $retards->where('justifie', true)->count() }}</div>
-            <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Justifiés</div>
-        </div>
-    </div>
-</div>
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+@endif
 
 {{-- FILTRES --}}
-<form method="GET" style="background:white;border-radius:12px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:16px;">
-    <div class="row g-2 align-items-end">
-        <div class="col-md-3">
-            <select name="employe_id" class="form-control form-control-sm">
-                <option value="">Tous les employés</option>
-                @foreach($employes as $e)
-                    <option value="{{ $e->id }}" {{ request('employe_id')==$e->id?'selected':'' }}>
-                        {{ $e->nom }} {{ $e->prenom }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-md-3">
-            <input type="month" name="mois" class="form-control form-control-sm" value="{{ request('mois') }}">
-        </div>
-        <div class="col-md-3 d-flex gap-1">
-            <button type="submit" class="btn btn-primary btn-sm">🔍 Filtrer</button>
-            <a href="{{ route('rh.retards.index') }}" class="btn btn-outline-secondary btn-sm">✖</a>
-        </div>
-    </div>
+<form method="GET" class="d-flex gap-2 mb-4 flex-wrap">
+    <select name="employe_id" class="form-control form-control-sm" style="max-width:220px;" onchange="this.form.submit()">
+        <option value="">👤 Tous les employés</option>
+        @foreach($employes as $e)
+            <option value="{{ $e->id }}" {{ request('employe_id') == $e->id ? 'selected':'' }}>{{ $e->nom }} {{ $e->prenom }}</option>
+        @endforeach
+    </select>
+    <select name="direction_id" class="form-control form-control-sm" style="max-width:200px;" onchange="this.form.submit()">
+        <option value="">🏢 Toutes les directions</option>
+        @foreach($directions as $d)
+            <option value="{{ $d->id }}" {{ request('direction_id') == $d->id ? 'selected':'' }}>{{ $d->nom }}</option>
+        @endforeach
+    </select>
+    <input type="month" name="mois" class="form-control form-control-sm" style="max-width:160px;" value="{{ request('mois') }}" onchange="this.form.submit()">
+    <a href="{{ route('rh.retards.index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
 </form>
 
-{{-- TABLEAU --}}
-<div style="overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
-<table class="ret-table">
-    <thead>
+<div class="row g-3 mb-4">
+
+    {{-- STATS PAR DIRECTION --}}
+    <div class="col-md-5">
+        <div class="stat-card">
+            <div style="font-weight:700;font-size:13px;color:#1e3a5f;margin-bottom:12px;">📊 Retards par direction</div>
+            @foreach($parDirection as $dir => $data)
+                <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                        <span style="font-weight:700;font-size:12px;">{{ $dir ?? 'Non défini' }}</span>
+                        <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">{{ $data['nb'] }} retard(s)</span>
+                    </div>
+                    @foreach($data['employes'] as $emp)
+                        <div style="font-size:11px;color:#64748b;padding-left:10px;line-height:1.8;">
+                            👤 {{ $emp['nom'] }}
+                            @if($emp['service'] !== '-') <span style="color:#94a3b8;">— {{ $emp['service'] }}</span>@endif
+                            : <strong style="color:#dc2626;">{{ $emp['nb'] }}</strong>
+                        </div>
+                    @endforeach
+                </div>
+            @endforeach
+            @if($parDirection->isEmpty())
+                <div class="text-muted text-center py-2" style="font-size:12px;">Aucun retard</div>
+            @endif
+        </div>
+    </div>
+
+    {{-- STATS PAR SERVICE --}}
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div style="font-weight:700;font-size:13px;color:#1e3a5f;margin-bottom:12px;">🗂️ Par service</div>
+            @foreach($parService as $svc => $data)
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;">
+                    <span>{{ $svc ?? 'Non défini' }}</span>
+                    <span style="background:#fee2e2;color:#dc2626;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;">{{ $data['nb'] }}</span>
+                </div>
+            @endforeach
+            @if($parService->isEmpty())
+                <div class="text-muted text-center py-2" style="font-size:12px;">Aucun retard</div>
+            @endif
+        </div>
+    </div>
+
+    {{-- TOTAL --}}
+    <div class="col-md-4">
+        <div class="stat-card" style="border-top:3px solid #dc2626;">
+            <div style="font-size:32px;font-weight:900;color:#dc2626;text-align:center;">{{ $retards->count() }}</div>
+            <div style="font-size:11px;color:#64748b;text-align:center;text-transform:uppercase;font-weight:600;">Retards au total</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid #f59e0b;margin-top:10px;">
+            <div style="font-size:24px;font-weight:900;color:#f59e0b;text-align:center;">{{ $retards->sum('duree_min') ?? 0 }} min</div>
+            <div style="font-size:11px;color:#64748b;text-align:center;text-transform:uppercase;font-weight:600;">Durée totale</div>
+        </div>
+    </div>
+</div>
+
+{{-- TABLE --}}
+<div class="card p-0 overflow-hidden">
+<table class="table table-hover table-bordered mb-0" style="font-size:12px;">
+    <thead class="table-dark">
         <tr>
-            <th>Employé</th><th>Date</th><th>Heure arrivée</th>
-            <th>Minutes retard</th><th>Déduction (FCFA)</th><th>Justification</th><th>Justifié</th><th>Actions</th>
+            <th>Employé</th>
+            <th>Direction</th>
+            <th>Date</th>
+            <th>Durée (min)</th>
+            <th>Motif</th>
+            <th>ACTIONS</th>
         </tr>
     </thead>
     <tbody>
     @forelse($retards as $r)
         <tr>
-            <td style="font-weight:600;">
-                {{ $r->employe?->nom }} {{ $r->employe?->prenom }}<br>
-                <small style="color:#64748b;">{{ $r->employe?->matricule }}</small>
-            </td>
-            <td>{{ $r->date?->format('d/m/Y') }}</td>
-            <td>{{ $r->heure_arrivee ? substr($r->heure_arrivee, 0, 5) : '-' }}</td>
+            <td><strong>{{ $r->employe?->nom }} {{ $r->employe?->prenom }}</strong><br><span style="font-size:10px;color:#94a3b8;">{{ $r->employe?->matricule }}</span></td>
+            <td>{{ $r->employe?->direction?->nom ?? '-' }}</td>
+            <td>{{ $r->date }}</td>
+            <td style="text-align:center;font-weight:700;color:#dc2626;">{{ $r->duree_min ?? '-' }}</td>
+            <td>{{ $r->motif ?? '-' }}</td>
             <td>
-                <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;">
-                    {{ $r->minutes_retard }} min
-                </span>
-            </td>
-            <td style="color:#dc2626;font-weight:700;">{{ number_format($r->montant_deduction, 0, ',', ' ') }}</td>
-            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;" title="{{ $r->justification }}">
-                {{ $r->justification ?? '-' }}
-            </td>
-            <td>
-                @if($r->justifie)
-                    <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;">✅ Oui</span>
-                @else
-                    <span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;">❌ Non</span>
-                @endif
-            </td>
-            <td>
-                <form action="{{ route('rh.retards.destroy', $r->id) }}" method="POST" style="display:inline"
-                      onsubmit="return confirm('Supprimer ce retard ?')">
-                    @csrf @method('DELETE')
-                    <button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;">🗑</button>
-                </form>
+                <div class="d-flex gap-1">
+                    <button onclick="openEditRetard({{ $r->id }}, {{ $r->employe_id }}, '{{ $r->date }}', {{ $r->duree_min ?? 0 }}, '{{ addslashes($r->motif) }}')"
+                            class="btn btn-warning btn-sm" style="font-size:10px;">✏️</button>
+                    <form action="{{ route('rh.retards.destroy', $r->id) }}" method="POST" style="display:inline"
+                          onsubmit="return confirm('Supprimer ce retard ?')">
+                        @csrf @method('DELETE')
+                        <button class="btn btn-outline-danger btn-sm" style="font-size:10px;">🗑</button>
+                    </form>
+                </div>
             </td>
         </tr>
     @empty
-        <tr><td colspan="8" class="text-center text-muted py-4">Aucun retard enregistré</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucun retard enregistré</td></tr>
     @endforelse
     </tbody>
 </table>
 </div>
-<div class="mt-3">{{ $retards->links() }}</div>
 
-{{-- MODAL --}}
-<div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
-<div class="modal-box" id="retModal">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 style="color:#1e3a5f;font-weight:800;">⏱️ Nouveau retard</h5>
-        <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;">✕</button>
+{{-- MODAL AJOUT --}}
+<div class="modal-overlay" id="overlayAdd" onclick="closeAllModals()"></div>
+<div class="modal-box" id="addModal">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 style="color:#1e3a5f;font-weight:800;">⏰ Enregistrer un retard</h5>
+        <button onclick="closeAllModals()" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div class="row g-3">
-        <div class="col-12">
-            <label class="form-label fw-semibold">Employé</label>
-            <select id="r_employe" class="form-control">
-                <option value="">-- Choisir --</option>
-                @foreach($employes as $e)
-                    <option value="{{ $e->id }}">{{ $e->nom }} {{ $e->prenom }} ({{ $e->matricule }})</option>
-                @endforeach
-            </select>
+    <form method="POST" action="{{ route('rh.retards.store') }}">
+        @csrf
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label fw-semibold">Employé <span class="text-danger">*</span></label>
+                <select name="employe_id" class="form-control" required>
+                    <option value="">-- Choisir --</option>
+                    @foreach($employes as $e)
+                        <option value="{{ $e->id }}">{{ $e->nom }} {{ $e->prenom }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+                <input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Durée (minutes)</label>
+                <input type="number" name="duree_min" class="form-control" min="1" max="480" placeholder="Ex: 30">
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Motif</label>
+                <input type="text" name="motif" class="form-control" placeholder="Ex: Embouteillages">
+            </div>
         </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Date</label>
-            <input type="date" id="r_date" class="form-control" value="{{ now()->format('Y-m-d') }}">
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" onclick="closeAllModals()" class="btn btn-light">Annuler</button>
+            <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
         </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Heure d'arrivée</label>
-            <input type="time" id="r_heure" class="form-control">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Minutes de retard</label>
-            <input type="number" id="r_minutes" class="form-control" min="1">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Déduction (FCFA)</label>
-            <input type="number" id="r_montant" class="form-control" value="0" min="0">
-        </div>
-        <div class="col-12">
-            <label class="form-label fw-semibold">Justification</label>
-            <input type="text" id="r_justif" class="form-control" placeholder="Optionnel">
-        </div>
-        <div class="col-12">
-            <label class="form-label fw-semibold d-flex align-items-center gap-2">
-                <input type="checkbox" id="r_justifie"> Retard justifié
-            </label>
-        </div>
+    </form>
+</div>
+
+{{-- MODAL MODIFICATION --}}
+<div class="modal-overlay" id="overlayEdit" onclick="closeAllModals()"></div>
+<div class="modal-box" id="editModal">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 style="color:#1e3a5f;font-weight:800;">✏️ Modifier le retard</h5>
+        <button onclick="closeAllModals()" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div class="d-flex justify-content-end gap-2 mt-4">
-        <button onclick="closeModal()" class="btn btn-light">Annuler</button>
-        <button onclick="sauvegarderRetard()" class="btn btn-warning">💾 Enregistrer</button>
-    </div>
+    <form id="editRetardForm" method="POST" action="">
+        @csrf @method('PUT')
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label fw-semibold">Employé</label>
+                <select name="employe_id" class="form-control" id="edit_r_employe" required>
+                    @foreach($employes as $e)
+                        <option value="{{ $e->id }}">{{ $e->nom }} {{ $e->prenom }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Date</label>
+                <input type="date" name="date" class="form-control" id="edit_r_date" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Durée (minutes)</label>
+                <input type="number" name="duree_min" class="form-control" id="edit_r_duree" min="1">
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Motif</label>
+                <input type="text" name="motif" class="form-control" id="edit_r_motif">
+            </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" onclick="closeAllModals()" class="btn btn-light">Annuler</button>
+            <button type="submit" class="btn btn-warning">💾 Mettre à jour</button>
+        </div>
+    </form>
 </div>
 
 @endsection
 @section('scripts')
 <script>
-const csrf = '{{ csrf_token() }}';
-
-function openModal() {
-    document.getElementById('overlay').style.display = 'block';
-    document.getElementById('retModal').style.display = 'block';
+function openModal(id) {
+    document.getElementById('overlayAdd').style.display = 'block';
+    document.getElementById(id).style.display = 'block';
 }
-function closeModal() {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('retModal').style.display = 'none';
+function closeAllModals() {
+    document.getElementById('overlayAdd').style.display = 'none';
+    document.getElementById('overlayEdit').style.display = 'none';
+    document.getElementById('addModal').style.display = 'none';
+    document.getElementById('editModal').style.display = 'none';
 }
-
-function sauvegarderRetard() {
-    fetch('{{ route("rh.retards.store") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-        body: JSON.stringify({
-            employe_id:       document.getElementById('r_employe').value,
-            date:             document.getElementById('r_date').value,
-            heure_arrivee:    document.getElementById('r_heure').value || null,
-            minutes_retard:   document.getElementById('r_minutes').value,
-            montant_deduction:document.getElementById('r_montant').value,
-            justification:    document.getElementById('r_justif').value || null,
-            justifie:         document.getElementById('r_justifie').checked ? 1 : 0,
-        })
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); else alert(data.message || 'Erreur'); });
+function openEditRetard(id, employeId, date, duree, motif) {
+    document.getElementById('editRetardForm').action = `/rh/retards/${id}`;
+    document.getElementById('edit_r_employe').value  = employeId;
+    document.getElementById('edit_r_date').value     = date;
+    document.getElementById('edit_r_duree').value    = duree;
+    document.getElementById('edit_r_motif').value    = motif;
+    document.getElementById('overlayEdit').style.display = 'block';
+    document.getElementById('editModal').style.display   = 'block';
 }
 </script>
 @endsection
