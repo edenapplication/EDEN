@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  app:
+    image: php:8.2-apache
+    container_name: eden_app
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+
+  db:
+    image: mysql:8
+    container_name: eden_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: eden
+    ports:
+      - "3306:3306"

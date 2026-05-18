@@ -571,6 +571,7 @@ function dessinerZonesGroupes() {
         let   dateTxt = '';
         if (zg.type === 'implantation_prevue' && zg.date_prevue)       dateTxt = formatDate(zg.date_prevue);
         else if (zg.type === 'deja_implante'  && zg.date_confirmee)    dateTxt = formatDate(zg.date_confirmee);
+        else if (zg.type === 'dossier_technique'  && zg.date_confirmee)    dateTxt = formatDate(zg.date_confirmee);
         else if (zg.type === 'morcellement'   && zg.date_morcellement) dateTxt = formatDate(zg.date_morcellement);
 
         // Taille de police adaptée à la zone (min 10, max 18)
@@ -687,6 +688,7 @@ function afficherInfoSurLot(svg, pathEl, lot) {
         let dateTxt = '';
         if (lot.type === 'implantation_prevue' && lot.date_prevue)       dateTxt = formatDate(lot.date_prevue);
         else if (lot.type === 'deja_implante'  && lot.date_confirmee)    dateTxt = formatDate(lot.date_confirmee);
+        else if (lot.type === 'dossier_technique'  && lot.date_confirmee)    dateTxt = formatDate(lot.date_confirmee);
         else if (lot.type === 'morcellement'   && lot.date_morcellement) dateTxt = formatDate(lot.date_morcellement);
         const nomTxt = lot.owner_name || '';
         if (!nomTxt && !dateTxt) return;
@@ -1089,7 +1091,7 @@ lotType.addEventListener('change', function() {
     [datePrevueGroup,dateConfirmeeGroup,dateMorcellementGroup,superficieField].forEach(el => el.style.display='none');
     if (type === 'implantation_prevue') { datePrevueGroup.style.display='block'; superficieField.style.display='block'; }
     if (type === 'deja_implante')       { dateConfirmeeGroup.style.display='block'; superficieField.style.display='block'; }
-    if (type === 'dossier_technique')   { dateConfirmeeGroup.style.display='block'; }
+    if (type === 'dossier_technique')   { dateConfirmeeGroup.style.display='block'; superficieField.style.display='block'; }
     if (type === 'morcellement')        { dateMorcellementGroup.style.display='block'; superficieField.style.display='block'; }
 });
 

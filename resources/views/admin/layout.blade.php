@@ -159,6 +159,13 @@
             </a>
         </div>
 
+        {{-- Dans la sidebar admin, ajouter le lien utilisateurs --}}
+@if(auth()->user()?->isAdmin())
+<a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+    <span>🔑</span> Gestion Accès
+</a>
+@endif
+
         <div class="nav-section">
 
             {{-- GROUPE : GESTION FONCIÈRE --}}
@@ -171,7 +178,7 @@
                     <span>🗂️</span> Sites & Zones
                 </a>
                 <a href="{{ route('lots.vendus') }}">
-                    <span>📁</span> Suivi des dossiers techniques
+                    <span>📁</span> Suivi des parcelles
                 </a>
             </div>
 
@@ -215,11 +222,16 @@
         </div>
     </div>
 
-    <div>
-        <button class="logout-btn" onclick="alert('Déconnexion')">
-            🚪 Déconnexion
+    <div class="d-flex align-items-center gap-2">
+    <span style="font-size:12px;color:rgba(255,255,255,0.7);">{{ auth()->user()?->name }}</span>
+    <form method="POST" action="{{ route('logout') }}" style="display:inline;">
+        @csrf
+        <button type="submit" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">
+            Déconnexion
         </button>
-    </div>
+    </form>
+</div>
+
 </div>
 
 <div class="topbar">
