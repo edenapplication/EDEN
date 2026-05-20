@@ -27,38 +27,72 @@ class EmployeController extends Controller
         ];
     }
 
-    public function index(Request $request)
-    {
-        $query = Employe::with(['direction', 'service', 'poste']);
+   public function index(Request $request)
+{
+    $query = Employe::with(['direction', 'service', 'poste']);
 
-        if ($request->filled('search'))
-            $query->where(fn($q) => $q
-                ->where('nom',        'LIKE', "%{$request->search}%")
-                ->orWhere('prenom',   'LIKE', "%{$request->search}%")
-                ->orWhere('matricule','LIKE', "%{$request->search}%")
-                ->orWhere('telephone','LIKE', "%{$request->search}%")
-            );
+    if ($request->filled('search'))
+        $query->where(fn($q) => $q
+            ->where('nom',        'LIKE', "%{$request->search}%")
+            ->orWhere('prenom',   'LIKE', "%{$request->search}%")
+            ->orWhere('matricule','LIKE', "%{$request->search}%")
+            ->orWhere('telephone','LIKE', "%{$request->search}%")
+        );
 
-        if ($request->filled('direction_id'))
-            $query->where('direction_id', $request->direction_id);
-        if ($request->filled('type_contrat'))
-            $query->where('type_contrat', $request->type_contrat);
-        if ($request->filled('statut'))
-            $query->where('actif', $request->statut === 'actif');
-        if ($request->filled('vague'))
-            $query->where('vague_paiement', $request->vague);
+    if ($request->filled('direction_id'))
+        $query->where('direction_id', $request->direction_id);
+    if ($request->filled('type_contrat'))
+        $query->where('type_contrat', $request->type_contrat);
+    if ($request->filled('vague'))
+        $query->where('vague_paiement', $request->vague);
 
-        $employes   = $query->orderBy('nom')->paginate(20)->withQueryString();
-        $directions = Direction::orderBy('nom')->get();
-        $stats = [
-            'total'  => Employe::where('actif', true)->count(),
-            'hommes' => Employe::where('actif', true)->where('sexe', 'M')->count(),
-            'femmes' => Employe::where('actif', true)->where('sexe', 'F')->count(),
-            'cdi'    => Employe::where('actif', true)->where('type_contrat', 'CDI')->count(),
-        ];
+    // Statut : actif par défaut, inactif si demandé
+    $showInactif = $request->statut === 'inactif';
+    $query->where('actif', !$showInactif);
 
-        return view('rh.employes.index', compact('employes', 'directions', 'stats'));
-    }
+    $employes   = $query->orderBy('nom')->paginate(20)->withQueryString();
+    $directions = Direction::orderBy('nom')->get();
+
+    // ✅ Stats globales (tous employés actifs)
+    $stats = [
+        'total'  => Employe::where('actif', true)->count(),
+        'hommes' => Employe::where('actif', true)->where('sexe', 'M')->count(),
+        'femmes' => Employe::where('actif', true)->where('sexe', 'F')->count(),
+        'cdi'    => Employe::where('actif', true)->where('type_contrat', 'CDI')->count(),
+        'archives'=> Employe::where('actif', false)->count(),
+    ];
+
+    // ✅ Stats du filtre courant (résultats filtrés avant pagination)
+    $queryFiltre = Employe::query();
+    if ($request->filled('search'))
+        $queryFiltre->where(fn($q) => $q
+            ->where('nom',        'LIKE', "%{$request->search}%")
+            ->orWhere('prenom',   'LIKE', "%{$request->search}%")
+            ->orWhere('matricule','LIKE', "%{$request->search}%")
+        );
+    if ($request->filled('direction_id'))
+        $queryFiltre->where('direction_id', $request->direction_id);
+    if ($request->filled('type_contrat'))
+        $queryFiltre->where('type_contrat', $request->type_contrat);
+    if ($request->filled('vague'))
+        $queryFiltre->where('vague_paiement', $request->vague);
+    $queryFiltre->where('actif', !$showInactif);
+
+    $employes_filtres = $queryFiltre->get();
+    $statsFiltre = [
+        'total'  => $employes_filtres->count(),
+        'hommes' => $employes_filtres->where('sexe', 'M')->count(),
+        'femmes' => $employes_filtres->where('sexe', 'F')->count(),
+        'cdi'    => $employes_filtres->where('type_contrat', 'CDI')->count(),
+    ];
+
+    $filtreActif = $request->filled('search') || $request->filled('direction_id')
+                || $request->filled('type_contrat') || $request->filled('vague');
+
+    return view('rh.employes.index', compact(
+        'employes', 'directions', 'stats', 'statsFiltre', 'filtreActif', 'showInactif'
+    ));
+}
 
     public function create()
     {
@@ -67,25 +101,30 @@ class EmployeController extends Controller
         return view('rh.employes.create', compact('options', 'matricule'));
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nom'              => 'required|string|max:100',
-            'prenom'           => 'required|string|max:100',
-            'sexe'             => 'required|in:M,F',
-            'date_integration' => 'required|date',
-            'type_contrat'     => 'required',
-            'salaire_base'     => 'required|numeric|min:0',
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'nom'              => 'required|string|max:100',
+        'prenom'           => 'required|string|max:100',
+        'sexe'             => 'required|in:M,F',
+        'date_integration' => 'required|date',
+        'type_contrat'     => 'required',
+        'salaire_base'     => 'required|numeric|min:0',
+    ]);
 
-        $employe = Employe::create(array_merge(
-            $request->all(),
-            ['matricule' => Employe::genererMatricule($request->date_integration)]
-        ));
+    // ✅ Créer sans matricule d'abord pour obtenir l'ID
+    $employe = Employe::create(array_merge(
+        $request->all(),
+        ['matricule' => 'TEMP'] // temporaire
+    ));
 
-        return redirect()->route('rh.employes.show', $employe->id)
-                         ->with('success', 'Employé créé avec succès');
-    }
+    // ✅ Générer le matricule avec l'ID réel
+    $employe->matricule = Employe::genererMatricule($employe->id, $request->date_integration);
+    $employe->save();
+
+    return redirect()->route('rh.employes.show', $employe->id)
+                     ->with('success', 'Employé créé — Matricule : ' . $employe->matricule);
+}
 
     public function show($id)
     {

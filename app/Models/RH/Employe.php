@@ -1,19 +1,21 @@
 <?php
 namespace App\Models\RH;
+
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Employe extends Model
 {
     protected $table = 'rh_employes';
     protected $fillable = [
-        'matricule','nom','prenom','sexe','date_naissance','lieu_naissance',
+        'matricule','photo_path','nom','prenom','sexe','date_naissance','lieu_naissance',
         'numero_cni','niu','origines','situation_matrimoniale','nb_enfants','etat_sante',
         'telephone','adresse','personne_a_contacter','tel_urgence',
         'direction_id','service_id','poste_id','intitule_poste',
         'type_contrat','categorie','date_integration','date_sortie','cause_depart','vague_paiement',
         'niveau_academique','specialite_academique','diplome_recrutement',
         'exp_poste_precedent','entreprise_precedente','duree_exp_precedente',
-        'salaire_base','solde_conges','conges_pris','actif','notes','photo_path',
+        'salaire_base','solde_conges','conges_pris','actif','notes',
     ];
 
     protected $casts = [
@@ -41,35 +43,30 @@ class Employe extends Model
 
     public function getAncienneteAttribute(): string
     {
-        return $this->date_integration->diffForHumans(now(), true);
+        return $this->date_integration?->diffForHumans(now(), true) ?? '-';
     }
 
     public function getSoldeCongesRestantAttribute(): int
     {
-        return max(0, $this->solde_conges - $this->conges_pris);
+        return max(0, ($this->solde_conges ?? 0) - ($this->conges_pris ?? 0));
     }
 
-  public static function genererMatricule(?string $dateIntegration = null): string
-{
-    // Utiliser la date d'intégration fournie, sinon la date du jour
-    $date = $dateIntegration
-        ? \Carbon\Carbon::parse($dateIntegration)
-        : now();
+    // ✅ Matricule = EDG_MM_AA_ID (basé sur la date d'intégration + l'ID)
+    public static function genererMatricule(int $id, ?string $dateIntegration = null): string
+    {
+        $date = $dateIntegration
+            ? Carbon::parse($dateIntegration)
+            : now();
 
-    $mois   = $date->format('m');  // 04
-    $annee  = $date->format('y');  // 26
-    $prefix = "EDG_{$mois}_{$annee}_";
+        $mois  = $date->format('m');
+        $annee = $date->format('y');
 
-    // Trouver le dernier numéro pour ce préfixe
-    $dernier = static::where('matricule', 'LIKE', $prefix . '%')
-                      ->orderByDesc('id')
-                      ->value('matricule');
+        return "EDG_{$mois}_{$annee}_" . str_pad($id, 4, '0', STR_PAD_LEFT);
+    }
 
-    $num = $dernier
-        ? (int) substr($dernier, strrpos($dernier, '_') + 1) + 1
-        : 1;
-
-    return $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
-}
-
+    // ✅ Recalculer le matricule d'un employé existant
+    public function regenererMatricule(): string
+    {
+        return self::genererMatricule($this->id, $this->date_integration?->format('Y-m-d'));
+    }
 }
