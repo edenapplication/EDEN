@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -13,12 +12,10 @@ class ImportExportController extends Controller
         'clients', 'commerciaux', 'conducteurs', 'facilitateurs', 'agents_commerciaux',
         'dossiers_clients', 'paiements_dossier', 'dossiers_techniques',
         'zone_groupes', 'rapports', 'visites', 'visiteurs',
-
         'rh_directions', 'rh_services', 'rh_postes', 'rh_employes',
         'rh_employe_documents', 'rh_bulletins_paie', 'rh_absences',
         'rh_prets', 'rh_heures_sup', 'rh_sanctions', 'rh_retards',
         'rh_recapitulatifs',
-
         'users',
     ];
 
@@ -38,10 +35,20 @@ class ImportExportController extends Controller
         'users' => ['users'],
     ];
 
+    // ✅ Détecter le driver de la BD courante
+    private function driver(): string
+    {
+        return config('database.default');
+    }
+
+    private function isSQLite(): bool
+    {
+        return $this->driver() === 'sqlite';
+    }
+
     public function index()
     {
         $tableStats = [];
-
         foreach ($this->tablesOrder as $table) {
             try {
                 $tableStats[$table] = DB::table($table)->count();
@@ -49,12 +56,12 @@ class ImportExportController extends Controller
                 $tableStats[$table] = null;
             }
         }
-
-        return view('admin.import-export', compact('tableStats'));
+        $driver = $this->driver();
+        return view('admin.import-export', compact('tableStats', 'driver'));
     }
 
     // =========================================================
-    // EXPORT SQLITE CLEAN
+    // EXPORT — génère JSON universel (compatible MySQL + SQLite)
     // =========================================================
     public function export(Request $request)
     {
@@ -63,172 +70,250 @@ class ImportExportController extends Controller
         ]);
 
         $module = $request->module;
-
         $tables = $module === 'all'
             ? $this->tablesOrder
             : ($this->modules[$module] ?? []);
 
-        $sql  = $this->genererEntete($module);
+        $export = [
+            'meta' => [
+                'source'     => 'Eden Group',
+                'module'     => $module,
+                'date'       => now()->toIso8601String(),
+                'driver'     => $this->driver(),
+                'version'    => '2.0',
+            ],
+            'tables' => [],
+        ];
 
         foreach ($tables as $table) {
-            if (!Schema::hasTable($table)) continue;
-            $sql .= $this->exportTable($table);
+            try {
+                if (!Schema::hasTable($table)) continue;
+                $rows = DB::table($table)->get()->toArray();
+                // Convertir objets en tableaux
+                $export['tables'][$table] = array_map(fn($r) => (array) $r, $rows);
+            } catch (\Throwable $e) {
+                $export['tables'][$table] = [];
+            }
         }
 
-        $filename = 'eden_' . $module . '_' . now()->format('Y-m-d_His') . '.sql';
+        $json     = json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $filename = 'eden_' . $module . '_' . now()->format('Y-m-d_His') . '.json';
 
-        return response($sql, 200, [
-            'Content-Type' => 'application/sql',
-            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        return response($json, 200, [
+            'Content-Type'        => 'application/json; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
 
-    private function genererEntete(string $module): string
-    {
-        return "-- =====================================\n"
-            . "-- Eden Group Export (SQLite)\n"
-            . "-- Module: {$module}\n"
-            . "-- Date: " . now() . "\n"
-            . "-- =====================================\n\n";
-    }
-
     // =========================================================
-    // EXPORT TABLE
-    // =========================================================
-    private function exportTable(string $table): string
-    {
-        $sql = "-- TABLE {$table}\n";
-        $sql .= "DELETE FROM {$table};\n";
-
-        $rows = DB::table($table)->get();
-
-        if ($rows->isEmpty()) {
-            return $sql . "-- vide\n\n";
-        }
-
-        $cols = array_keys((array)$rows->first());
-        $colsStr = implode(',', array_map(fn($c) => "`$c`", $cols));
-
-        $chunks = $rows->chunk(500);
-
-        foreach ($chunks as $chunk) {
-            $values = $chunk->map(function ($row) {
-                return '(' . implode(',', array_map(function ($v) {
-                    if ($v === null) return 'NULL';
-                    if (is_numeric($v)) return $v;
-                    return "'" . addslashes($v) . "'";
-                }, (array)$row)) . ')';
-            })->implode(",\n");
-
-            $sql .= "INSERT INTO {$table} ({$colsStr}) VALUES\n{$values};\n";
-        }
-
-        return $sql . "\n";
-    }
-
-    // =========================================================
-    // IMPORT SQLITE CLEAN
+    // IMPORT — lit JSON et insère dans MySQL OU SQLite
     // =========================================================
     public function import(Request $request)
     {
         $request->validate([
-            'fichier_sql' => 'required|file|mimes:sql,txt|max:102400',
-            'confirmer' => 'required|accepted',
+            'fichier_sql' => 'required|file|mimes:json,txt,sql|max:102400',
+            'confirmer'   => 'required|accepted',
+            'mode'        => 'nullable|in:replace,merge',
         ]);
 
-        $file = $request->file('fichier_sql');
+        $file    = $request->file('fichier_sql');
         $content = file_get_contents($file->getRealPath());
+        $mode    = $request->input('mode', 'merge');
 
-        if (!str_contains($content, 'Eden Group')) {
-            return back()->with('error', 'Fichier invalide');
+        // ✅ Détecter si c'est un JSON ou un SQL
+        $isJson = str_starts_with(trim($content), '{');
+
+        if ($isJson) {
+            return $this->importJSON($content, $mode);
+        } else {
+            return $this->importSQL($content);
+        }
+    }
+
+    // =========================================================
+    // IMPORT JSON (format universel)
+    // =========================================================
+    private function importJSON(string $content, string $mode)
+    {
+        $data = json_decode($content, true);
+
+        if (!$data || !isset($data['meta']) || $data['meta']['source'] !== 'Eden Group') {
+            return back()->with('error', 'Fichier JSON invalide ou non reconnu comme export Eden Group.');
         }
 
+        $tables    = $data['tables'] ?? [];
+        $executed  = 0;
+        $errors    = [];
+        $isSQLite  = $this->isSQLite();
+
         try {
-            DB::statement('PRAGMA journal_mode=WAL');
-            DB::statement('PRAGMA foreign_keys=OFF');
+            // Désactiver les FK selon le driver
+            if ($isSQLite) {
+                DB::statement('PRAGMA foreign_keys=OFF');
+                DB::statement('PRAGMA journal_mode=WAL');
+            } else {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                DB::statement('SET NAMES utf8mb4');
+            }
+
+            // Ordre des tables pour respecter les FK
+            $orderedTables = array_intersect($this->tablesOrder, array_keys($tables));
+            // Ajouter les tables non listées à la fin
+            $extraTables   = array_diff(array_keys($tables), $this->tablesOrder);
+            $orderedTables = array_merge($orderedTables, $extraTables);
+
+            foreach ($orderedTables as $table) {
+                $rows = $tables[$table] ?? [];
+                if (!Schema::hasTable($table)) continue;
+
+                try {
+                    if ($mode === 'replace') {
+                        if ($isSQLite) {
+                            DB::table($table)->delete();
+                        } else {
+                            DB::statement("TRUNCATE TABLE `{$table}`");
+                        }
+                    }
+
+                    // Insérer par lots de 100
+                    $chunks = array_chunk($rows, 100);
+                    foreach ($chunks as $chunk) {
+                        foreach ($chunk as $row) {
+                            try {
+                                if ($mode === 'merge') {
+                                    // Upsert : update si existe, insert sinon
+                                    $existing = DB::table($table)->where('id', $row['id'] ?? null)->first();
+                                    if ($existing) {
+                                        DB::table($table)->where('id', $row['id'])->update($row);
+                                    } else {
+                                        DB::table($table)->insert($row);
+                                    }
+                                } else {
+                                    DB::table($table)->insert($row);
+                                }
+                                $executed++;
+                            } catch (\Throwable $e) {
+                                $errors[] = "Table {$table} ID " . ($row['id'] ?? '?') . " : " . $e->getMessage();
+                            }
+                        }
+                    }
+
+                } catch (\Throwable $e) {
+                    $errors[] = "Table {$table} : " . $e->getMessage();
+                }
+            }
+
+        } finally {
+            // Réactiver les FK
+            if ($isSQLite) {
+                DB::statement('PRAGMA foreign_keys=ON');
+            } else {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            }
+        }
+
+        $msg = "Import JSON terminé : {$executed} enregistrement(s) traité(s).";
+        if (!empty($errors)) {
+            session(['import_errors' => array_slice($errors, 0, 20)]);
+            $msg .= " " . count($errors) . " erreur(s).";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    // =========================================================
+    // IMPORT SQL LEGACY (anciens exports .sql)
+    // =========================================================
+    private function importSQL(string $content)
+    {
+        if (!str_contains($content, 'Eden Group')) {
+            return back()->with('error', 'Fichier SQL invalide : pas un export Eden Group.');
+        }
+
+        $isSQLite = $this->isSQLite();
+        $executed = 0;
+        $errors   = [];
+
+        try {
+            if ($isSQLite) {
+                DB::statement('PRAGMA foreign_keys=OFF');
+                DB::statement('PRAGMA journal_mode=WAL');
+            } else {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                DB::statement('SET NAMES utf8mb4');
+            }
 
             $statements = $this->parseSQL($content);
 
-            $executed = 0;
-            $errors = [];
-
             foreach ($statements as $stmt) {
                 $stmt = trim($stmt);
+                if (empty($stmt) || str_starts_with($stmt, '--')) continue;
 
-                if (
-                    $stmt === '' ||
-                    str_starts_with($stmt, '--') ||
-                    str_starts_with($stmt, 'SET ') ||
-                    str_contains($stmt, 'FOREIGN_KEY_CHECKS')
-                ) {
-                    continue;
+                // Ignorer les commandes MySQL si on est sur SQLite
+                if ($isSQLite) {
+                    if (preg_match('/^(SET |TRUNCATE |SET FOREIGN)/i', $stmt)) continue;
+                    // Convertir TRUNCATE → DELETE
+                    $stmt = preg_replace('/TRUNCATE TABLE\s+`?(\w+)`?/i', 'DELETE FROM $1', $stmt);
+                    // Supprimer les backticks (non supportés par SQLite)
+                    $stmt = str_replace('`', '"', $stmt);
                 }
 
                 try {
                     DB::statement($stmt);
                     $executed++;
                 } catch (\Throwable $e) {
-                    $errors[] = substr($stmt, 0, 80) . ' => ' . $e->getMessage();
+                    $errors[] = substr($stmt, 0, 100) . ' → ' . $e->getMessage();
                 }
             }
 
-            DB::statement('PRAGMA foreign_keys=ON');
-
-            $msg = "Import OK : {$executed} requêtes";
-
-            if (!empty($errors)) {
-                session(['import_errors' => array_slice($errors, 0, 20)]);
-                $msg .= " + erreurs ignorées";
+        } finally {
+            if ($isSQLite) {
+                DB::statement('PRAGMA foreign_keys=ON');
+            } else {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
-
-            return back()->with('success', $msg);
-
-        } catch (\Throwable $e) {
-            DB::statement('PRAGMA foreign_keys=ON');
-            return back()->with('error', $e->getMessage());
         }
+
+        $msg = "Import SQL terminé : {$executed} instruction(s).";
+        if (!empty($errors)) {
+            session(['import_errors' => array_slice($errors, 0, 20)]);
+            $msg .= " " . count($errors) . " erreur(s) ignorée(s).";
+        }
+
+        return back()->with('success', $msg);
     }
 
-    // =========================================================
-    // PARSER SQL
-    // =========================================================
     private function parseSQL(string $sql): array
     {
         $statements = [];
-        $current = '';
-        $inString = false;
-        $quote = '';
+        $current    = '';
+        $inString   = false;
+        $quote      = '';
+        $len        = strlen($sql);
 
-        for ($i = 0; $i < strlen($sql); $i++) {
+        for ($i = 0; $i < $len; $i++) {
             $char = $sql[$i];
-            $prev = $sql[$i - 1] ?? '';
+            $prev = $i > 0 ? $sql[$i-1] : '';
 
-            if (!$inString && $char === '-' && $sql[$i + 1] === '-') {
-                while ($i < strlen($sql) && $sql[$i] !== "\n") $i++;
+            if (!$inString && $char === '-' && isset($sql[$i+1]) && $sql[$i+1] === '-') {
+                while ($i < $len && $sql[$i] !== "\n") $i++;
                 continue;
             }
 
             if (($char === "'" || $char === '"') && $prev !== '\\') {
-                if (!$inString) {
-                    $inString = true;
-                    $quote = $char;
-                } elseif ($quote === $char) {
-                    $inString = false;
-                }
+                if (!$inString) { $inString = true; $quote = $char; }
+                elseif ($char === $quote) { $inString = false; }
             }
 
             if ($char === ';' && !$inString) {
-                $statements[] = trim($current);
+                $s = trim($current);
+                if ($s) $statements[] = $s;
                 $current = '';
             } else {
                 $current .= $char;
             }
         }
-
-        if (trim($current)) {
-            $statements[] = trim($current);
-        }
-
+        if (trim($current)) $statements[] = trim($current);
         return $statements;
     }
 }
