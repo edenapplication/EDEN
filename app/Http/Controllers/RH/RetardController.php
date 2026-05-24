@@ -7,24 +7,54 @@ use App\Models\RH\Employe;
 use App\Models\RH\Direction;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Carbon\Carbon;
 
 class RetardController extends Controller
 {
+    // Horaires de référence
+    const HEURE_DEBUT  = '08:00'; // Début de journée
+    const HEURE_FIN    = '18:00'; // Fin de journée normale
+
     public function index(Request $request)
     {
-        $query = Retard::with('employe.direction.services', 'employe.service');
-
-        if ($request->filled('employe_id'))
-            $query->where('employe_id', $request->employe_id);
-        if ($request->filled('direction_id'))
-            $query->whereHas('employe', fn($q) => $q->where('direction_id', $request->direction_id));
-        if ($request->filled('mois'))
-            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$request->mois]);
-
-        $retards    = $query->orderByDesc('date')->get();
-        $employes   = Employe::where('actif', true)->orderBy('nom')->get();
+        $mois       = $request->input('mois', now()->format('Y-m'));
+        $dirId      = $request->input('direction_id');
+        $empId      = $request->input('employe_id');
         $directions = Direction::orderBy('nom')->get();
+        $employes   = Employe::where('actif', true)->orderBy('nom')->get();
 
+        $isSQLite = config('database.default') === 'sqlite';
+
+        $query = Retard::with('employe.direction', 'employe.service');
+        if ($isSQLite) {
+            $query->whereRaw("strftime('%Y-%m', date) = ?", [$mois]);
+        } else {
+            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$mois]);
+        }
+
+        if ($dirId) {
+            $query->whereHas('employe', fn($q) => $q->where('direction_id', $dirId));
+        }
+        if ($empId) {
+            $query->where('employe_id', $empId);
+        }
+
+        $retards = $query->orderByDesc('date')->get();
+
+        // Grouper par employé — total du mois
+        $parEmploye = $retards->groupBy('employe_id')->map(function ($lignes) {
+            $emp = $lignes->first()->employe;
+            return [
+                'employe'        => $emp,
+                'nb'             => $lignes->count(),
+                'duree_min'      => $lignes->sum('minutes_retard'),
+                'heures_sup_min' => $lignes->sum('minutes_sup'),
+                'lignes'         => $lignes,
+            ];
+        })->sortByDesc('nb')->values();
+
+        // Stats par direction
         $parDirection = $retards->groupBy('employe.direction.nom')->map(fn($g) => [
             'nb'       => $g->count(),
             'employes' => $g->groupBy('employe_id')->map(fn($ge) => [
@@ -38,7 +68,10 @@ class RetardController extends Controller
             'nb' => $g->count(),
         ])->sortByDesc('nb');
 
-        return view('rh.retards.index', compact('retards','employes','directions','parDirection','parService'));
+        return view('rh.retards.index', compact(
+            'retards', 'parEmploye', 'parDirection', 'parService',
+            'employes', 'directions', 'mois', 'dirId', 'empId'
+        ));
     }
 
     public function store(Request $request)
@@ -47,13 +80,31 @@ class RetardController extends Controller
             'employe_id' => 'required|exists:rh_employes,id',
             'date'       => 'required|date',
         ]);
-        Retard::create($request->all());
+
+        $data = $request->all();
+
+        // Calcul automatique si heure arrivée fournie
+        if (!empty($data['heure_arrivee'])) {
+            [$retard, $sup] = $this->calculerTemps($data['heure_arrivee'], $data['heure_depart'] ?? null);
+            $data['minutes_retard'] = $retard;
+            $data['minutes_sup']    = $sup;
+        }
+
+        Retard::create($data);
         return back()->with('success', 'Retard enregistré');
     }
 
     public function update(Request $request, $id)
     {
-        Retard::findOrFail($id)->update($request->all());
+        $data = $request->all();
+
+        if (!empty($data['heure_arrivee'])) {
+            [$retard, $sup] = $this->calculerTemps($data['heure_arrivee'], $data['heure_depart'] ?? null);
+            $data['minutes_retard'] = $retard;
+            $data['minutes_sup']    = $sup;
+        }
+
+        Retard::findOrFail($id)->update($data);
         return back()->with('success', 'Retard mis à jour');
     }
 
@@ -63,23 +114,163 @@ class RetardController extends Controller
         return redirect()->route('rh.retards.index')->with('success', 'Retard supprimé');
     }
 
-    public function pdfListe(Request $request)
+    // =========================================================
+    // Calcul retard et heures sup
+    // H.A = heure d'arrivée réelle
+    // H.D = heure de départ réelle
+    // Début référence = 08:00 | Fin référence = 18:00
+    // =========================================================
+    private function calculerTemps(string $heureArrivee, ?string $heureDepart): array
     {
-        $query = Retard::with('employe.direction');
-        if ($request->filled('employe_id'))
-            $query->where('employe_id', $request->employe_id);
-        if ($request->filled('direction_id'))
-            $query->whereHas('employe', fn($q) => $q->where('direction_id', $request->direction_id));
-        if ($request->filled('mois'))
-            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$request->mois]);
+        $minutesRetard = 0;
+        $minutesSup    = 0;
 
-        $retards    = $query->orderByDesc('date')->get();
-        $parDirection = $retards->groupBy('employe.direction.nom')->map(fn($g) => [
-            'nb' => $g->count(),
+        try {
+            $debut     = Carbon::createFromFormat('H:i', self::HEURE_DEBUT);
+            $fin       = Carbon::createFromFormat('H:i', self::HEURE_FIN);
+            $arrivee   = Carbon::createFromFormat('H:i', $heureArrivee);
+
+            // Retard = si arrivée après 08:00
+            if ($arrivee->gt($debut)) {
+                $minutesRetard = (int) $debut->diffInMinutes($arrivee);
+            }
+
+            // Heures sup = si départ après 18:00
+            if ($heureDepart) {
+                $depart = Carbon::createFromFormat('H:i', $heureDepart);
+                if ($depart->gt($fin)) {
+                    $minutesSup = (int) $fin->diffInMinutes($depart);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Heures mal formatées — on laisse à 0
+        }
+
+        return [$minutesRetard, $minutesSup];
+    }
+
+    // =========================================================
+    // IMPORT EXCEL
+    // Colonnes : A=Matricule | B=NOMS | C=Date | D=H.A | E=H.D
+    // =========================================================
+    public function importExcel(Request $request)
+    {
+        $request->validate([
+            'fichier_excel' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
-        $pdf = Pdf::loadView('rh.retards.pdf_liste', compact('retards', 'parDirection'))
-                   ->setPaper('a4', 'landscape');
-        return $pdf->download('retards_' . now()->format('Y-m-d') . '.pdf');
+        $spreadsheet = IOFactory::load($request->file('fichier_excel')->getRealPath());
+        $rows        = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+
+        $inseres = 0;
+        $ignores = 0;
+        $erreurs = [];
+        $first   = true;
+
+        foreach ($rows as $row) {
+            // Ignorer la première ligne (entête)
+            if ($first) { $first = false; continue; }
+
+            $matricule = trim($row['A'] ?? '');
+            $dateRaw   = trim($row['C'] ?? '');
+            $ha        = trim($row['D'] ?? ''); // Heure Arrivée
+            $hd        = trim($row['E'] ?? ''); // Heure Départ
+
+            if (empty($matricule) || empty($dateRaw)) {
+                $ignores++;
+                continue;
+            }
+
+            // Trouver l'employé
+            $employe = Employe::where('matricule', $matricule)->first();
+            if (!$employe) {
+                $erreurs[] = "Matricule introuvable : {$matricule}";
+                continue;
+            }
+
+            // Parser la date (format Excel numérique ou texte)
+            try {
+                if (is_numeric($dateRaw)) {
+                    $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($dateRaw);
+                    $dateStr = Carbon::instance($date)->format('Y-m-d');
+                } else {
+                    $dateStr = Carbon::parse($dateRaw)->format('Y-m-d');
+                }
+            } catch (\Throwable $e) {
+                $erreurs[] = "Date invalide pour {$matricule} : {$dateRaw}";
+                continue;
+            }
+
+            // Normaliser les heures (HH:MM)
+            $ha = $this->normaliserHeure($ha);
+            $hd = $this->normaliserHeure($hd);
+
+            // Calculer retard et heures sup
+            [$minutesRetard, $minutesSup] = $this->calculerTemps($ha ?: '08:00', $hd ?: null);
+
+            // Ignorer si pas de retard ET pas d'heures sup
+            if ($minutesRetard === 0 && $minutesSup === 0 && empty($ha)) {
+                $ignores++;
+                continue;
+            }
+
+            // Vérifier doublon (même employé + même date)
+            if (Retard::where('employe_id', $employe->id)->where('date', $dateStr)->exists()) {
+                $ignores++;
+                continue;
+            }
+
+            Retard::create([
+                'employe_id'     => $employe->id,
+                'date'           => $dateStr,
+                'heure_arrivee'  => $ha ?: null,
+                'heure_depart'   => $hd ?: null,
+                'minutes_retard' => $minutesRetard,
+                'minutes_sup'    => $minutesSup,
+                'motif'          => "Import Excel",
+            ]);
+
+            $inseres++;
+        }
+
+        $msg = "Import : {$inseres} ligne(s) importée(s).";
+        if ($ignores) $msg .= " {$ignores} ignorée(s).";
+        if (!empty($erreurs)) {
+            session(['import_errors' => $erreurs]);
+            $msg .= " " . count($erreurs) . " erreur(s).";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    // Normalise HHhMM / HH:MM / HHMM → HH:MM
+    private function normaliserHeure(?string $h): string
+    {
+        if (empty($h)) return '';
+        $h = str_replace('h', ':', strtolower(trim($h)));
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $h, $m)) {
+            return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2];
+        }
+        if (preg_match('/^(\d{3,4})$/', $h, $m)) {
+            $str = str_pad($m[1], 4, '0', STR_PAD_LEFT);
+            return substr($str, 0, 2) . ':' . substr($str, 2, 2);
+        }
+        return $h;
+    }
+
+    public function pdfListe(Request $request)
+    {
+        $mois = $request->input('mois', now()->format('Y-m'));
+        $q    = Retard::with('employe.direction');
+        if (config('database.default') === 'sqlite') {
+            $q->whereRaw("strftime('%Y-%m', date) = ?", [$mois]);
+        } else {
+            $q->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$mois]);
+        }
+        $retards      = $q->orderByDesc('date')->get();
+        $parDirection = $retards->groupBy('employe.direction.nom')->map(fn($g) => ['nb' => $g->count()]);
+        $pdf = Pdf::loadView('rh.retards.pdf_liste', compact('retards', 'parDirection', 'mois'))
+            ->setPaper('a4', 'landscape');
+        return $pdf->download('retards_' . $mois . '.pdf');
     }
 }

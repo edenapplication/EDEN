@@ -161,7 +161,7 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Date demande <span class="text-danger">*</span></label>
-                <input type="date" name="date_demande" class="form-control" value="{{ date('Y-m-d') }}" required>
+                <input type="date" name="date_debut" class="form-control" value="{{ date('Y-m-d') }}" required>
             </div>
             <div class="col-12">
                 <label class="form-label fw-semibold">Motif</label>

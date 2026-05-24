@@ -56,9 +56,9 @@
 <body>
 <div class="login-card">
     <div class="logo-zone">
-        <div class="logo-icon">🌍</div>
-        <h1>Eden Group</h1>
-        <p>Système de gestion foncière & RH</p>
+        <div class="logo-icon">EG</div>
+        <h1>EDEN GROUP</h1>
+        <p>Système de gestion EDEN GROUP</p>
     </div>
 
     @if($errors->any())

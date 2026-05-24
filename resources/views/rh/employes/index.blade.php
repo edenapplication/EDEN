@@ -9,7 +9,7 @@
 .emp-table tbody tr:hover { background:#eff6ff; }
 .emp-table tbody td { padding:8px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
 
-{{-- ✅ Ligne rouge pour les archivés --}}
+/* Lignes archivées */
 .emp-table tbody tr.archive-row { background:#fff1f2 !important; }
 .emp-table tbody tr.archive-row:hover { background:#ffe4e6 !important; }
 .emp-table tbody tr.archive-row td { color:#9f1239; }
@@ -162,6 +162,7 @@
             <th>Nom & Prénom</th>
             <th>Sexe</th>
             <th>Direction</th>
+            <th>Service</th>
             <th>Poste</th>
             <th>Contrat</th>
             <th>Catégorie</th>
@@ -204,6 +205,7 @@
                 </span>
             </td>
             <td>{{ $e->direction?->nom ?? '-' }}</td>
+            <td>{{ $e->service?->nom ?? '-' }}</td>
             <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;" title="{{ $e->intitule_poste }}">
                 {{ $e->intitule_poste ?? '-' }}
             </td>
@@ -247,7 +249,7 @@
         </tr>
     @empty
         <tr>
-            <td colspan="{{ $showInactif ? 13 : 12 }}" class="text-center text-muted py-4">
+            <td colspan="{{ $showInactif ? 14 : 13 }}" class="text-center text-muted py-4">
                 @if($showInactif) Aucun employé archivé @else Aucun employé trouvé @endif
             </td>
         </tr>
@@ -256,6 +258,52 @@
 </table>
 </div>
 
-<div class="mt-3">{{ $employes->links() }}</div>
+{{-- ✅ Pagination propre sans bug --}}
+<div class="mt-4 d-flex justify-content-between align-items-center">
+    <div style="font-size:12px;color:#64748b;">
+        Affichage de {{ $employes->firstItem() ?? 0 }} à {{ $employes->lastItem() ?? 0 }}
+        sur {{ $employes->total() }} employé(s)
+    </div>
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {{-- Précédent --}}
+            @if($employes->onFirstPage())
+                <li class="page-item disabled">
+                    <span class="page-link">‹ Précédent</span>
+                </li>
+            @else
+                <li class="page-item">
+                    <a class="page-link" href="{{ $employes->previousPageUrl() }}">‹ Précédent</a>
+                </li>
+            @endif
+
+            {{-- Pages --}}
+            @for($p = 1; $p <= $employes->lastPage(); $p++)
+                @if($p === $employes->currentPage())
+                    <li class="page-item active">
+                        <span class="page-link" style="background:#1e3a5f;border-color:#1e3a5f;">{{ $p }}</span>
+                    </li>
+                @elseif($p === 1 || $p === $employes->lastPage() || abs($p - $employes->currentPage()) <= 2)
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $employes->url($p) }}">{{ $p }}</a>
+                    </li>
+                @elseif(abs($p - $employes->currentPage()) === 3)
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                @endif
+            @endfor
+
+            {{-- Suivant --}}
+            @if($employes->hasMorePages())
+                <li class="page-item">
+                    <a class="page-link" href="{{ $employes->nextPageUrl() }}">Suivant ›</a>
+                </li>
+            @else
+                <li class="page-item disabled">
+                    <span class="page-link">Suivant ›</span>
+                </li>
+            @endif
+        </ul>
+    </nav>
+</div>
 
 @endsection

@@ -214,6 +214,8 @@ Route::prefix('rh')->middleware(['auth', 'check.role:admin,rh'])->group(function
     Route::get('/retards',             [RetardController::class, 'index'])->name('rh.retards.index');
     Route::post('/retards',            [RetardController::class, 'store'])->name('rh.retards.store');
     Route::get('/retards/pdf-liste',   [RetardController::class, 'pdfListe'])->name('rh.retards.pdf-liste');
+    // Dans le groupe rh, AVANT Route::put('/retards/{id}', ...)
+Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->name('rh.retards.import-excel');
     Route::put('/retards/{id}',        [RetardController::class, 'update'])->name('rh.retards.update');
     Route::delete('/retards/{id}',     [RetardController::class, 'destroy'])->name('rh.retards.destroy');
     Route::get('/retards/par-direction',[RetardController::class, 'parDirection'])->name('rh.retards.par-direction');

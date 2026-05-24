@@ -93,8 +93,8 @@
 {{-- TOPBAR --}}
 <div class="topbar">
     <div class="brand">
-        <div class="icon">🌍</div>
-        <span>Eden Group</span>
+        <div class="icon">ED</div>
+        <span>EDEN GROUP</span>
     </div>
     <div class="user-info">
         <span>👤 {{ auth()->user()->name }}</span>

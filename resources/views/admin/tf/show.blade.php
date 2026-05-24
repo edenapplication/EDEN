@@ -39,8 +39,12 @@
 #paiementDossierModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.25); z-index:1000000; width:380px; pointer-events:auto; }
 #modalOverlay { pointer-events:none; }
 .badge-next-step { background:linear-gradient(135deg,#4D96FF,#0d6efd); color:white; font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; margin-left:8px; }
+.stat-mini { background:white; border-radius:8px; padding:8px 10px; box-shadow:0 2px 6px rgba(0,0,0,0.05); text-align:center; }
+.stat-mini .v { font-size:16px; font-weight:800; }
+.stat-mini .l { font-size:8px; color:#64748b; font-weight:600; text-transform:uppercase; }
 </style>
 
+{{-- HEADER --}}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div style="flex:1;">
         <a href="{{ route('tf.show', $tf->id) }}"
@@ -52,6 +56,86 @@
     <div class="d-flex gap-2">
         <button onclick="imprimerCarte()" class="btn btn-outline-secondary btn-sm">🖨️ Imprimer</button>
         <a href="{{ route('sites.show', $tf->site_id) }}" class="btn btn-outline-secondary btn-sm">← Retour au site</a>
+    </div>
+</div>
+
+@php
+    $lots   = \App\Models\Lot::with('client')->where('tf_id', $tf->id)->get();
+    $zones  = \App\Models\ZoneGroupe::where('tf_id', $tf->id)->get();
+
+    // Blocs = lettre initiale unique des codes de lot
+    $blocs  = $lots->map(fn($l) => strtoupper(substr($l->code, 0, 1)))->unique()->count();
+
+    $totalActif  = $lots->whereIn('type',['implantation_prevue','deja_implante','dossier_technique','morcellement'])->count()
+                 + $zones->whereIn('type',['implantation_prevue','deja_implante','dossier_technique','morcellement'])->count();
+    $total       = $lots->count() + $zones->count();
+    $activitePct = $total > 0 ? round(($totalActif / $total) * 100) : 0;
+@endphp
+
+{{-- ✅ KPIs TF --}}
+<div class="row g-2 mb-3">
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #1d4ed8;">
+            <div class="v" style="color:#1d4ed8;">{{ $lots->count() }}</div>
+            <div class="l">Lots</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #374151;">
+            <div class="v" style="color:#374151;">{{ $blocs }}</div>
+            <div class="l">Blocs</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #f59e0b;">
+            <div class="v" style="color:#f59e0b;">{{ $zones->count() }}</div>
+            <div class="l">Zones</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #1d4ed8;">
+            <div class="v" style="color:#1d4ed8;">{{ $lots->where('origine','eden')->count() }}</div>
+            <div class="l">EDEN</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #92400e;">
+            <div class="v" style="color:#92400e;">{{ $lots->where('origine','famille')->count() }}</div>
+            <div class="l">Famille</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #7c3aed;">
+            <div class="v" style="color:#7c3aed;">{{ $lots->where('type','implantation_prevue')->count() + $zones->where('type','implantation_prevue')->count() }}</div>
+            <div class="l">Implant. prévue</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #16a34a;">
+            <div class="v" style="color:#16a34a;">{{ $lots->where('type','deja_implante')->count() + $zones->where('type','deja_implante')->count() }}</div>
+            <div class="l">Implanté</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #dc2626;">
+            <div class="v" style="color:#dc2626;">{{ $lots->where('type','dossier_technique')->count() + $zones->where('type','dossier_technique')->count() }}</div>
+            <div class="l">Dossier tech.</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #ea580c;">
+            <div class="v" style="color:#ea580c;">{{ $lots->where('type','morcellement')->count() + $zones->where('type','morcellement')->count() }}</div>
+            <div class="l">Morcellement</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="stat-mini" style="border-top:3px solid #1e3a5f;">
+            <div class="v" style="color:#1e3a5f;">{{ $activitePct }}%</div>
+            <div class="l">Activité</div>
+            <div style="height:3px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden;">
+                <div style="width:{{ $activitePct }}%;height:100%;background:linear-gradient(90deg,#1d4ed8,#16a34a);border-radius:2px;"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -132,14 +216,14 @@
         <select id="selected_dossier_id" class="form-control form-control-sm mt-1"><option value="">-- Choisir un dossier --</option></select>
         <div id="dossier_selected_info" style="display:none;margin-top:6px;padding:6px 10px;background:#eff6ff;border-radius:6px;font-size:12px;color:#1e3a5f;"></div>
     </div>
-    <div id="datePrevueGroup" style="display:none;" class="mt-2"><label>Date prévue</label><input type="date" id="date_prevue" class="form-control"></div>
-    <div id="dateConfirmeeGroup" class="mt-2" style="display:none;"><label>Date confirmée</label><input type="date" id="date_confirmee" class="form-control"></div>
-    <div id="dateMorcellementGroup" class="mt-2" style="display:none;"><label>Date morcellement</label><input type="date" id="date_morcellement" class="form-control"></div>
-    <div id="superficieField" class="mt-2" style="display:none;"><label>Superficie (m²)</label><input type="number" id="superficie" class="form-control"></div>
+    <div id="datePrevueGroup"       style="display:none;" class="mt-2"><label>Date prévue</label>     <input type="date" id="date_prevue"       class="form-control"></div>
+    <div id="dateConfirmeeGroup"    style="display:none;" class="mt-2"><label>Date confirmée</label>  <input type="date" id="date_confirmee"    class="form-control"></div>
+    <div id="dateMorcellementGroup" style="display:none;" class="mt-2"><label>Date morcellement</label><input type="date" id="date_morcellement" class="form-control"></div>
+    <div id="superficieField"       style="display:none;" class="mt-2"><label>Superficie (m²)</label> <input type="number" id="superficie"      class="form-control"></div>
     <div class="d-flex justify-content-end gap-2 mt-4">
-        <div id="supprimerLotBtn" style="display:none;margin-bottom:10px;">
-    <button onclick="supprimerLot()" class="btn btn-outline-danger btn-sm w-100">🗑 Supprimer ce lot</button>
-</div>
+        <div id="supprimerLotBtn" style="display:none;width:100%;margin-bottom:8px;">
+            <button onclick="supprimerLot()" class="btn btn-outline-danger btn-sm w-100">🗑 Supprimer ce lot</button>
+        </div>
         <button onclick="closeModal()" class="btn btn-light">Annuler</button>
         <button onclick="saveLot()" class="btn btn-success">Enregistrer</button>
     </div>
@@ -176,8 +260,8 @@
             <option value="morcellement">Morcellement</option>
         </select>
     </div>
-    <div id="zg_datePrevueGroup" style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date prévue</label><input type="date" id="zg_date_prevue" class="form-control"></div>
-    <div id="zg_dateConfirmeeGroup" style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date confirmée</label><input type="date" id="zg_date_confirmee" class="form-control"></div>
+    <div id="zg_datePrevueGroup"       style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date prévue</label>      <input type="date" id="zg_date_prevue"       class="form-control"></div>
+    <div id="zg_dateConfirmeeGroup"    style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date confirmée</label>   <input type="date" id="zg_date_confirmee"    class="form-control"></div>
     <div id="zg_dateMorcellementGroup" style="display:none;" class="mb-3"><label style="font-weight:600;font-size:13px;">Date morcellement</label><input type="date" id="zg_date_morcellement" class="form-control"></div>
     <div id="zg_superficie_info" style="background:#fef9c3;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:12px;display:none;">
         📐 Superficie totale : <strong id="zg_superficie_val">0</strong> m²
@@ -230,46 +314,23 @@
 @endsection
 @section('scripts')
 <script>
-// ============================================================
-// DONNÉES
-// ============================================================
 const lots         = @json(\App\Models\Lot::with('client')->where('tf_id', $tf->id)->get());
 const zonesGroupes = @json(\App\Models\ZoneGroupe::where('tf_id', $tf->id)->get());
 const tfId         = "{{ $tf->id }}";
 const CSRF         = "{{ csrf_token() }}";
 
-// ============================================================
-// COULEURS ALÉATOIRES STABLES PAR ZONE (basées sur l'id)
-// ============================================================
 const PALETTE_BORDURES = [
     '#e11d48','#7c3aed','#0284c7','#059669','#d97706',
     '#db2777','#4f46e5','#0891b2','#16a34a','#dc2626',
     '#9333ea','#2563eb','#0d9488','#ca8a04','#c026d3',
 ];
-function couleurZone(zgId) {
-    return PALETTE_BORDURES[zgId % PALETTE_BORDURES.length];
-}
+function couleurZone(zgId) { return PALETTE_BORDURES[zgId % PALETTE_BORDURES.length]; }
 
-// ============================================================
-// ÉTAT
-// ============================================================
-let currentZone             = null;
-let originZone              = null;
-let searchTimer             = null;
-let zgSearchTimer           = null;
-let currentDossierId        = null;
-let cachedDossiers          = [];
-let zgCachedDossiers        = [];
-let currentZoneGroupeId     = null;
-let currentZoneGroupePoints = [];
-let currentZoneGroupeLotIds = [];
-let currentTool             = 'select';
-let drawingPoints           = [];
-let isDrawing               = false;
+let currentZone = null, originZone = null, searchTimer = null, zgSearchTimer = null;
+let currentDossierId = null, cachedDossiers = [], zgCachedDossiers = [];
+let currentZoneGroupeId = null, currentZoneGroupePoints = [], currentZoneGroupeLotIds = [];
+let currentTool = 'select', drawingPoints = [], isDrawing = false;
 
-// ============================================================
-// REFS DOM
-// ============================================================
 const lotModal              = document.getElementById("lotModal");
 const zoneLabel             = document.getElementById("zoneLabel");
 const lotType               = document.getElementById("lotType");
@@ -296,9 +357,6 @@ const ZOOM_KEY              = 'tf_zoom_{{ $tf->id }}';
 
 function getSVG() { return mapInner?.querySelector('svg'); }
 
-// ============================================================
-// ZOOM
-// ============================================================
 function appliquerZoom(val) {
     const scale = val / 100;
     mapInner.style.transform       = `scale(${scale})`;
@@ -310,75 +368,52 @@ function appliquerZoom(val) {
 function resetZoom() { document.getElementById('svg-zoom').value = 100; appliquerZoom(100); }
 document.getElementById('svg-zoom').addEventListener('input', function() { appliquerZoom(parseInt(this.value)); });
 
-// ============================================================
-// INIT
-// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    const savedZoom = sessionStorage.getItem(ZOOM_KEY);
-    const zoomVal   = savedZoom ? parseInt(savedZoom) : 100;
+    const zoomVal = parseInt(sessionStorage.getItem(ZOOM_KEY) || '100');
     document.getElementById('svg-zoom').value = zoomVal;
     appliquerZoom(zoomVal);
-    syncCanvas();
-    initSVG();
-    dessinerZonesGroupes();
+    syncCanvas(); initSVG(); dessinerZonesGroupes();
 });
 
 function syncCanvas() {
-    const svg = getSVG();
-    if (!svg) return;
+    const svg = getSVG(); if (!svg) return;
     const w = svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800;
     const h = svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600;
-    canvas.width        = parseFloat(w);
-    canvas.height       = parseFloat(h);
-    canvas.style.width  = parseFloat(w) + 'px';
-    canvas.style.height = parseFloat(h) + 'px';
+    canvas.width = parseFloat(w); canvas.height = parseFloat(h);
+    canvas.style.width = parseFloat(w)+'px'; canvas.style.height = parseFloat(h)+'px';
 }
 
-// ============================================================
-// OUTIL
-// ============================================================
 function setTool(tool) {
     currentTool = tool;
-    document.getElementById('toolSelect').classList.toggle('active',     tool === 'select');
-    document.getElementById('toolZoneDessin').classList.toggle('active', tool === 'zone');
-    container.classList.toggle('zone-drawing', tool === 'zone');
+    document.getElementById('toolSelect').classList.toggle('active',     tool==='select');
+    document.getElementById('toolZoneDessin').classList.toggle('active', tool==='zone');
+    container.classList.toggle('zone-drawing', tool==='zone');
     const hint = document.getElementById('toolHint');
     if (tool === 'zone') {
         hint.innerText = '💡 Cliquez pour placer des points • Cliquez sur le 1er point 🟡 pour fermer';
-        canvas.style.pointerEvents = 'auto';
-        canvas.style.cursor        = 'crosshair';
+        canvas.style.pointerEvents = 'auto'; canvas.style.cursor = 'crosshair';
     } else {
-        hint.innerText             = '';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.cursor        = 'default';
+        hint.innerText = ''; canvas.style.pointerEvents = 'none'; canvas.style.cursor = 'default';
         annulerDessin();
     }
 }
 
-// ============================================================
-// COORDONNÉES
-// ============================================================
 function ecranVersSVG(e) {
     const rect  = canvas.getBoundingClientRect();
     const scale = parseInt(document.getElementById('svg-zoom').value) / 100;
-    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+    return { x:(e.clientX-rect.left)/scale, y:(e.clientY-rect.top)/scale };
 }
 
-// ============================================================
-// DESSIN ZONE
-// ============================================================
 canvas.addEventListener('click', function(e) {
     if (currentTool !== 'zone') return;
     const pt = ecranVersSVG(e);
     if (drawingPoints.length >= 3) {
-        const premier = drawingPoints[0];
-        const dist    = Math.hypot(pt.x - premier.x, pt.y - premier.y);
-        const seuil   = 15 / (parseInt(document.getElementById('svg-zoom').value) / 100);
-        if (dist < seuil) { finaliserDessin(); return; }
+        const p0 = drawingPoints[0];
+        const d  = Math.hypot(pt.x-p0.x, pt.y-p0.y);
+        const s  = 15/(parseInt(document.getElementById('svg-zoom').value)/100);
+        if (d < s) { finaliserDessin(); return; }
     }
-    drawingPoints.push(pt);
-    isDrawing = true;
-    redessinerCanvas();
+    drawingPoints.push(pt); isDrawing = true; redessinerCanvas();
 });
 
 canvas.addEventListener('mousemove', function(e) {
@@ -393,577 +428,382 @@ document.addEventListener('keydown', function(e) {
 function redessinerCanvas(cursorPt) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (drawingPoints.length === 0) return;
-    const scale = parseInt(document.getElementById('svg-zoom').value) / 100;
+    const scale = parseInt(document.getElementById('svg-zoom').value)/100;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(drawingPoints[0].x, drawingPoints[0].y);
-    drawingPoints.forEach((p, i) => { if (i > 0) ctx.lineTo(p.x, p.y); });
+    drawingPoints.forEach((p,i) => { if(i>0) ctx.lineTo(p.x,p.y); });
     if (cursorPt) ctx.lineTo(cursorPt.x, cursorPt.y);
     ctx.closePath();
-    ctx.fillStyle   = 'rgba(245,158,11,0.15)';
-    ctx.fill();
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth   = 3 / scale;
-    ctx.setLineDash([8 / scale, 4 / scale]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    drawingPoints.forEach((p, i) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, i === 0 ? 8 / scale : 5 / scale, 0, Math.PI * 2);
-        ctx.fillStyle   = i === 0 ? '#f59e0b' : '#fff';
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth   = 2 / scale;
+    ctx.fillStyle = 'rgba(245,158,11,0.15)'; ctx.fill();
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3/scale;
+    ctx.setLineDash([8/scale,4/scale]); ctx.stroke(); ctx.setLineDash([]);
+    drawingPoints.forEach((p,i) => {
+        ctx.beginPath(); ctx.arc(p.x,p.y,i===0?8/scale:5/scale,0,Math.PI*2);
+        ctx.fillStyle = i===0?'#f59e0b':'#fff'; ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2/scale;
         ctx.fill(); ctx.stroke();
-        if (i === 0 && drawingPoints.length >= 3) {
-            ctx.fillStyle = '#1e3a5f';
-            ctx.font      = `bold ${12/scale}px sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.fillText('✕', p.x, p.y + 1);
+        if (i===0 && drawingPoints.length>=3) {
+            ctx.fillStyle='#1e3a5f'; ctx.font=`bold ${12/scale}px sans-serif`;
+            ctx.textAlign='center'; ctx.fillText('✕',p.x,p.y+1);
         }
     });
     ctx.restore();
 }
 
 function annulerDessin() {
-    drawingPoints = []; isDrawing = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawingPoints=[]; isDrawing=false; ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
 function finaliserDessin() {
     if (drawingPoints.length < 3) { alert('Il faut au moins 3 points.'); return; }
     const lotIdsInclus = trouverLotsInclus(drawingPoints);
-    const superfTotale = lots.filter(l => lotIdsInclus.includes(l.id)).reduce((s, l) => s + (parseFloat(l.superficie) || 0), 0);
-    currentZoneGroupeId     = null;
-    currentZoneGroupePoints = drawingPoints.map(p => ({ x: Math.round(p.x*100)/100, y: Math.round(p.y*100)/100 }));
-    currentZoneGroupeLotIds = lotIdsInclus;
-    document.getElementById('zg_superficie_info').style.display     = 'block';
-    document.getElementById('zg_superficie_val').innerText           = superfTotale.toLocaleString('fr-FR');
-    document.getElementById('zg_deleteBtn').style.display            = 'none';
-    document.getElementById('zgEtapeInfo').innerText                  = '';
-    document.getElementById('zg_type').value                          = '';
-    document.getElementById('zg_type').disabled                       = false;
-    Array.from(document.getElementById('zg_type').options).forEach(o => o.disabled = false);
-    document.getElementById('zg_client_id').value                     = '';
-    document.getElementById('zg_client_search').value                 = '';
-    document.getElementById('zg_client_search').style.display         = 'block';
-    document.getElementById('zg_client_info').style.display           = 'none';
-    document.getElementById('zg_clientExistantInfo').style.display    = 'none';
-    document.getElementById('zg_dossierSelectField').style.display    = 'none';
-    document.getElementById('zg_date_prevue').value                   = '';
-    document.getElementById('zg_date_confirmee').value                = '';
-    document.getElementById('zg_date_morcellement').value             = '';
+    const superfTotale = lots.filter(l=>lotIdsInclus.includes(l.id)).reduce((s,l)=>s+(parseFloat(l.superficie)||0),0);
+    currentZoneGroupeId=null; currentZoneGroupePoints=drawingPoints.map(p=>({x:Math.round(p.x*100)/100,y:Math.round(p.y*100)/100}));
+    currentZoneGroupeLotIds=lotIdsInclus;
+    document.getElementById('zg_superficie_info').style.display='block';
+    document.getElementById('zg_superficie_val').innerText=superfTotale.toLocaleString('fr-FR');
+    document.getElementById('zg_deleteBtn').style.display='none';
+    document.getElementById('zgEtapeInfo').innerText='';
+    document.getElementById('zg_type').value=''; document.getElementById('zg_type').disabled=false;
+    Array.from(document.getElementById('zg_type').options).forEach(o=>o.disabled=false);
+    document.getElementById('zg_client_id').value=''; document.getElementById('zg_client_search').value='';
+    document.getElementById('zg_client_search').style.display='block';
+    document.getElementById('zg_client_info').style.display='none';
+    document.getElementById('zg_clientExistantInfo').style.display='none';
+    document.getElementById('zg_dossierSelectField').style.display='none';
+    document.getElementById('zg_date_prevue').value=''; document.getElementById('zg_date_confirmee').value='';
+    document.getElementById('zg_date_morcellement').value='';
     zgTypeChange();
-    modalOverlay.style.display = 'block';
-    document.getElementById('zoneGroupeModal').style.display = 'block';
+    modalOverlay.style.display='block';
+    document.getElementById('zoneGroupeModal').style.display='block';
     setTool('select');
 }
 
-// ============================================================
-// POINT DANS POLYGONE
-// ============================================================
 function pointInPolygon(pt, poly) {
-    let inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
-        if (((yi > pt.y) !== (yj > pt.y)) && (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi) + xi)) inside = !inside;
+    let inside=false;
+    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+        const xi=poly[i].x,yi=poly[i].y,xj=poly[j].x,yj=poly[j].y;
+        if(((yi>pt.y)!==(yj>pt.y))&&(pt.x<(xj-xi)*(pt.y-yi)/(yj-yi)+xi)) inside=!inside;
     }
     return inside;
 }
 
 function trouverLotsInclus(poly) {
-    const svg = getSVG(); if (!svg) return [];
-    const inclus = [];
-    svg.querySelectorAll('path').forEach(el => {
-        try {
-            const bbox = el.getBBox();
-            const cx = bbox.x + bbox.width/2, cy = bbox.y + bbox.height/2;
-            if (pointInPolygon({x:cx,y:cy}, poly)) {
-                const zoneId = (el.getAttribute('id')||'').trim().toLowerCase();
-                const lot = lots.find(l => (l.code||'').trim().toLowerCase() === zoneId);
-                if (lot) inclus.push(lot.id);
+    const svg=getSVG(); if(!svg) return [];
+    const inclus=[];
+    svg.querySelectorAll('path').forEach(el=>{
+        try{
+            const bbox=el.getBBox(), cx=bbox.x+bbox.width/2, cy=bbox.y+bbox.height/2;
+            if(pointInPolygon({x:cx,y:cy},poly)){
+                const zoneId=(el.getAttribute('id')||'').trim().toLowerCase();
+                const lot=lots.find(l=>(l.code||'').trim().toLowerCase()===zoneId);
+                if(lot) inclus.push(lot.id);
             }
-        } catch(e) {}
+        }catch(e){}
     });
     return inclus;
 }
 
-// ============================================================
-// UTILITAIRES SVG TEXTE
-// ============================================================
-function mkText(x, y, txt, fs, fw, fill, sw) {
-    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-    t.setAttribute('x', x); t.setAttribute('y', y);
-    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','central');
-    t.setAttribute('font-size', fs); t.setAttribute('font-weight', fw);
-    t.setAttribute('fill', fill); t.setAttribute('stroke','#fff');
-    t.setAttribute('stroke-width', sw); t.setAttribute('paint-order','stroke');
-    t.textContent = txt;
-    return t;
+function mkText(x,y,txt,fs,fw,fill,sw){
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',x); t.setAttribute('y',y); t.setAttribute('text-anchor','middle');
+    t.setAttribute('dominant-baseline','central'); t.setAttribute('font-size',fs);
+    t.setAttribute('font-weight',fw); t.setAttribute('fill',fill);
+    t.setAttribute('stroke','#fff'); t.setAttribute('stroke-width',sw);
+    t.setAttribute('paint-order','stroke'); t.textContent=txt; return t;
 }
 
-// Crée des éléments <text> avec retour à la ligne automatique dans un bbox
-function mkTextMultiline(svg, cx, cyStart, txt, fontSize, fontWeight, fill, strokeW, maxWidth) {
-    const mots = txt.split(' ');
-    const lignes = [];
-    let ligne = '';
-    // Estimation grossière : 0.6 * fontSize par caractère
-    const charW = parseFloat(fontSize) * 0.6;
-    mots.forEach(mot => {
-        const test = ligne ? ligne + ' ' + mot : mot;
-        if (test.length * charW > maxWidth && ligne) {
-            lignes.push(ligne);
-            ligne = mot;
-        } else {
-            ligne = test;
-        }
+function mkTextMultiline(svg,cx,cyStart,txt,fontSize,fontWeight,fill,strokeW,maxWidth){
+    const mots=txt.split(' '); const lignes=[]; let ligne='';
+    const charW=parseFloat(fontSize)*0.6;
+    mots.forEach(mot=>{
+        const test=ligne?ligne+' '+mot:mot;
+        if(test.length*charW>maxWidth&&ligne){lignes.push(ligne);ligne=mot;}
+        else ligne=test;
     });
-    if (ligne) lignes.push(ligne);
-    const lineH = parseFloat(fontSize) * 1.3;
-    const totalH = lignes.length * lineH;
-    let y = cyStart - totalH / 2 + lineH / 2;
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.style.pointerEvents = 'none';
-    lignes.forEach(l => {
-        g.appendChild(mkText(cx, y, l, fontSize, fontWeight, fill, strokeW));
-        y += lineH;
-    });
-    return { g, hauteur: totalH };
+    if(ligne) lignes.push(ligne);
+    const lineH=parseFloat(fontSize)*1.3, totalH=lignes.length*lineH;
+    let y=cyStart-totalH/2+lineH/2;
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.pointerEvents='none';
+    lignes.forEach(l=>{g.appendChild(mkText(cx,y,l,fontSize,fontWeight,fill,strokeW));y+=lineH;});
+    return {g,hauteur:totalH};
 }
 
-// ============================================================
-// DESSINER LES ZONES GROUPES
-// ============================================================
 function dessinerZonesGroupes() {
-    const svg = getSVG(); if (!svg) return;
-    svg.querySelectorAll('.zone-groupe-el').forEach(el => el.remove());
-
-    zonesGroupes.forEach(zg => {
-        if (!zg.points || zg.points.length < 3) return;
-
-        const couleur   = couleurZone(zg.id);
-        const ptsStr    = zg.points.map(p => `${p.x},${p.y}`).join(' ');
-
-        // Fond : transparent si pas de type, couleur du type sinon
-        const fillColor = zg.type ? hexToRgba(getColor(zg.type), 0.22) : 'transparent';
-
-        const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        poly.setAttribute('points', ptsStr);
-        poly.setAttribute('fill', fillColor);
-        poly.setAttribute('stroke', couleur);
-        poly.setAttribute('stroke-width', '5');
-        poly.setAttribute('stroke-linejoin','round');
-        poly.style.cursor = 'pointer';
-        poly.classList.add('zone-groupe-el');
-        poly.dataset.zgId = zg.id;
-        poly.addEventListener('click', function(e) { e.stopPropagation(); ouvrirZoneGroupeExistante(zg); });
+    const svg=getSVG(); if(!svg) return;
+    svg.querySelectorAll('.zone-groupe-el').forEach(el=>el.remove());
+    zonesGroupes.forEach(zg=>{
+        if(!zg.points||zg.points.length<3) return;
+        const couleur=couleurZone(zg.id), ptsStr=zg.points.map(p=>`${p.x},${p.y}`).join(' ');
+        const fillColor=zg.type?hexToRgba(getColor(zg.type),0.22):'transparent';
+        const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+        poly.setAttribute('points',ptsStr); poly.setAttribute('fill',fillColor);
+        poly.setAttribute('stroke',couleur); poly.setAttribute('stroke-width','5');
+        poly.setAttribute('stroke-linejoin','round'); poly.style.cursor='pointer';
+        poly.classList.add('zone-groupe-el'); poly.dataset.zgId=zg.id;
+        poly.addEventListener('click',function(e){e.stopPropagation();ouvrirZoneGroupeExistante(zg);});
         svg.appendChild(poly);
-
-        // Calculer le bbox du polygone
-        const xs = zg.points.map(p => p.x), ys = zg.points.map(p => p.y);
-        const minX = Math.min(...xs), maxX = Math.max(...xs);
-        const minY = Math.min(...ys), maxY = Math.max(...ys);
-        const cx   = (minX + maxX) / 2;
-        const largeur = maxX - minX;
-        const hauteurZone = maxY - minY;
-
-        const nomTxt  = zg.owner_name || zg.nom || '';
-        const supTxt  = zg.superficie_totale ? parseFloat(zg.superficie_totale).toLocaleString('fr-FR') + ' m²' : '';
-        let   dateTxt = '';
-        if (zg.type === 'implantation_prevue' && zg.date_prevue)       dateTxt = formatDate(zg.date_prevue);
-        else if (zg.type === 'deja_implante'  && zg.date_confirmee)    dateTxt = formatDate(zg.date_confirmee);
-        else if (zg.type === 'dossier_technique'  && zg.date_confirmee)    dateTxt = formatDate(zg.date_confirmee);
-        else if (zg.type === 'morcellement'   && zg.date_morcellement) dateTxt = formatDate(zg.date_morcellement);
-
-        // Taille de police adaptée à la zone (min 10, max 18)
-        const fontSize = Math.min(18, Math.max(10, Math.floor(largeur / 10)));
-
-        // Calculer la hauteur totale des blocs de texte
-        const nbLignesNom = nomTxt ? Math.ceil(nomTxt.length * fontSize * 0.6 / largeur) || 1 : 0;
-        const ligneH      = fontSize * 1.3;
-        const totalTxtH   = (nbLignesNom * ligneH) + (supTxt ? ligneH : 0) + (dateTxt ? ligneH : 0);
-        let   yOff        = (minY + maxY) / 2 - totalTxtH / 2;
-
-        const gAll = document.createElementNS('http://www.w3.org/2000/svg','g');
-        gAll.style.pointerEvents = 'none';
-        gAll.classList.add('zone-groupe-el');
-
-        if (nomTxt) {
-            const { g: gNom, hauteur: hNom } = mkTextMultiline(svg, cx, yOff + (nbLignesNom * ligneH) / 2, nomTxt, String(fontSize), '800', couleur, '3', largeur - 10);
-            gAll.appendChild(gNom);
-            yOff += hNom + 4;
-        }
-        if (supTxt) {
-            gAll.appendChild(mkText(cx, yOff + ligneH/2, supTxt, String(Math.max(9, fontSize - 2)), '700', '#1d4ed8', '2.5'));
-            yOff += ligneH + 2;
-        }
-        if (dateTxt) {
-            gAll.appendChild(mkText(cx, yOff + ligneH/2, dateTxt, String(Math.max(8, fontSize - 3)), '500', '#374151', '2'));
-        }
-
+        const xs=zg.points.map(p=>p.x),ys=zg.points.map(p=>p.y);
+        const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+        const cx=(minX+maxX)/2, largeur=maxX-minX;
+        const nomTxt=zg.owner_name||zg.nom||'';
+        const supTxt=zg.superficie_totale?parseFloat(zg.superficie_totale).toLocaleString('fr-FR')+' m²':'';
+        let dateTxt='';
+        if(zg.type==='implantation_prevue'&&zg.date_prevue) dateTxt=formatDate(zg.date_prevue);
+        else if((zg.type==='deja_implante'||zg.type==='dossier_technique')&&zg.date_confirmee) dateTxt=formatDate(zg.date_confirmee);
+        else if(zg.type==='morcellement'&&zg.date_morcellement) dateTxt=formatDate(zg.date_morcellement);
+        const fontSize=Math.min(18,Math.max(10,Math.floor(largeur/10)));
+        const nbLignesNom=nomTxt?Math.ceil(nomTxt.length*fontSize*0.6/largeur)||1:0;
+        const ligneH=fontSize*1.3, totalTxtH=(nbLignesNom*ligneH)+(supTxt?ligneH:0)+(dateTxt?ligneH:0);
+        let yOff=(minY+maxY)/2-totalTxtH/2;
+        const gAll=document.createElementNS('http://www.w3.org/2000/svg','g');
+        gAll.style.pointerEvents='none'; gAll.classList.add('zone-groupe-el');
+        if(nomTxt){const{g:gNom,hauteur:hNom}=mkTextMultiline(svg,cx,yOff+(nbLignesNom*ligneH)/2,nomTxt,String(fontSize),'800',couleur,'3',largeur-10);gAll.appendChild(gNom);yOff+=hNom+4;}
+        if(supTxt){gAll.appendChild(mkText(cx,yOff+ligneH/2,supTxt,String(Math.max(9,fontSize-2)),'700','#1d4ed8','2.5'));yOff+=ligneH+2;}
+        if(dateTxt){gAll.appendChild(mkText(cx,yOff+ligneH/2,dateTxt,String(Math.max(8,fontSize-3)),'500','#374151','2'));}
         svg.appendChild(gAll);
     });
 }
 
-// ============================================================
-// COULEURS
-// ============================================================
-function getColor(type) {
-    return { implantation_prevue:'#7c3aed', deja_implante:'#16a34a', dossier_technique:'#dc2626', morcellement:'#ea580c' }[type] || '#0d6efd';
-}
-function hexToRgba(hex, alpha) {
-    if (!hex || !hex.startsWith('#')) return `rgba(245,158,11,${alpha})`;
-    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-    return `rgba(${r},${g},${b},${alpha})`;
-}
-function formatDate(s) {
-    if (!s) return '';
-    const d = new Date(s);
-    return isNaN(d) ? s : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-}
+function getColor(type){return{implantation_prevue:'#7c3aed',deja_implante:'#16a34a',dossier_technique:'#dc2626',morcellement:'#ea580c'}[type]||'#0d6efd';}
+function hexToRgba(hex,alpha){if(!hex||!hex.startsWith('#'))return`rgba(245,158,11,${alpha})`;const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${alpha})`;}
+function formatDate(s){if(!s)return'';const d=new Date(s);return isNaN(d)?s:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 
-// ============================================================
-// INIT SVG
-// ============================================================
 function initSVG() {
-    const svg = getSVG(); if (!svg) return;
-
-    // Lots masqués : encadrés par une zone AVEC type
-    const lotIdsMasques = new Set();
-    zonesGroupes.forEach(zg => {
-        if (zg.type && zg.lot_ids && zg.lot_ids.length > 0)
-            zg.lot_ids.forEach(id => lotIdsMasques.add(id));
-    });
-
-    svg.querySelectorAll('path').forEach(el => {
-        const zoneId = (el.getAttribute('id')||'').trim().toLowerCase();
-        const lot    = lots.find(l => (l.code||'').trim().toLowerCase() === zoneId);
-
-        el.style.cursor      = 'pointer';
-        el.style.strokeWidth = '2.5px';
-
-        // Lot masqué par une zone typée → transparent
-        if (lot && lotIdsMasques.has(lot.id)) {
-            el.style.stroke          = 'transparent';
-            el.style.fill            = 'transparent';
-            el.style.strokeDasharray = '';
-            el.addEventListener('click', function(e) {
-                if (currentTool !== 'select') return;
-                openModal(zoneId, lot);
-            });
+    const svg=getSVG(); if(!svg) return;
+    const lotIdsMasques=new Set();
+    zonesGroupes.forEach(zg=>{if(zg.type&&zg.lot_ids&&zg.lot_ids.length>0)zg.lot_ids.forEach(id=>lotIdsMasques.add(id));});
+    svg.querySelectorAll('path').forEach(el=>{
+        const zoneId=(el.getAttribute('id')||'').trim().toLowerCase();
+        const lot=lots.find(l=>(l.code||'').trim().toLowerCase()===zoneId);
+        el.style.cursor='pointer'; el.style.strokeWidth='2.5px';
+        if(lot&&lotIdsMasques.has(lot.id)){
+            el.style.stroke='transparent'; el.style.fill='transparent'; el.style.strokeDasharray='';
+            el.addEventListener('click',function(e){if(currentTool!=='select')return;openModal(zoneId,lot);});
             return;
         }
-
-        if (!lot || !lot.origine) {
-            el.style.stroke = '#bbb'; el.style.fill = 'transparent'; el.style.strokeDasharray = '2,2';
-        } else if (lot.origine === 'famille') {
-            el.style.stroke = '#c8a882'; el.style.fill = 'rgba(250,245,238,0.35)'; el.style.strokeDasharray = '';
-        } else if (lot.origine === 'eden') {
-            el.style.strokeDasharray = '';
-            if (!lot.type) {
-                el.style.stroke = '#0d6efd'; el.style.fill = 'rgba(13,110,253,0.25)';
-            } else {
-                const color = getColor(lot.type);
-                el.style.stroke = color; el.style.fill = hexToRgba(color, 0.40);
-                afficherInfoSurLot(svg, el, lot);
-            }
+        if(!lot||!lot.origine){el.style.stroke='#bbb';el.style.fill='transparent';el.style.strokeDasharray='2,2';}
+        else if(lot.origine==='famille'){el.style.stroke='#c8a882';el.style.fill='rgba(250,245,238,0.35)';el.style.strokeDasharray='';}
+        else if(lot.origine==='eden'){
+            el.style.strokeDasharray='';
+            if(!lot.type){el.style.stroke='#0d6efd';el.style.fill='rgba(13,110,253,0.25)';}
+            else{const color=getColor(lot.type);el.style.stroke=color;el.style.fill=hexToRgba(color,0.40);afficherInfoSurLot(svg,el,lot);}
         }
-
-        el.addEventListener('click', function(e) {
-            if (currentTool !== 'select') return;
-            if (e.ctrlKey)             { openOriginModal(zoneId, lot); return; }
-            if (!lot || !lot.origine)  { openOriginModal(zoneId, lot); return; }
-            if (lot.origine === 'famille') { openOriginModal(zoneId, lot); return; }
-            if (lot.origine === 'eden')    { openModal(zoneId, lot); }
+        el.addEventListener('click',function(e){
+            if(currentTool!=='select')return;
+            if(e.ctrlKey){openOriginModal(zoneId,lot);return;}
+            if(!lot||!lot.origine){openOriginModal(zoneId,lot);return;}
+            if(lot.origine==='famille'){openOriginModal(zoneId,lot);return;}
+            if(lot.origine==='eden'){openModal(zoneId,lot);}
         });
     });
 }
 
-// Afficher nom + date sur un lot individuel avec texte adapté à la taille
-function afficherInfoSurLot(svg, pathEl, lot) {
-    try {
-        const bbox = pathEl.getBBox();
-        const cx = bbox.x + bbox.width/2, cy = bbox.y + bbox.height/2;
-        const largeur = bbox.width;
-
-        let dateTxt = '';
-        if (lot.type === 'implantation_prevue' && lot.date_prevue)       dateTxt = formatDate(lot.date_prevue);
-        else if (lot.type === 'deja_implante'  && lot.date_confirmee)    dateTxt = formatDate(lot.date_confirmee);
-        else if (lot.type === 'dossier_technique'  && lot.date_confirmee)    dateTxt = formatDate(lot.date_confirmee);
-        else if (lot.type === 'morcellement'   && lot.date_morcellement) dateTxt = formatDate(lot.date_morcellement);
-        const nomTxt = lot.owner_name || '';
-        if (!nomTxt && !dateTxt) return;
-
-        const fontSize = Math.min(13, Math.max(7, Math.floor(largeur / 8)));
-        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-        g.style.pointerEvents = 'none';
-
-        let yOff = cy - (dateTxt ? fontSize * 0.7 : 0);
-
-        if (nomTxt) {
-            const { g: gNom } = mkTextMultiline(svg, cx, yOff, nomTxt, String(fontSize), '700', '#1e293b', '2.5', largeur - 4);
-            g.appendChild(gNom);
-            yOff += fontSize * 1.4;
-        }
-        if (dateTxt) {
-            g.appendChild(mkText(cx, yOff, dateTxt, String(Math.max(6, fontSize - 1)), '500', '#374151', '2'));
-        }
+function afficherInfoSurLot(svg,pathEl,lot){
+    try{
+        const bbox=pathEl.getBBox(), cx=bbox.x+bbox.width/2, cy=bbox.y+bbox.height/2, largeur=bbox.width;
+        let dateTxt='';
+        if(lot.type==='implantation_prevue'&&lot.date_prevue)dateTxt=formatDate(lot.date_prevue);
+        else if((lot.type==='deja_implante'||lot.type==='dossier_technique')&&lot.date_confirmee)dateTxt=formatDate(lot.date_confirmee);
+        else if(lot.type==='morcellement'&&lot.date_morcellement)dateTxt=formatDate(lot.date_morcellement);
+        const nomTxt=lot.owner_name||'';
+        if(!nomTxt&&!dateTxt)return;
+        const fontSize=Math.min(13,Math.max(7,Math.floor(largeur/8)));
+        const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.style.pointerEvents='none';
+        let yOff=cy-(dateTxt?fontSize*0.7:0);
+        if(nomTxt){const{g:gNom}=mkTextMultiline(svg,cx,yOff,nomTxt,String(fontSize),'700','#1e293b','2.5',largeur-4);g.appendChild(gNom);yOff+=fontSize*1.4;}
+        if(dateTxt){g.appendChild(mkText(cx,yOff,dateTxt,String(Math.max(6,fontSize-1)),'500','#374151','2'));}
         svg.appendChild(g);
-    } catch(e) {}
+    }catch(e){}
 }
 
-// ============================================================
-// OUVRIR ZONE GROUPE EXISTANTE
-// ============================================================
-function ouvrirZoneGroupeExistante(zg) {
-    currentZoneGroupeId     = zg.id;
-    currentZoneGroupePoints = zg.points;
-    currentZoneGroupeLotIds = zg.lot_ids || [];
-
-    const etapeSuivante = getEtapeSuivante({ type: zg.type });
-    const etapeInfoEl   = document.getElementById('zgEtapeInfo');
-
-    if (etapeSuivante === null) {
-        etapeInfoEl.innerHTML = '<span style="color:#28a745;">✅ Toutes les étapes complètes</span>';
-    } else if (zg.type) {
-        etapeInfoEl.innerHTML = `Étape : <strong>${etapeLabels[zg.type]}</strong> <span class="badge-next-step">→ ${etapeLabels[etapeSuivante]}</span>`;
-    } else {
-        etapeInfoEl.innerText = 'Aucune étape définie';
+function ouvrirZoneGroupeExistante(zg){
+    currentZoneGroupeId=zg.id; currentZoneGroupePoints=zg.points; currentZoneGroupeLotIds=zg.lot_ids||[];
+    const etapeSuivante=getEtapeSuivante({type:zg.type}), etapeInfoEl=document.getElementById('zgEtapeInfo');
+    if(etapeSuivante===null)etapeInfoEl.innerHTML='<span style="color:#28a745;">✅ Toutes les étapes complètes</span>';
+    else if(zg.type)etapeInfoEl.innerHTML=`Étape : <strong>${etapeLabels[zg.type]}</strong> <span class="badge-next-step">→ ${etapeLabels[etapeSuivante]}</span>`;
+    else etapeInfoEl.innerText='Aucune étape définie';
+    const superfTotale=lots.filter(l=>(currentZoneGroupeLotIds||[]).includes(l.id)).reduce((s,l)=>s+(parseFloat(l.superficie)||0),0);
+    document.getElementById('zg_superficie_info').style.display='block';
+    document.getElementById('zg_superficie_val').innerText=(superfTotale||zg.superficie_totale||0).toLocaleString('fr-FR');
+    if(zg.client_id){
+        document.getElementById('zg_clientExistantInfo').style.display='block';
+        document.getElementById('zg_clientExistantNom').innerText=zg.owner_name||'-';
+        document.getElementById('zg_client_search').style.display='none';
+        document.getElementById('zg_client_id').value=zg.client_id;
+        chargerDossiersZG(zg.client_id,zg.dossier_client_id); loadClientPanel(zg.client_id);
+    }else{
+        document.getElementById('zg_clientExistantInfo').style.display='none';
+        document.getElementById('zg_client_search').style.display='block';
+        document.getElementById('zg_client_search').value=zg.nom||'';
+        document.getElementById('zg_client_id').value='';
+        document.getElementById('zg_dossierSelectField').style.display='none';
     }
-
-    const superfTotale = lots.filter(l => (currentZoneGroupeLotIds||[]).includes(l.id))
-        .reduce((s,l) => s + (parseFloat(l.superficie)||0), 0);
-    document.getElementById('zg_superficie_info').style.display = 'block';
-    document.getElementById('zg_superficie_val').innerText = (superfTotale || zg.superficie_totale || 0).toLocaleString('fr-FR');
-
-    if (zg.client_id) {
-        document.getElementById('zg_clientExistantInfo').style.display = 'block';
-        document.getElementById('zg_clientExistantNom').innerText = zg.owner_name || '-';
-        document.getElementById('zg_client_search').style.display  = 'none';
-        document.getElementById('zg_client_id').value              = zg.client_id;
-        chargerDossiersZG(zg.client_id, zg.dossier_client_id);
-        loadClientPanel(zg.client_id);
-    } else {
-        document.getElementById('zg_clientExistantInfo').style.display = 'none';
-        document.getElementById('zg_client_search').style.display       = 'block';
-        document.getElementById('zg_client_search').value               = zg.nom || '';
-        document.getElementById('zg_client_id').value                   = '';
-        document.getElementById('zg_dossierSelectField').style.display  = 'none';
+    document.getElementById('zg_client_info').style.display='none';
+    const zgTypeEl=document.getElementById('zg_type');
+    zgTypeEl.disabled=false; Array.from(zgTypeEl.options).forEach(o=>o.disabled=false);
+    if(etapeSuivante===null){zgTypeEl.disabled=true;zgTypeEl.value=zg.type||'';}
+    else if(zg.type){
+        zgTypeEl.value=etapeSuivante;
+        const ordre=['implantation_prevue','deja_implante','dossier_technique','morcellement'];
+        Array.from(zgTypeEl.options).forEach(opt=>{if(opt.value===''){opt.disabled=false;return;}opt.disabled=(ordre.indexOf(opt.value)!==ordre.indexOf(zg.type)+1);});
+    }else{
+        zgTypeEl.value='implantation_prevue';
+        Array.from(zgTypeEl.options).forEach(opt=>{if(opt.value===''){opt.disabled=false;return;}opt.disabled=opt.value!=='implantation_prevue';});
     }
-    document.getElementById('zg_client_info').style.display = 'none';
-
-    const zgTypeEl = document.getElementById('zg_type');
-    zgTypeEl.disabled = false;
-    Array.from(zgTypeEl.options).forEach(o => o.disabled = false);
-
-    if (etapeSuivante === null) {
-        zgTypeEl.disabled = true; zgTypeEl.value = zg.type || '';
-    } else if (zg.type) {
-        zgTypeEl.value = etapeSuivante;
-        const ordre = ['implantation_prevue','deja_implante','dossier_technique','morcellement'];
-        Array.from(zgTypeEl.options).forEach(opt => {
-            if (opt.value === '') { opt.disabled = false; return; }
-            opt.disabled = (ordre.indexOf(opt.value) !== ordre.indexOf(zg.type) + 1);
-        });
-    } else {
-        zgTypeEl.value = 'implantation_prevue';
-        Array.from(zgTypeEl.options).forEach(opt => {
-            if (opt.value === '') { opt.disabled = false; return; }
-            opt.disabled = opt.value !== 'implantation_prevue';
-        });
-    }
-
-    document.getElementById('zg_date_prevue').value       = zg.date_prevue       ? zg.date_prevue.substring(0,10)       : '';
-    document.getElementById('zg_date_confirmee').value    = zg.date_confirmee    ? zg.date_confirmee.substring(0,10)    : '';
-    document.getElementById('zg_date_morcellement').value = zg.date_morcellement ? zg.date_morcellement.substring(0,10) : '';
-
+    document.getElementById('zg_date_prevue').value      =zg.date_prevue      ?zg.date_prevue.substring(0,10)      :'';
+    document.getElementById('zg_date_confirmee').value   =zg.date_confirmee   ?zg.date_confirmee.substring(0,10)   :'';
+    document.getElementById('zg_date_morcellement').value=zg.date_morcellement?zg.date_morcellement.substring(0,10):'';
     zgTypeChange();
-    document.getElementById('zg_deleteBtn').style.display = 'block';
-    modalOverlay.style.display = 'block';
-    document.getElementById('zoneGroupeModal').style.display = 'block';
+    document.getElementById('zg_deleteBtn').style.display='block';
+    modalOverlay.style.display='block';
+    document.getElementById('zoneGroupeModal').style.display='block';
 }
 
-// ============================================================
-// RECHERCHE CLIENT — zone groupe
-// ============================================================
-document.getElementById('zg_client_search').addEventListener('input', function() {
-    const q = this.value.trim(), dd = document.getElementById('zg_client_dropdown');
+document.getElementById('zg_client_search').addEventListener('input',function(){
+    const q=this.value.trim(),dd=document.getElementById('zg_client_dropdown');
     clearTimeout(zgSearchTimer);
-    if (q.length < 1) { dd.style.display = 'none'; return; }
-    zgSearchTimer = setTimeout(() => {
-        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`).then(r => r.json()).then(clients => {
-            if (!clients.length) { dd.style.display = 'none'; return; }
-            dd.innerHTML = clients.map(c =>
-                `<div class="client-option" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone??''}">
-                    <strong>${c.name}</strong><small>${c.phone??''}</small>
-                </div>`).join('');
-            dd.style.display = 'block';
-            dd.querySelectorAll('.client-option').forEach(opt => {
-                opt.addEventListener('click', function() {
-                    document.getElementById('zg_client_id').value    = this.dataset.id;
-                    document.getElementById('zg_client_search').value = this.dataset.name;
-                    dd.style.display = 'none';
-                    const info = document.getElementById('zg_client_info');
-                    info.innerHTML = `✅ <strong>${this.dataset.name}</strong> ${this.dataset.phone}`;
-                    info.style.display = 'block';
-                    chargerDossiersZG(this.dataset.id, null);
-                    loadClientPanel(this.dataset.id);
+    if(q.length<1){dd.style.display='none';return;}
+    zgSearchTimer=setTimeout(()=>{
+        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`).then(r=>r.json()).then(clients=>{
+            if(!clients.length){dd.style.display='none';return;}
+            dd.innerHTML=clients.map(c=>`<div class="client-option" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone??''}"><strong>${c.name}</strong><small>${c.phone??''}</small></div>`).join('');
+            dd.style.display='block';
+            dd.querySelectorAll('.client-option').forEach(opt=>{
+                opt.addEventListener('click',function(){
+                    document.getElementById('zg_client_id').value=this.dataset.id;
+                    document.getElementById('zg_client_search').value=this.dataset.name;
+                    dd.style.display='none';
+                    const info=document.getElementById('zg_client_info');
+                    info.innerHTML=`✅ <strong>${this.dataset.name}</strong> ${this.dataset.phone}`;
+                    info.style.display='block';
+                    chargerDossiersZG(this.dataset.id,null); loadClientPanel(this.dataset.id);
                 });
             });
         });
-    }, 250);
+    },250);
 });
 
-function chargerDossiersZG(clientId, selectedId) {
-    fetch(`/admin/lots/client-panel/${clientId}`).then(r => r.json()).then(data => {
-        zgCachedDossiers = data.dossiers || [];
-        const sel = document.getElementById('zg_dossier_id');
-        sel.innerHTML = '<option value="">-- Choisir un dossier --</option>';
-        zgCachedDossiers.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.id;
-            opt.innerText = d.nom + (d.prix_ref !== '-' ? ' — ' + d.prix_ref + ' FCFA' : '');
-            if (selectedId && d.id == selectedId) opt.selected = true;
+function chargerDossiersZG(clientId,selectedId){
+    fetch(`/admin/lots/client-panel/${clientId}`).then(r=>r.json()).then(data=>{
+        zgCachedDossiers=data.dossiers||[];
+        const sel=document.getElementById('zg_dossier_id');
+        sel.innerHTML='<option value="">-- Choisir un dossier --</option>';
+        zgCachedDossiers.forEach(d=>{
+            const opt=document.createElement('option');
+            opt.value=d.id; opt.innerText=d.nom+(d.prix_ref!=='-'?' — '+d.prix_ref+' FCFA':'');
+            if(selectedId&&d.id==selectedId)opt.selected=true;
             sel.appendChild(opt);
         });
-        document.getElementById('zg_dossierSelectField').style.display = 'block';
+        document.getElementById('zg_dossierSelectField').style.display='block';
     });
 }
 
-function zgTypeChange() {
-    const type = document.getElementById('zg_type').value;
-    document.getElementById('zg_datePrevueGroup').style.display       = type === 'implantation_prevue' ? 'block' : 'none';
-    document.getElementById('zg_dateConfirmeeGroup').style.display    = (type === 'deja_implante' || type === 'dossier_technique') ? 'block' : 'none';
-    document.getElementById('zg_dateMorcellementGroup').style.display = type === 'morcellement' ? 'block' : 'none';
+function zgTypeChange(){
+    const type=document.getElementById('zg_type').value;
+    document.getElementById('zg_datePrevueGroup').style.display      =type==='implantation_prevue'?'block':'none';
+    document.getElementById('zg_dateConfirmeeGroup').style.display   =(type==='deja_implante'||type==='dossier_technique')?'block':'none';
+    document.getElementById('zg_dateMorcellementGroup').style.display=type==='morcellement'?'block':'none';
 }
 
-// ============================================================
-// SAVE / DELETE ZONE GROUPE
-// ============================================================
-function saveZoneGroupe() {
-    if (!currentZoneGroupePoints || currentZoneGroupePoints.length < 3) {
-        alert('Aucune zone dessinée (minimum 3 points requis).');
-        return;
-    }
-    const clientId = document.getElementById('zg_client_id').value || null;
-    const nom      = document.getElementById('zg_client_search').value.trim() || null;
-    const type     = document.getElementById('zg_type').value || null;
-    const payload  = {
-        tf_id: tfId, client_id: clientId,
-        dossier_client_id: document.getElementById('zg_dossier_id').value || null,
-        nom, points: currentZoneGroupePoints, lot_ids: currentZoneGroupeLotIds, type,
-        date_prevue:       document.getElementById('zg_date_prevue').value       || null,
-        date_confirmee:    document.getElementById('zg_date_confirmee').value    || null,
-        date_morcellement: document.getElementById('zg_date_morcellement').value || null,
+function saveZoneGroupe(){
+    if(!currentZoneGroupePoints||currentZoneGroupePoints.length<3){alert('Aucune zone dessinée (minimum 3 points requis).');return;}
+    const clientId=document.getElementById('zg_client_id').value||null;
+    const nom=document.getElementById('zg_client_search').value.trim()||null;
+    const type=document.getElementById('zg_type').value||null;
+    const payload={
+        tf_id:tfId,client_id:clientId,
+        dossier_client_id:document.getElementById('zg_dossier_id').value||null,
+        nom,points:currentZoneGroupePoints,lot_ids:currentZoneGroupeLotIds,type,
+        date_prevue:document.getElementById('zg_date_prevue').value||null,
+        date_confirmee:document.getElementById('zg_date_confirmee').value||null,
+        date_morcellement:document.getElementById('zg_date_morcellement').value||null,
     };
-    const url    = currentZoneGroupeId ? `/admin/zone-groupes/${currentZoneGroupeId}` : '/admin/zone-groupes';
-    const method = currentZoneGroupeId ? 'PUT' : 'POST';
-    fetch(url, { method, headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF}, body:JSON.stringify(payload) })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); else alert(data.message || 'Erreur'); })
-    .catch(e => alert('Erreur réseau : ' + e.message));
+    const url=currentZoneGroupeId?`/admin/zone-groupes/${currentZoneGroupeId}`:'/admin/zone-groupes';
+    const method=currentZoneGroupeId?'PUT':'POST';
+    fetch(url,{method,headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(data=>{if(data.success)location.reload();else alert(data.message||'Erreur');})
+    .catch(e=>alert('Erreur réseau : '+e.message));
 }
 
-function supprimerZoneGroupe() {
-    if (!confirm('Supprimer cette zone ?')) return;
-    fetch(`/admin/zone-groupes/${currentZoneGroupeId}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF} })
-    .then(r => r.json()).then(data => { if (data.success) location.reload(); });
+function supprimerZoneGroupe(){
+    if(!confirm('Supprimer cette zone ?'))return;
+    fetch(`/admin/zone-groupes/${currentZoneGroupeId}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF}})
+    .then(r=>r.json()).then(data=>{if(data.success)location.reload();});
 }
 
-function closeZoneGroupeModal() {
-    document.getElementById('zoneGroupeModal').style.display = 'none';
-    modalOverlay.style.display = 'none';
-    document.getElementById('clientPanel').style.display = 'none';
-    document.getElementById('zg_type').disabled = false;
-    Array.from(document.getElementById('zg_type').options).forEach(o => o.disabled = false);
+function closeZoneGroupeModal(){
+    document.getElementById('zoneGroupeModal').style.display='none';
+    modalOverlay.style.display='none';
+    document.getElementById('clientPanel').style.display='none';
+    document.getElementById('zg_type').disabled=false;
+    Array.from(document.getElementById('zg_type').options).forEach(o=>o.disabled=false);
     annulerDessin();
 }
 
-// ============================================================
-// AUTOCOMPLETE CLIENT — modal lot
-// ============================================================
-clientSearch.addEventListener('input', function() {
-    const q = this.value.trim();
-    selectedClientId.value = '';
-    document.getElementById('client_selected_info').style.display = 'none';
-    document.getElementById('clientPanel').style.display = 'none';
-    resetDossierSelect();
-    clearTimeout(searchTimer);
-    if (q.length < 1) { clientDropdown.style.display = 'none'; return; }
-    searchTimer = setTimeout(() => {
-        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`).then(r => r.json()).then(clients => {
-            if (!clients.length) { clientDropdown.style.display = 'none'; return; }
-            clientDropdown.innerHTML = clients.map(c =>
-                `<div class="client-option" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone??''}">
-                    <strong>${c.name}</strong><small>${c.phone??''}</small>
-                </div>`).join('');
-            clientDropdown.style.display = 'block';
-            clientDropdown.querySelectorAll('.client-option').forEach(opt => {
-                opt.addEventListener('click', function() {
-                    selectedClientId.value = this.dataset.id;
-                    clientSearch.value     = this.dataset.name;
-                    clientDropdown.style.display = 'none';
-                    const info = document.getElementById('client_selected_info');
-                    info.innerHTML = `✅ <strong>${this.dataset.name}</strong> ${this.dataset.phone}`;
-                    info.style.display = 'block';
-                    loadClientPanel(this.dataset.id);
+clientSearch.addEventListener('input',function(){
+    const q=this.value.trim();
+    selectedClientId.value='';
+    document.getElementById('client_selected_info').style.display='none';
+    document.getElementById('clientPanel').style.display='none';
+    resetDossierSelect(); clearTimeout(searchTimer);
+    if(q.length<1){clientDropdown.style.display='none';return;}
+    searchTimer=setTimeout(()=>{
+        fetch(`/admin/lots/client-search?q=${encodeURIComponent(q)}`).then(r=>r.json()).then(clients=>{
+            if(!clients.length){clientDropdown.style.display='none';return;}
+            clientDropdown.innerHTML=clients.map(c=>`<div class="client-option" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone??''}"><strong>${c.name}</strong><small>${c.phone??''}</small></div>`).join('');
+            clientDropdown.style.display='block';
+            clientDropdown.querySelectorAll('.client-option').forEach(opt=>{
+                opt.addEventListener('click',function(){
+                    selectedClientId.value=this.dataset.id; clientSearch.value=this.dataset.name;
+                    clientDropdown.style.display='none';
+                    const info=document.getElementById('client_selected_info');
+                    info.innerHTML=`✅ <strong>${this.dataset.name}</strong> ${this.dataset.phone}`;
+                    info.style.display='block'; loadClientPanel(this.dataset.id);
                 });
             });
         });
-    }, 250);
+    },250);
 });
 
-document.addEventListener('click', e => {
-    if (!e.target.closest('.client-search-wrap') && !e.target.closest('#zg_client_dropdown'))
-        document.getElementById('zg_client_dropdown').style.display = 'none';
-    if (!e.target.closest('.client-search-wrap') && !e.target.closest('#client_dropdown'))
-        clientDropdown.style.display = 'none';
+document.addEventListener('click',e=>{
+    if(!e.target.closest('.client-search-wrap')&&!e.target.closest('#zg_client_dropdown'))
+        document.getElementById('zg_client_dropdown').style.display='none';
+    if(!e.target.closest('.client-search-wrap')&&!e.target.closest('#client_dropdown'))
+        clientDropdown.style.display='none';
 });
 
-function resetDossierSelect() {
-    cachedDossiers = [];
-    selectedDossierId.innerHTML = '<option value="">-- Choisir un dossier --</option>';
-    dossierSelectField.style.display = 'none';
-    document.getElementById('dossier_selected_info').style.display = 'none';
+function resetDossierSelect(){
+    cachedDossiers=[];
+    selectedDossierId.innerHTML='<option value="">-- Choisir un dossier --</option>';
+    dossierSelectField.style.display='none';
+    document.getElementById('dossier_selected_info').style.display='none';
 }
 
-// ============================================================
-// PANNEAU CLIENT
-// ============================================================
-function loadClientPanel(clientId) {
-    fetch(`/admin/lots/client-panel/${clientId}`).then(r => r.json()).then(data => {
-        document.getElementById('cp-name').innerText  = data.name;
-        document.getElementById('cp-phone').innerText = '📞 ' + (data.phone || '-');
-        cachedDossiers = data.dossiers || [];
-
-        selectedDossierId.innerHTML = '<option value="">-- Choisir un dossier --</option>';
-        cachedDossiers.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.id;
-            opt.innerText = d.nom + (d.prix_ref !== '-' ? ' — ' + d.prix_ref + ' FCFA' : '');
+function loadClientPanel(clientId){
+    fetch(`/admin/lots/client-panel/${clientId}`).then(r=>r.json()).then(data=>{
+        document.getElementById('cp-name').innerText=data.name;
+        document.getElementById('cp-phone').innerText='📞 '+(data.phone||'-');
+        cachedDossiers=data.dossiers||[];
+        selectedDossierId.innerHTML='<option value="">-- Choisir un dossier --</option>';
+        cachedDossiers.forEach(d=>{
+            const opt=document.createElement('option');
+            opt.value=d.id; opt.innerText=d.nom+(d.prix_ref!=='-'?' — '+d.prix_ref+' FCFA':'');
             selectedDossierId.appendChild(opt);
         });
-        if (cachedDossiers.length > 0) {
-            dossierSelectField.style.display = 'block';
-            selectedDossierId.value = cachedDossiers[0].id;
-            updateDossierInfo(cachedDossiers[0]);
-        }
-
-        document.getElementById('cp-dossiers').innerHTML = !cachedDossiers.length
-            ? '<div style="color:#94a3b8;font-size:11px;">Aucun dossier</div>'
-            : cachedDossiers.map(d => {
-                const progColor = d.progression < 40 ? '#dc3545' : (d.progression < 75 ? '#fd7e14' : '#28a745');
-                const pays = d.paiements.map(p =>
-                    `<div class="cp-pay-row"><span>${p.date}${p.note?' — '+p.note:''}</span><span class="cp-pay-amt">${p.montant} FCFA</span></div>`
-                ).join('');
-                return `<div class="cp-dossier-section">
+        if(cachedDossiers.length>0){dossierSelectField.style.display='block';selectedDossierId.value=cachedDossiers[0].id;updateDossierInfo(cachedDossiers[0]);}
+        document.getElementById('cp-dossiers').innerHTML=!cachedDossiers.length
+            ?'<div style="color:#94a3b8;font-size:11px;">Aucun dossier</div>'
+            :cachedDossiers.map(d=>{
+                const progColor=d.progression<40?'#dc3545':(d.progression<75?'#fd7e14':'#28a745');
+                const pays=d.paiements.map(p=>`<div class="cp-pay-row"><span>${p.date}${p.note?' — '+p.note:''}</span><span class="cp-pay-amt">${p.montant} FCFA</span></div>`).join('');
+                return`<div class="cp-dossier-section">
                     <div style="font-weight:700;font-size:12px;color:#1e3a5f;margin-bottom:4px;">📂 ${d.nom}</div>
-                    <div style="font-size:11px;color:#64748b;line-height:1.8;">
-                        🔗 ${d.facilitateur??'-'} | 🧑‍💼 ${d.commercial??'-'}<br>
-                        🏢 ${d.grand_site??'-'} | 🧭 ${d.direction??'-'}<br>
-                        📐 ${d.superficie??'-'} m² | 💰 ${d.prix_ref??'-'} FCFA
-                    </div>
+                    <div style="font-size:11px;color:#64748b;line-height:1.8;">🔗 ${d.facilitateur??'-'} | 🧑‍💼 ${d.commercial??'-'}<br>🏢 ${d.grand_site??'-'} | 🧭 ${d.direction??'-'}<br>📐 ${d.superficie??'-'} m² | 💰 ${d.prix_ref??'-'} FCFA</div>
                     <div style="margin-top:8px;margin-bottom:4px;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Paiements</div>
-                    ${pays || '<div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>'}
+                    ${pays||'<div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>'}
                     <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;">
                         <span>Total : <strong style="color:#28a745;">${d.total_paye} FCFA</strong></span>
                         <span>Reste : <strong style="color:#dc3545;">${d.reste} FCFA</strong></span>
@@ -973,273 +813,179 @@ function loadClientPanel(clientId) {
                     <button class="btn-pay-small" onclick="openPaiementDossier(${d.id},'${d.nom.replace(/'/g,"\\'")}')">+ Ajouter un paiement</button>
                 </div>`;
             }).join('');
-
-        document.getElementById('cp-lots').innerHTML = !data.lots.length
-            ? '<div style="color:#94a3b8;font-size:11px;">Aucun lot</div>'
-            : data.lots.map(l => {
-                const progColor = l.prog < 40 ? '#dc3545' : (l.prog < 75 ? '#fd7e14' : '#28a745');
-                return `<div class="cp-lot-card" style="border-left-color:${l.color};">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-                        <strong style="font-size:12px;">${l.code}</strong>
-                        <span style="font-size:10px;color:${l.color};font-weight:600;">${l.type??'Sans type'}</span>
-                    </div>
-                    ${l.date_prevue    ? `<div style="font-size:10px;color:#64748b;">📅 ${l.date_prevue}</div>`    : ''}
-                    ${l.date_confirmee ? `<div style="font-size:10px;color:#64748b;">✅ ${l.date_confirmee}</div>` : ''}
-                    ${l.prog > 0 ? `<div class="cp-prog-wrap mt-1"><div class="cp-prog-fill" style="width:${l.prog}%;background:${progColor};"></div></div>
-                    <div style="font-size:10px;text-align:right;color:${progColor};font-weight:600;">${l.prog}%</div>` : ''}
-                    ${l.dossier_url ? `<a href="${l.dossier_url}" style="display:block;margin-top:6px;background:#1d4ed8;color:white;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;text-decoration:none;text-align:center;">📁 Voir le dossier technique</a>` : ''}
+        document.getElementById('cp-lots').innerHTML=!data.lots.length
+            ?'<div style="color:#94a3b8;font-size:11px;">Aucun lot</div>'
+            :data.lots.map(l=>{
+                const progColor=l.prog<40?'#dc3545':(l.prog<75?'#fd7e14':'#28a745');
+                return`<div class="cp-lot-card" style="border-left-color:${l.color};">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><strong style="font-size:12px;">${l.code}</strong><span style="font-size:10px;color:${l.color};font-weight:600;">${l.type??'Sans type'}</span></div>
+                    ${l.date_prevue?`<div style="font-size:10px;color:#64748b;">📅 ${l.date_prevue}</div>`:''}
+                    ${l.date_confirmee?`<div style="font-size:10px;color:#64748b;">✅ ${l.date_confirmee}</div>`:''}
+                    ${l.prog>0?`<div class="cp-prog-wrap mt-1"><div class="cp-prog-fill" style="width:${l.prog}%;background:${progColor};"></div></div><div style="font-size:10px;text-align:right;color:${progColor};font-weight:600;">${l.prog}%</div>`:''}
+                    ${l.dossier_url?`<a href="${l.dossier_url}" style="display:block;margin-top:6px;background:#1d4ed8;color:white;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;text-decoration:none;text-align:center;">📁 Voir le dossier technique</a>`:''}
                 </div>`;
             }).join('');
-
-        // Visites
         fetch(`/admin/lots/client-visites/${clientId}`)
-        .then(r => r.json())
-        .then(visites => {
-            if (!visites.length) {
-                document.getElementById('cp-visites').innerHTML = '<div style="color:#94a3b8;font-size:11px;">Aucune visite enregistrée</div>';
-                return;
-            }
-            document.getElementById('cp-visites').innerHTML = visites.slice(0,5).map(v =>
-                `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px;">
-                    <span>📅 ${v.date} ${v.type === 'client' ? '💳' : ''}</span>
-                    <span style="color:#64748b;">${v.heure_arrivee??'--'} → ${v.heure_depart??'--'}</span>
-                </div>`
-            ).join('') + (visites.length > 5 ? `<div style="font-size:10px;color:#94a3b8;text-align:right;">${visites.length} visites au total</div>` : '');
-        }).catch(() => {
-            document.getElementById('cp-visites').innerHTML = '<div style="color:#94a3b8;font-size:11px;">—</div>';
-        });
-
+        .then(r=>r.json()).then(visites=>{
+            if(!visites.length){document.getElementById('cp-visites').innerHTML='<div style="color:#94a3b8;font-size:11px;">Aucune visite enregistrée</div>';return;}
+            document.getElementById('cp-visites').innerHTML=visites.slice(0,5).map(v=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px;"><span>📅 ${v.date} ${v.type==='client'?'💳':''}</span><span style="color:#64748b;">${v.heure_arrivee??'--'} → ${v.heure_depart??'--'}</span></div>`).join('')
+            +(visites.length>5?`<div style="font-size:10px;color:#94a3b8;text-align:right;">${visites.length} visites au total</div>`:'');
+        }).catch(()=>{document.getElementById('cp-visites').innerHTML='<div style="color:#94a3b8;font-size:11px;">—</div>';});
         positionClientPanel();
-        document.getElementById('clientPanel').style.display = 'block';
+        document.getElementById('clientPanel').style.display='block';
     });
 }
 
-function updateDossierInfo(d) {
-    if (!d) { document.getElementById('dossier_selected_info').style.display = 'none'; return; }
-    const progColor = d.progression < 40 ? '#dc3545' : (d.progression < 75 ? '#fd7e14' : '#28a745');
-    const info = document.getElementById('dossier_selected_info');
-    info.innerHTML = `
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span>💰 Payé</span><strong style="color:#28a745;">${d.total_paye} FCFA</strong></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>⏳ Reste</span><strong style="color:#dc3545;">${d.reste} FCFA</strong></div>
-        <div style="height:6px;background:#e2e8f0;border-radius:3px;"><div style="width:${d.progression}%;height:100%;background:${progColor};border-radius:3px;"></div></div>
-        <div style="font-size:10px;text-align:right;color:${progColor};font-weight:600;">${d.progression}%</div>`;
-    info.style.display = 'block';
+function updateDossierInfo(d){
+    if(!d){document.getElementById('dossier_selected_info').style.display='none';return;}
+    const progColor=d.progression<40?'#dc3545':(d.progression<75?'#fd7e14':'#28a745');
+    const info=document.getElementById('dossier_selected_info');
+    info.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span>💰 Payé</span><strong style="color:#28a745;">${d.total_paye} FCFA</strong></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>⏳ Reste</span><strong style="color:#dc3545;">${d.reste} FCFA</strong></div><div style="height:6px;background:#e2e8f0;border-radius:3px;"><div style="width:${d.progression}%;height:100%;background:${progColor};border-radius:3px;"></div></div><div style="font-size:10px;text-align:right;color:${progColor};font-weight:600;">${d.progression}%</div>`;
+    info.style.display='block';
 }
 
-selectedDossierId.addEventListener('change', function() {
-    updateDossierInfo(cachedDossiers.find(x => x.id == this.value) || null);
-});
+selectedDossierId.addEventListener('change',function(){updateDossierInfo(cachedDossiers.find(x=>x.id==this.value)||null);});
 
-function positionClientPanel() {
-    const modal = document.getElementById('lotModal'), panel = document.getElementById('clientPanel');
-    if (modal.style.display === 'none') return;
-    const rect = modal.getBoundingClientRect(), panelW = 310;
-    let left = rect.right + 14;
-    if (left + panelW > window.innerWidth) left = rect.left - panelW - 14;
-    panel.style.left = Math.max(4, left) + 'px';
+function positionClientPanel(){
+    const modal=document.getElementById('lotModal'),panel=document.getElementById('clientPanel');
+    if(modal.style.display==='none')return;
+    const rect=modal.getBoundingClientRect(),panelW=310;
+    let left=rect.right+14;
+    if(left+panelW>window.innerWidth)left=rect.left-panelW-14;
+    panel.style.left=Math.max(4,left)+'px';
 }
 
-// ============================================================
-// PAIEMENT
-// ============================================================
-function openPaiementDossier(dossierId, nom) {
-    currentDossierId = dossierId;
-    document.getElementById('pay-dossier-nom').innerText = nom;
-    document.getElementById('pay-montant').value = '';
-    document.getElementById('pay-date').value    = new Date().toISOString().split('T')[0];
-    document.getElementById('pay-note').value    = '';
-    document.getElementById('paiementDossierModal').style.display = 'block';
+function openPaiementDossier(dossierId,nom){
+    currentDossierId=dossierId;
+    document.getElementById('pay-dossier-nom').innerText=nom;
+    document.getElementById('pay-montant').value='';
+    document.getElementById('pay-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('pay-note').value='';
+    document.getElementById('paiementDossierModal').style.display='block';
 }
-function closePaiementDossier() { document.getElementById('paiementDossierModal').style.display = 'none'; }
-function savePaiementDossier() {
-    const montant = document.getElementById('pay-montant').value;
-    const date    = document.getElementById('pay-date').value;
-    const note    = document.getElementById('pay-note').value;
-    if (!montant || !date) { alert('Montant et date obligatoires.'); return; }
-    fetch(`/admin/paiements-dossier/${currentDossierId}`, {
-        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body:JSON.stringify({montant,date_paiement:date,note})
-    }).then(r => r.json()).then(data => {
-        if (data.success) {
-            closePaiementDossier();
-            const cid = selectedClientId.value || document.getElementById('zg_client_id').value;
-            if (cid) loadClientPanel(cid); else location.reload();
-        } else alert(data.message || 'Erreur');
+function closePaiementDossier(){document.getElementById('paiementDossierModal').style.display='none';}
+function savePaiementDossier(){
+    const montant=document.getElementById('pay-montant').value, date=document.getElementById('pay-date').value, note=document.getElementById('pay-note').value;
+    if(!montant||!date){alert('Montant et date obligatoires.');return;}
+    fetch(`/admin/paiements-dossier/${currentDossierId}`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({montant,date_paiement:date,note})})
+    .then(r=>r.json()).then(data=>{
+        if(data.success){closePaiementDossier();const cid=selectedClientId.value||document.getElementById('zg_client_id').value;if(cid)loadClientPanel(cid);else location.reload();}
+        else alert(data.message||'Erreur');
     });
 }
 
-// ============================================================
-// ÉTAPES
-// ============================================================
-function getEtapeSuivante(lot) {
-    if (!lot || !lot.type) return 'implantation_prevue';
-    if (lot.type === 'implantation_prevue') return 'deja_implante';
-    if (lot.type === 'deja_implante')       return 'dossier_technique';
-    if (lot.type === 'dossier_technique')   return 'morcellement';
+function getEtapeSuivante(lot){
+    if(!lot||!lot.type)return'implantation_prevue';
+    if(lot.type==='implantation_prevue')return'deja_implante';
+    if(lot.type==='deja_implante')return'dossier_technique';
+    if(lot.type==='dossier_technique')return'morcellement';
     return null;
 }
-const etapeLabels = {
-    implantation_prevue:'Implantation prévue', deja_implante:'Déjà implanté',
-    dossier_technique:'Dossier technique',     morcellement:'Morcellement',
-};
+const etapeLabels={implantation_prevue:'Implantation prévue',deja_implante:'Déjà implanté',dossier_technique:'Dossier technique',morcellement:'Morcellement'};
 
-// ============================================================
-// TYPE LISTENER (modal lot)
-// ============================================================
-lotType.addEventListener('change', function() {
-    const type = this.value;
-    [datePrevueGroup,dateConfirmeeGroup,dateMorcellementGroup,superficieField].forEach(el => el.style.display='none');
-    if (type === 'implantation_prevue') { datePrevueGroup.style.display='block'; superficieField.style.display='block'; }
-    if (type === 'deja_implante')       { dateConfirmeeGroup.style.display='block'; superficieField.style.display='block'; }
-    if (type === 'dossier_technique')   { dateConfirmeeGroup.style.display='block'; superficieField.style.display='block'; }
-    if (type === 'morcellement')        { dateMorcellementGroup.style.display='block'; superficieField.style.display='block'; }
+lotType.addEventListener('change',function(){
+    const type=this.value;
+    [datePrevueGroup,dateConfirmeeGroup,dateMorcellementGroup,superficieField].forEach(el=>el.style.display='none');
+    if(type==='implantation_prevue'){datePrevueGroup.style.display='block';superficieField.style.display='block';}
+    if(type==='deja_implante'){dateConfirmeeGroup.style.display='block';superficieField.style.display='block';}
+    if(type==='dossier_technique'){dateConfirmeeGroup.style.display='block';superficieField.style.display='block';}
+    if(type==='morcellement'){dateMorcellementGroup.style.display='block';superficieField.style.display='block';}
 });
 
-// ============================================================
-// MODALS LOT
-// ============================================================
-function openOriginModal(zoneId, lot) {
-    originZone = { zoneId, lotId: lot?lot.id:null };
-    document.getElementById('originZoneLabel').innerText = zoneId.toUpperCase();
-    document.getElementById('origine_superficie').value  = lot?.superficie || '';
-    modalOverlay.style.display = 'block';
-    document.getElementById('originModal').style.display = 'block';
+function openOriginModal(zoneId,lot){
+    originZone={zoneId,lotId:lot?lot.id:null};
+    document.getElementById('originZoneLabel').innerText=zoneId.toUpperCase();
+    document.getElementById('origine_superficie').value=lot?.superficie||'';
+    modalOverlay.style.display='block'; document.getElementById('originModal').style.display='block';
 }
 
-function openModal(zoneId, lot = null) {
-    currentZone = { zoneId, tfId, lotId: lot?lot.id:null };
-    lotModal.style.left = '30%'; lotModal.style.transform = 'translate(-50%,-50%)';
-    zoneLabel.innerText     = zoneId.toUpperCase();
-    superficie.value        = lot?.superficie        || '';
-    date_prevue.value       = lot?.date_prevue       || '';
-    date_confirmee.value    = lot?.date_confirmee    || '';
-    date_morcellement.value = lot?.date_morcellement || '';
+function openModal(zoneId,lot=null){
+    currentZone={zoneId,tfId,lotId:lot?lot.id:null};
+    lotModal.style.left='30%'; lotModal.style.transform='translate(-50%,-50%)';
+    zoneLabel.innerText=zoneId.toUpperCase();
+    superficie.value=lot?.superficie||''; date_prevue.value=lot?.date_prevue||'';
+    date_confirmee.value=lot?.date_confirmee||''; date_morcellement.value=lot?.date_morcellement||'';
     resetDossierSelect();
-
-    const etapeSuivante = getEtapeSuivante(lot);
-    const aDejaClient   = !!lot?.client_id;
-    const clientExistEl = document.getElementById('clientExistantInfo');
-    clientSearchField.style.display = 'none';
-    clientExistEl.style.display     = 'none';
-    document.getElementById('client_selected_info').style.display = 'none';
-    document.getElementById('clientPanel').style.display = 'none';
-    // Afficher le bouton supprimer uniquement si le lot existe
-document.getElementById('supprimerLotBtn').style.display = (lot && lot.id) ? 'block' : 'none';
-    selectedClientId.value = ''; clientSearch.value = '';
-
-    const etapeInfoEl = document.getElementById('lotEtapeInfo');
-    if (etapeSuivante === null) {
-        etapeInfoEl.innerHTML = '<span style="color:#28a745;">✅ Toutes les étapes sont complètes</span>';
-        lotType.value = ''; lotType.disabled = true;
-    } else {
-        lotType.disabled = false;
-        if (lot?.type) {
-            etapeInfoEl.innerHTML = `Étape actuelle : <strong>${etapeLabels[lot.type]}</strong> <span class="badge-next-step">→ ${etapeLabels[etapeSuivante]}</span>`;
-            lotType.value = etapeSuivante;
-            const ordre = ['implantation_prevue','deja_implante','dossier_technique','morcellement'];
-            Array.from(lotType.options).forEach(opt => {
-                if (opt.value === '') { opt.disabled = false; return; }
-                opt.disabled = (ordre.indexOf(opt.value) !== ordre.indexOf(lot.type) + 1);
-            });
-        } else {
-            etapeInfoEl.innerHTML = `<span style="color:#6c757d;">Première étape : <strong>Implantation prévue</strong></span>`;
-            lotType.value = 'implantation_prevue';
-            Array.from(lotType.options).forEach(opt => {
-                if (opt.value === '') { opt.disabled = false; return; }
-                opt.disabled = opt.value !== 'implantation_prevue';
-            });
+    const etapeSuivante=getEtapeSuivante(lot), aDejaClient=!!lot?.client_id;
+    const clientExistEl=document.getElementById('clientExistantInfo');
+    clientSearchField.style.display='none'; clientExistEl.style.display='none';
+    document.getElementById('client_selected_info').style.display='none';
+    document.getElementById('clientPanel').style.display='none';
+    document.getElementById('supprimerLotBtn').style.display=(lot&&lot.id)?'block':'none';
+    selectedClientId.value=''; clientSearch.value='';
+    const etapeInfoEl=document.getElementById('lotEtapeInfo');
+    if(etapeSuivante===null){
+        etapeInfoEl.innerHTML='<span style="color:#28a745;">✅ Toutes les étapes sont complètes</span>';
+        lotType.value=''; lotType.disabled=true;
+    }else{
+        lotType.disabled=false;
+        if(lot?.type){
+            etapeInfoEl.innerHTML=`Étape actuelle : <strong>${etapeLabels[lot.type]}</strong> <span class="badge-next-step">→ ${etapeLabels[etapeSuivante]}</span>`;
+            lotType.value=etapeSuivante;
+            const ordre=['implantation_prevue','deja_implante','dossier_technique','morcellement'];
+            Array.from(lotType.options).forEach(opt=>{if(opt.value===''){opt.disabled=false;return;}opt.disabled=(ordre.indexOf(opt.value)!==ordre.indexOf(lot.type)+1);});
+        }else{
+            etapeInfoEl.innerHTML='<span style="color:#6c757d;">Première étape : <strong>Implantation prévue</strong></span>';
+            lotType.value='implantation_prevue';
+            Array.from(lotType.options).forEach(opt=>{if(opt.value===''){opt.disabled=false;return;}opt.disabled=opt.value!=='implantation_prevue';});
         }
     }
-
-    if (aDejaClient) {
-        document.getElementById('clientExistantNom').innerText   = lot.client?.name ?? '';
-        document.getElementById('clientExistantPhone').innerText = lot.client?.phone ? ` (${lot.client.phone})` : '';
-        clientExistEl.style.display = 'block';
-        selectedClientId.value      = lot.client_id;
-        loadClientPanel(lot.client_id);
-    } else if (!lot?.type) {
-        clientSearchField.style.display = 'block';
-    }
-
-    modalOverlay.style.display = 'block';
-    lotModal.style.display     = 'block';
+    if(aDejaClient){
+        document.getElementById('clientExistantNom').innerText=lot.client?.name??'';
+        document.getElementById('clientExistantPhone').innerText=lot.client?.phone?` (${lot.client.phone})`:'';
+        clientExistEl.style.display='block'; selectedClientId.value=lot.client_id; loadClientPanel(lot.client_id);
+    }else if(!lot?.type){clientSearchField.style.display='block';}
+    modalOverlay.style.display='block'; lotModal.style.display='block';
     lotType.dispatchEvent(new Event('change'));
 }
 
-function closeModal() {
-    lotModal.style.display = 'none'; modalOverlay.style.display = 'none';
-    document.getElementById('clientPanel').style.display = 'none';
+function closeModal(){
+    lotModal.style.display='none'; modalOverlay.style.display='none';
+    document.getElementById('clientPanel').style.display='none';
     resetDossierSelect(); closePaiementDossier();
-    Array.from(lotType.options).forEach(opt => opt.disabled = false);
-    lotType.disabled = false;
+    Array.from(lotType.options).forEach(opt=>opt.disabled=false);
+    lotType.disabled=false;
 }
-function closeAllModals() {
-    document.getElementById('originModal').style.display = 'none';
-    closeModal(); closeZoneGroupeModal();
+function closeAllModals(){document.getElementById('originModal').style.display='none';closeModal();closeZoneGroupeModal();}
+
+function setOrigin(value){
+    const sup=document.getElementById('origine_superficie').value;
+    if(!sup||parseFloat(sup)<=0){alert('Superficie obligatoire.');return;}
+    fetch('/admin/lots/set-origin',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({svg_id:originZone.zoneId,tf_id:tfId,origine:value,superficie:sup})})
+    .then(r=>r.json()).then(data=>{if(data.success)location.reload();else alert(data.message||'Erreur');});
 }
 
-// ============================================================
-// SET ORIGINE
-// ============================================================
-function setOrigin(value) {
-    const sup = document.getElementById('origine_superficie').value;
-    if (!sup || parseFloat(sup) <= 0) { alert('Superficie obligatoire.'); return; }
-    fetch('/admin/lots/set-origin', {
-        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body:JSON.stringify({ svg_id:originZone.zoneId, tf_id:tfId, origine:value, superficie:sup })
-    }).then(r => r.json()).then(data => { if (data.success) location.reload(); else alert(data.message||'Erreur'); });
+function saveLot(){
+    const url=currentZone.lotId?`/admin/lots/${currentZone.lotId}`:'/admin/lots/store';
+    fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({
+        _method:currentZone.lotId?'PUT':'POST',tf_id:currentZone.tfId,svg_id:currentZone.zoneId,
+        code:zoneLabel.innerText.toLowerCase(),type:lotType.value,client_id:selectedClientId.value||null,
+        dossier_client_id:selectedDossierId.value||null,superficie:superficie.value,
+        date_prevue:date_prevue.value,date_confirmee:date_confirmee.value,date_morcellement:date_morcellement.value,
+    })}).then(r=>r.json()).then(data=>{if(data.success)location.reload();else alert(data.message||'Erreur');});
 }
 
-// ============================================================
-// SAVE LOT
-// ============================================================
-function saveLot() {
-    const url = currentZone.lotId ? `/admin/lots/${currentZone.lotId}` : '/admin/lots/store';
-    fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body:JSON.stringify({
-            _method: currentZone.lotId ? 'PUT' : 'POST', tf_id:currentZone.tfId,
-            svg_id:currentZone.zoneId, code:zoneLabel.innerText.toLowerCase(),
-            type:lotType.value, client_id:selectedClientId.value||null,
-            dossier_client_id:selectedDossierId.value||null,
-            superficie:superficie.value, date_prevue:date_prevue.value,
-            date_confirmee:date_confirmee.value, date_morcellement:date_morcellement.value,
-        })
-    }).then(r => r.json()).then(data => { if (data.success) location.reload(); else alert(data.message||'Erreur'); });
-}
-
-// ============================================================
-// IMPRIMER
-// ============================================================
-function imprimerCarte() {
-    const svg = getSVG(); if (!svg) { window.print(); return; }
-    const clone = svg.cloneNode(true);
-    svg.querySelectorAll('path').forEach((el, i) => {
-        const clonePath = clone.querySelectorAll('path')[i];
-        if (clonePath) {
-            clonePath.setAttribute('fill',         el.style.fill   || 'transparent');
-            clonePath.setAttribute('stroke',       el.style.stroke || '#bbb');
-            clonePath.setAttribute('stroke-width', el.style.strokeWidth || '2px');
-            if (el.style.strokeDasharray) clonePath.setAttribute('stroke-dasharray', el.style.strokeDasharray);
+function imprimerCarte(){
+    const svg=getSVG(); if(!svg){window.print();return;}
+    const clone=svg.cloneNode(true);
+    svg.querySelectorAll('path').forEach((el,i)=>{
+        const clonePath=clone.querySelectorAll('path')[i];
+        if(clonePath){
+            clonePath.setAttribute('fill',el.style.fill||'transparent');
+            clonePath.setAttribute('stroke',el.style.stroke||'#bbb');
+            clonePath.setAttribute('stroke-width',el.style.strokeWidth||'2px');
+            if(el.style.strokeDasharray)clonePath.setAttribute('stroke-dasharray',el.style.strokeDasharray);
         }
     });
-    const vb = svg.viewBox?.baseVal;
-    if (vb && vb.width > 0) {
-        clone.setAttribute('width', vb.width); clone.setAttribute('height', vb.height);
-    } else {
-        const rect  = svg.getBoundingClientRect();
-        const scale = parseInt(document.getElementById('svg-zoom').value) / 100;
-        clone.setAttribute('width', rect.width/scale); clone.setAttribute('height', rect.height/scale);
-    }
-    const svgData = new XMLSerializer().serializeToString(clone);
-    const blob    = new Blob([svgData], { type:'image/svg+xml;charset=utf-8' });
-    const url     = URL.createObjectURL(blob);
-    const w = window.open('','_blank');
+    const vb=svg.viewBox?.baseVal;
+    if(vb&&vb.width>0){clone.setAttribute('width',vb.width);clone.setAttribute('height',vb.height);}
+    else{const rect=svg.getBoundingClientRect(),scale=parseInt(document.getElementById('svg-zoom').value)/100;clone.setAttribute('width',rect.width/scale);clone.setAttribute('height',rect.height/scale);}
+    const svgData=new XMLSerializer().serializeToString(clone);
+    const blob=new Blob([svgData],{type:'image/svg+xml;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const w=window.open('','_blank');
     w.document.write(`<!DOCTYPE html><html><head><title>Carte — {{ $tf->title }}</title>
-    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:sans-serif;padding:20px;background:white;}
-    h2{color:#1e3a5f;margin-bottom:12px;font-size:16px;}img{max-width:100%;height:auto;display:block;border:1px solid #e2e8f0;border-radius:6px;}
-    .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;font-size:11px;}.leg{display:flex;align-items:center;gap:5px;}
-    .dot{width:14px;height:14px;border-radius:3px;flex-shrink:0;}@media print{body{padding:8px;}}</style>
+    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:sans-serif;padding:20px;background:white;}h2{color:#1e3a5f;margin-bottom:12px;font-size:16px;}img{max-width:100%;height:auto;display:block;border:1px solid #e2e8f0;border-radius:6px;}.legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;font-size:11px;}.leg{display:flex;align-items:center;gap:5px;}.dot{width:14px;height:14px;border-radius:3px;flex-shrink:0;}@media print{body{padding:8px;}}</style>
     </head><body><h2>🗺️ {{ $tf->title }}</h2>
     <img src="${url}" onload="URL.revokeObjectURL('${url}')">
     <div class="legend">
@@ -1256,18 +1002,10 @@ function imprimerCarte() {
     w.document.close();
 }
 
-function supprimerLot() {
-    if (!confirm('Supprimer ce lot ? Cette action est irréversible.')) return;
-    fetch(`/admin/lots/${currentZone.lotId}`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) location.reload();
-        else alert(data.message || 'Erreur lors de la suppression');
-    });
+function supprimerLot(){
+    if(!confirm('Supprimer ce lot ? Cette action est irréversible.'))return;
+    fetch(`/admin/lots/${currentZone.lotId}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Content-Type':'application/json'}})
+    .then(r=>r.json()).then(data=>{if(data.success)location.reload();else alert(data.message||'Erreur lors de la suppression');});
 }
-
 </script>
 @endsection
