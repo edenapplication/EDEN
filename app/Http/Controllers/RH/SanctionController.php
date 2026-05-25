@@ -38,7 +38,7 @@ class SanctionController extends Controller
         'type'       => 'required|in:avertissement,mise_a_pied,amende,autre',
         'date'       => 'required|date',
         'motif'      => 'required|string',
-        'statut'     => 'nullable|in:en_attente,validé,annulé',
+        'statut'     => 'nullable|in:en_attente,valide,annule',
     ]);
 
     Sanction::create([
@@ -56,11 +56,33 @@ class SanctionController extends Controller
 }
 
     public function update(Request $request, $id)
-    {
-        Sanction::findOrFail($id)->update($request->all());
-        return back()->with('success', 'Sanction mise à jour');
-    }
+{
+    $sanction = Sanction::findOrFail($id);
 
+    $request->validate([
+        'employe_id' => 'sometimes|exists:rh_employes,id',
+        'type'       => 'sometimes|in:avertissement,mise_a_pied,amende,autre',
+        'date'       => 'sometimes|date',
+        'motif'      => 'sometimes|string',
+        'statut'     => 'sometimes|in:en_attente,valide,annule',
+        'duree_jours'=> 'nullable|integer',
+        'montant'    => 'nullable|numeric',
+        'description'=> 'nullable|string',
+    ]);
+
+    $sanction->update($request->only([
+        'employe_id',
+        'type',
+        'date',
+        'motif',
+        'statut',
+        'duree_jours',
+        'montant',
+        'description'
+    ]));
+
+    return back()->with('success', 'Sanction mise à jour');
+}
     public function destroy($id)
     {
         Sanction::findOrFail($id)->delete();

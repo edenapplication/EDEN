@@ -37,8 +37,8 @@
     </div>
     <div class="col-md-4">
         <div style="background:white;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:3px solid #f59e0b;text-align:center;">
-            <div style="font-size:20px;font-weight:800;color:#f59e0b;">{{ $sanctions->where('statut','notifié')->count() }}</div>
-            <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Notifiées</div>
+            <div style="font-size:20px;font-weight:800;color:#f59e0b;">{{ $sanctions->where('statut','en_attente')->count() }}</div>
+            <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">En attente</div>
         </div>
     </div>
     <div class="col-md-4">
@@ -71,7 +71,7 @@
         <div class="col-md-2">
             <select name="statut" class="form-control form-control-sm">
                 <option value="">Tous statuts</option>
-                <option value="notifié"  {{ request('statut')==='notifié' ?'selected':'' }}>Notifié</option>
+                <option value="notifié"  {{ request('statut')==='en_attente' ?'selected':'' }}>En attente</option>
                 <option value="validé"   {{ request('statut')==='validé'  ?'selected':'' }}>Validé</option>
                 <option value="annulé"   {{ request('statut')==='annulé'  ?'selected':'' }}>Annulé</option>
             </select>
@@ -133,7 +133,7 @@
                     <button onclick="openEditModal({{ $s->id }}, {{ $s->employe_id }}, '{{ $s->date instanceof \Carbon\Carbon ? $s->date->format('Y-m-d') : $s->date }}', '{{ $s->type }}', '{{ addslashes($s->motif) }}', {{ $s->duree_jours ?? 0 }}, {{ $s->montant ?? 0 }}, '{{ addslashes($s->description ?? '') }}')"
                             class="btn btn-warning btn-sm" style="font-size:10px;">✏️</button>
                     {{-- ✅ Valider --}}
-                    @if($s->statut === 'notifié')
+                    @if($s->statut === 'en_attente')
                         <form action="{{ route('rh.sanctions.update', $s->id) }}" method="POST" style="display:inline">
                             @csrf @method('PUT')
                             <input type="hidden" name="statut" value="validé">
