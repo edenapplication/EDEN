@@ -133,13 +133,14 @@
                     <button onclick="openEditModal({{ $s->id }}, {{ $s->employe_id }}, '{{ $s->date instanceof \Carbon\Carbon ? $s->date->format('Y-m-d') : $s->date }}', '{{ $s->type }}', '{{ addslashes($s->motif) }}', {{ $s->duree_jours ?? 0 }}, {{ $s->montant ?? 0 }}, '{{ addslashes($s->description ?? '') }}')"
                             class="btn btn-warning btn-sm" style="font-size:10px;">✏️</button>
                     {{-- ✅ Valider --}}
-                    @if($s->statut === 'en_attente')
-                        <form action="{{ route('rh.sanctions.update', $s->id) }}" method="POST" style="display:inline">
-                            @csrf @method('PUT')
-                            <input type="hidden" name="statut" value="validé">
-                            <button class="btn btn-success btn-sm" style="font-size:10px;" title="Valider">✅</button>
-                        </form>
-                    @endif
+                    {{-- ✅ Remplacer la condition @if($s->statut === 'en_attente') par : --}}
+@if(in_array($s->statut, ['en_attente', 'notifié', 'notifie']))
+    <form action="{{ route('rh.sanctions.update', $s->id) }}" method="POST" style="display:inline">
+        @csrf @method('PUT')
+        <input type="hidden" name="statut" value="valide">
+        <button class="btn btn-success btn-sm" style="font-size:10px;" title="Valider">✅</button>
+    </form>
+@endif
                     {{-- ✅ Supprimer --}}
                     <form action="{{ route('rh.sanctions.destroy', $s->id) }}" method="POST" style="display:inline"
                           onsubmit="return confirm('Supprimer cette sanction ?')">
