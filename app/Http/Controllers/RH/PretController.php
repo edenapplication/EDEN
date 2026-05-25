@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\RH;
 
 use App\Http\Controllers\Controller;
@@ -12,11 +13,20 @@ class PretController extends Controller
     public function index(Request $request)
     {
         $query = Pret::with('employe.direction');
-        if ($request->filled('employe_id')) $query->where('employe_id', $request->employe_id);
-        if ($request->filled('statut'))     $query->where('statut', $request->statut);
-        if ($request->filled('type'))       $query->where('type', $request->type);
 
-        $prets    = $query->orderByDesc('date_debut')->get();
+        if ($request->filled('employe_id')) {
+            $query->where('employe_id', $request->employe_id);
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        $prets = $query->orderByDesc('date_debut')->get();
         $employes = Employe::where('actif', true)->orderBy('nom')->get();
 
         return view('rh.prets.index', compact('prets', 'employes'));
@@ -33,17 +43,19 @@ class PretController extends Controller
             'motif'      => 'nullable|string|max:255',
         ]);
 
-        $mensualite    = null;
+        $mensualite = null;
         $dateFinPrevue = null;
 
         if ($request->type === 'pret' && $request->duree_mois > 0) {
-            $mensualite    = round($request->montant / $request->duree_mois, 0);
-            // ✅ Calcul automatique date_fin_prevue
+            $mensualite = round($request->montant / $request->duree_mois, 0);
+
             $dateFinPrevue = Carbon::parse($request->date_debut)
                 ->addMonths((int) $request->duree_mois)
                 ->format('Y-m-d');
+
         } elseif ($request->type === 'acompte') {
-            $mensualite    = $request->montant;
+            $mensualite = $request->montant;
+
             $dateFinPrevue = Carbon::parse($request->date_debut)
                 ->addMonth()
                 ->format('Y-m-d');
@@ -59,6 +71,8 @@ class PretController extends Controller
             'date_debut'        => $request->date_debut,
             'date_fin_prevue'   => $dateFinPrevue,
             'motif'             => $request->motif,
+
+            // ✅ conforme à SQLite
             'statut'            => 'en_cours',
         ]);
 
@@ -69,20 +83,43 @@ class PretController extends Controller
     {
         $pret = Pret::findOrFail($id);
 
+        // ➜ ajout remboursement
         if ($request->filled('montant_rembourse_ajout')) {
+
             $ajout = floatval($request->montant_rembourse_ajout);
-            if ($ajout <= 0) return back()->with('error', 'Montant invalide.');
+
+            if ($ajout <= 0) {
+                return back()->with('error', 'Montant invalide.');
+            }
+
             $pret->montant_rembourse += $ajout;
+
             if ($pret->montant_rembourse >= $pret->montant) {
                 $pret->montant_rembourse = $pret->montant;
-                $pret->statut           = 'rembourse';
+
+                // ✅ statut conforme SQLite
+                $pret->statut = 'rembourse';
             }
+
             $pret->save();
+
             return back()->with('success', 'Remboursement enregistré');
         }
 
+        // ➜ changement manuel de statut
         if ($request->filled('statut')) {
-            $pret->update(['statut' => $request->statut]);
+
+            // sécurité : seulement valeurs autorisées SQLite
+            $statuts = ['en_cours', 'rembourse', 'annule'];
+
+            if (!in_array($request->statut, $statuts)) {
+                return back()->with('error', 'Statut invalide.');
+            }
+
+            $pret->update([
+                'statut' => $request->statut
+            ]);
+
             return back()->with('success', 'Statut mis à jour');
         }
 
@@ -92,6 +129,7 @@ class PretController extends Controller
     public function destroy($id)
     {
         Pret::findOrFail($id)->delete();
+
         return back()->with('success', 'Prêt supprimé');
     }
 }

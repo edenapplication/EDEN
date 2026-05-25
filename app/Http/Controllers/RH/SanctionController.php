@@ -32,16 +32,28 @@ class SanctionController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'employe_id' => 'required|exists:rh_employes,id',
-            'type'       => 'required',
-            'date'       => 'required|date',
-            'motif'      => 'required|string',
-        ]);
-        Sanction::create(array_merge($request->all(), ['statut' => 'notifié']));
-        return back()->with('success', 'Sanction enregistrée');
-    }
+{
+    $request->validate([
+        'employe_id' => 'required|exists:rh_employes,id',
+        'type'       => 'required|in:avertissement,mise_a_pied,amende,autre',
+        'date'       => 'required|date',
+        'motif'      => 'required|string',
+        'statut'     => 'nullable|in:en_attente,validé,annulé',
+    ]);
+
+    Sanction::create([
+        'employe_id'  => $request->employe_id,
+        'type'        => $request->type,
+        'date'        => $request->date,
+        'motif'       => $request->motif,
+        'duree_jours' => $request->duree_jours,
+        'montant'     => $request->montant ?? 0,
+        'description' => $request->description,
+        'statut'      => $request->statut ?? 'en_attente',
+    ]);
+
+    return back()->with('success', 'Sanction enregistrée');
+}
 
     public function update(Request $request, $id)
     {
