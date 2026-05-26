@@ -42,6 +42,14 @@
 .stat-mini { background:white; border-radius:8px; padding:8px 10px; box-shadow:0 2px 6px rgba(0,0,0,0.05); text-align:center; }
 .stat-mini .v { font-size:16px; font-weight:800; }
 .stat-mini .l { font-size:8px; color:#64748b; font-weight:600; text-transform:uppercase; }
+
+/* ✅ Panel visites rapides */
+#visitesPanel {
+    display:none; position:fixed; top:70px; z-index:99998; width:260px;
+    max-height:calc(100vh - 90px); overflow-y:auto; background:white;
+    border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,0.15);
+    padding:14px; font-size:12px; border-top:4px solid #059669; pointer-events:auto;
+}
 </style>
 
 {{-- HEADER --}}
@@ -62,81 +70,26 @@
 @php
     $lots   = \App\Models\Lot::with('client')->where('tf_id', $tf->id)->get();
     $zones  = \App\Models\ZoneGroupe::where('tf_id', $tf->id)->get();
-
-    // Blocs = lettre initiale unique des codes de lot
     $blocs  = $lots->map(fn($l) => strtoupper(substr($l->code, 0, 1)))->unique()->count();
-
     $totalActif  = $lots->whereIn('type',['implantation_prevue','deja_implante','dossier_technique','morcellement'])->count()
                  + $zones->whereIn('type',['implantation_prevue','deja_implante','dossier_technique','morcellement'])->count();
     $total       = $lots->count() + $zones->count();
     $activitePct = $total > 0 ? round(($totalActif / $total) * 100) : 0;
 @endphp
 
-{{-- ✅ KPIs TF --}}
+{{-- KPIs --}}
 <div class="row g-2 mb-3">
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #1d4ed8;">
-            <div class="v" style="color:#1d4ed8;">{{ $lots->count() }}</div>
-            <div class="l">Lots</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #374151;">
-            <div class="v" style="color:#374151;">{{ $blocs }}</div>
-            <div class="l">Blocs</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #f59e0b;">
-            <div class="v" style="color:#f59e0b;">{{ $zones->count() }}</div>
-            <div class="l">Zones</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #1d4ed8;">
-            <div class="v" style="color:#1d4ed8;">{{ $lots->where('origine','eden')->count() }}</div>
-            <div class="l">EDEN</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #92400e;">
-            <div class="v" style="color:#92400e;">{{ $lots->where('origine','famille')->count() }}</div>
-            <div class="l">Famille</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #7c3aed;">
-            <div class="v" style="color:#7c3aed;">{{ $lots->where('type','implantation_prevue')->count() + $zones->where('type','implantation_prevue')->count() }}</div>
-            <div class="l">Implant. prévue</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #16a34a;">
-            <div class="v" style="color:#16a34a;">{{ $lots->where('type','deja_implante')->count() + $zones->where('type','deja_implante')->count() }}</div>
-            <div class="l">Implanté</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #dc2626;">
-            <div class="v" style="color:#dc2626;">{{ $lots->where('type','dossier_technique')->count() + $zones->where('type','dossier_technique')->count() }}</div>
-            <div class="l">Dossier tech.</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #ea580c;">
-            <div class="v" style="color:#ea580c;">{{ $lots->where('type','morcellement')->count() + $zones->where('type','morcellement')->count() }}</div>
-            <div class="l">Morcellement</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="stat-mini" style="border-top:3px solid #1e3a5f;">
-            <div class="v" style="color:#1e3a5f;">{{ $activitePct }}%</div>
-            <div class="l">Activité</div>
-            <div style="height:3px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden;">
-                <div style="width:{{ $activitePct }}%;height:100%;background:linear-gradient(90deg,#1d4ed8,#16a34a);border-radius:2px;"></div>
-            </div>
-        </div>
-    </div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #1d4ed8;"><div class="v" style="color:#1d4ed8;">{{ $lots->count() }}</div><div class="l">Lots</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #374151;"><div class="v" style="color:#374151;">{{ $blocs }}</div><div class="l">Blocs</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #f59e0b;"><div class="v" style="color:#f59e0b;">{{ $zones->count() }}</div><div class="l">Zones</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #1d4ed8;"><div class="v" style="color:#1d4ed8;">{{ $lots->where('origine','eden')->count() }}</div><div class="l">EDEN</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #92400e;"><div class="v" style="color:#92400e;">{{ $lots->where('origine','famille')->count() }}</div><div class="l">Famille</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #7c3aed;"><div class="v" style="color:#7c3aed;">{{ $lots->where('type','implantation_prevue')->count() + $zones->where('type','implantation_prevue')->count() }}</div><div class="l">Implant. prévue</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #16a34a;"><div class="v" style="color:#16a34a;">{{ $lots->where('type','deja_implante')->count() + $zones->where('type','deja_implante')->count() }}</div><div class="l">Implanté</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #dc2626;"><div class="v" style="color:#dc2626;">{{ $lots->where('type','dossier_technique')->count() + $zones->where('type','dossier_technique')->count() }}</div><div class="l">Dossier tech.</div></div></div>
+    {{-- ✅ Morcellement en jaune --}}
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #ca8a04;"><div class="v" style="color:#ca8a04;">{{ $lots->where('type','morcellement')->count() + $zones->where('type','morcellement')->count() }}</div><div class="l">Morcellement</div></div></div>
+    <div class="col"><div class="stat-mini" style="border-top:3px solid #1e3a5f;"><div class="v" style="color:#1e3a5f;">{{ $activitePct }}%</div><div class="l">Activité</div><div style="height:3px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden;"><div style="width:{{ $activitePct }}%;height:100%;background:linear-gradient(90deg,#1d4ed8,#16a34a);border-radius:2px;"></div></div></div></div>
 </div>
 
 @if($tf->file_path)
@@ -288,6 +241,22 @@
     <div id="cp-visites"></div>
 </div>
 
+{{-- ✅ Panel visites rapides (à côté du lot quand on sélectionne un client) --}}
+<div id="visitesPanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div style="font-weight:800;color:#059669;font-size:13px;">🚶 Visites du client</div>
+        <button onclick="document.getElementById('visitesPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+    <div id="vp-name" style="font-size:12px;color:#374151;font-weight:700;margin-bottom:8px;"></div>
+    <div id="vp-liste" style="font-size:11px;"></div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f1f5f9;">
+        <a id="vp-lien-registre" href="{{ route('visites.index') }}"
+           style="display:block;background:#059669;color:white;border-radius:8px;padding:6px 10px;text-align:center;font-size:11px;font-weight:600;text-decoration:none;">
+            📋 Voir tout le registre
+        </a>
+    </div>
+</div>
+
 <div id="paiementDossierModal">
     <h5 style="font-weight:700;color:#1e3a5f;margin-bottom:14px;">💰 Paiement — <span id="pay-dossier-nom"></span></h5>
     <div class="mb-2"><label style="font-size:12px;font-weight:600;">Montant (FCFA)</label><input type="number" id="pay-montant" class="form-control form-control-sm"></div>
@@ -299,6 +268,7 @@
     </div>
 </div>
 
+{{-- ✅ Légende mise à jour : morcellement jaune --}}
 <div id="legend-fixe">
     <h6>📌 Légende</h6>
     <div class="leg-item"><div class="leg-dot" style="background:transparent;border:2px dashed #aaa;"></div> Non défini</div>
@@ -307,8 +277,8 @@
     <div class="leg-item"><div class="leg-dot" style="background:#7c3aed;"></div> Implant. prévue</div>
     <div class="leg-item"><div class="leg-dot" style="background:#16a34a;"></div> Déjà implanté</div>
     <div class="leg-item"><div class="leg-dot" style="background:#dc2626;"></div> Dossier technique</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ea580c;"></div> Morcellement</div>
-    <div class="leg-item"><div class="leg-dot" style="background:transparent;border:3px solid #f59e0b;"></div> Zone groupée</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ca8a04;"></div> Morcellement</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(0,0,0,0.08);border:3px solid #000;"></div> Zone groupée</div>
 </div>
 
 @endsection
@@ -319,17 +289,33 @@ const zonesGroupes = @json(\App\Models\ZoneGroupe::where('tf_id', $tf->id)->get(
 const tfId         = "{{ $tf->id }}";
 const CSRF         = "{{ csrf_token() }}";
 
-const PALETTE_BORDURES = [
-    '#e11d48','#7c3aed','#0284c7','#059669','#d97706',
-    '#db2777','#4f46e5','#0891b2','#16a34a','#dc2626',
-    '#9333ea','#2563eb','#0d9488','#ca8a04','#c026d3',
-];
-function couleurZone(zgId) { return PALETTE_BORDURES[zgId % PALETTE_BORDURES.length]; }
+// ✅ Couleurs types — morcellement en jaune
+function getColor(type) {
+    return {
+        implantation_prevue: '#7c3aed',
+        deja_implante:       '#16a34a',
+        dossier_technique:   '#dc2626',
+        morcellement:        '#ca8a04',   // ✅ jaune
+    }[type] || '#0d6efd';
+}
+
+function hexToRgba(hex, alpha) {
+    if (!hex || !hex.startsWith('#')) return `rgba(245,158,11,${alpha})`;
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function formatDate(s) {
+    if (!s) return '';
+    const d = new Date(s);
+    return isNaN(d) ? s : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
 
 let currentZone = null, originZone = null, searchTimer = null, zgSearchTimer = null;
 let currentDossierId = null, cachedDossiers = [], zgCachedDossiers = [];
 let currentZoneGroupeId = null, currentZoneGroupePoints = [], currentZoneGroupeLotIds = [];
 let currentTool = 'select', drawingPoints = [], isDrawing = false;
+let currentClientIdForVisites = null;
 
 const lotModal              = document.getElementById("lotModal");
 const zoneLabel             = document.getElementById("zoneLabel");
@@ -357,9 +343,9 @@ const ZOOM_KEY              = 'tf_zoom_{{ $tf->id }}';
 
 function getSVG() { return mapInner?.querySelector('svg'); }
 
+// ZOOM
 function appliquerZoom(val) {
-    const scale = val / 100;
-    mapInner.style.transform       = `scale(${scale})`;
+    mapInner.style.transform       = `scale(${val/100})`;
     mapInner.style.transformOrigin = '0 0';
     document.getElementById('svg-zoom-val').innerText = val + '%';
     redessinerCanvas();
@@ -458,7 +444,8 @@ function finaliserDessin() {
     if (drawingPoints.length < 3) { alert('Il faut au moins 3 points.'); return; }
     const lotIdsInclus = trouverLotsInclus(drawingPoints);
     const superfTotale = lots.filter(l=>lotIdsInclus.includes(l.id)).reduce((s,l)=>s+(parseFloat(l.superficie)||0),0);
-    currentZoneGroupeId=null; currentZoneGroupePoints=drawingPoints.map(p=>({x:Math.round(p.x*100)/100,y:Math.round(p.y*100)/100}));
+    currentZoneGroupeId=null;
+    currentZoneGroupePoints=drawingPoints.map(p=>({x:Math.round(p.x*100)/100,y:Math.round(p.y*100)/100}));
     currentZoneGroupeLotIds=lotIdsInclus;
     document.getElementById('zg_superficie_info').style.display='block';
     document.getElementById('zg_superficie_val').innerText=superfTotale.toLocaleString('fr-FR');
@@ -471,7 +458,8 @@ function finaliserDessin() {
     document.getElementById('zg_client_info').style.display='none';
     document.getElementById('zg_clientExistantInfo').style.display='none';
     document.getElementById('zg_dossierSelectField').style.display='none';
-    document.getElementById('zg_date_prevue').value=''; document.getElementById('zg_date_confirmee').value='';
+    document.getElementById('zg_date_prevue').value='';
+    document.getElementById('zg_date_confirmee').value='';
     document.getElementById('zg_date_morcellement').value='';
     zgTypeChange();
     modalOverlay.style.display='block';
@@ -504,16 +492,17 @@ function trouverLotsInclus(poly) {
     return inclus;
 }
 
-function mkText(x,y,txt,fs,fw,fill,sw){
+function mkText(x,y,txt,fs,fw,fill,sw) {
     const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-    t.setAttribute('x',x); t.setAttribute('y',y); t.setAttribute('text-anchor','middle');
-    t.setAttribute('dominant-baseline','central'); t.setAttribute('font-size',fs);
-    t.setAttribute('font-weight',fw); t.setAttribute('fill',fill);
-    t.setAttribute('stroke','#fff'); t.setAttribute('stroke-width',sw);
-    t.setAttribute('paint-order','stroke'); t.textContent=txt; return t;
+    t.setAttribute('x',x); t.setAttribute('y',y);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','central');
+    t.setAttribute('font-size',fs); t.setAttribute('font-weight',fw);
+    t.setAttribute('fill',fill); t.setAttribute('stroke','#fff');
+    t.setAttribute('stroke-width',sw); t.setAttribute('paint-order','stroke');
+    t.textContent=txt; return t;
 }
 
-function mkTextMultiline(svg,cx,cyStart,txt,fontSize,fontWeight,fill,strokeW,maxWidth){
+function mkTextMultiline(svg,cx,cyStart,txt,fontSize,fontWeight,fill,strokeW,maxWidth) {
     const mots=txt.split(' '); const lignes=[]; let ligne='';
     const charW=parseFloat(fontSize)*0.6;
     mots.forEach(mot=>{
@@ -530,65 +519,111 @@ function mkTextMultiline(svg,cx,cyStart,txt,fontSize,fontWeight,fill,strokeW,max
     return {g,hauteur:totalH};
 }
 
+// ✅ DESSINER LES ZONES GROUPES
+// Corrections : bordure NOIRE, fond renforcé, noms en NOIR
 function dessinerZonesGroupes() {
     const svg=getSVG(); if(!svg) return;
+
+    // ✅ Retirer les anciens éléments de zones groupées
     svg.querySelectorAll('.zone-groupe-el').forEach(el=>el.remove());
+
     zonesGroupes.forEach(zg=>{
         if(!zg.points||zg.points.length<3) return;
-        const couleur=couleurZone(zg.id), ptsStr=zg.points.map(p=>`${p.x},${p.y}`).join(' ');
-        const fillColor=zg.type?hexToRgba(getColor(zg.type),0.22):'transparent';
-        const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        poly.setAttribute('points',ptsStr); poly.setAttribute('fill',fillColor);
-        poly.setAttribute('stroke',couleur); poly.setAttribute('stroke-width','5');
-        poly.setAttribute('stroke-linejoin','round'); poly.style.cursor='pointer';
-        poly.classList.add('zone-groupe-el'); poly.dataset.zgId=zg.id;
-        poly.addEventListener('click',function(e){e.stopPropagation();ouvrirZoneGroupeExistante(zg);});
+
+        const ptsStr = zg.points.map(p=>`${p.x},${p.y}`).join(' ');
+
+        // ✅ Fond plus opaque (0.45 au lieu de 0.22), bordure NOIRE
+        const fillColor = zg.type ? hexToRgba(getColor(zg.type), 0.45) : 'rgba(0,0,0,0.06)';
+        const borderColor = '#000000'; // ✅ NOIR
+
+        const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+        poly.setAttribute('points', ptsStr);
+        poly.setAttribute('fill',   fillColor);
+        poly.setAttribute('stroke', borderColor); // ✅ bordure noire
+        poly.setAttribute('stroke-width', '4');
+        poly.setAttribute('stroke-linejoin', 'round');
+        poly.style.cursor = 'pointer';
+        poly.classList.add('zone-groupe-el');
+        poly.dataset.zgId = zg.id;
+        poly.addEventListener('click', function(e){ e.stopPropagation(); ouvrirZoneGroupeExistante(zg); });
         svg.appendChild(poly);
-        const xs=zg.points.map(p=>p.x),ys=zg.points.map(p=>p.y);
-        const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+
+        // Bbox du polygone
+        const xs=zg.points.map(p=>p.x), ys=zg.points.map(p=>p.y);
+        const minX=Math.min(...xs), maxX=Math.max(...xs);
+        const minY=Math.min(...ys), maxY=Math.max(...ys);
         const cx=(minX+maxX)/2, largeur=maxX-minX;
-        const nomTxt=zg.owner_name||zg.nom||'';
-        const supTxt=zg.superficie_totale?parseFloat(zg.superficie_totale).toLocaleString('fr-FR')+' m²':'';
-        let dateTxt='';
-        if(zg.type==='implantation_prevue'&&zg.date_prevue) dateTxt=formatDate(zg.date_prevue);
-        else if((zg.type==='deja_implante'||zg.type==='dossier_technique')&&zg.date_confirmee) dateTxt=formatDate(zg.date_confirmee);
-        else if(zg.type==='morcellement'&&zg.date_morcellement) dateTxt=formatDate(zg.date_morcellement);
-        const fontSize=Math.min(18,Math.max(10,Math.floor(largeur/10)));
-        const nbLignesNom=nomTxt?Math.ceil(nomTxt.length*fontSize*0.6/largeur)||1:0;
-        const ligneH=fontSize*1.3, totalTxtH=(nbLignesNom*ligneH)+(supTxt?ligneH:0)+(dateTxt?ligneH:0);
-        let yOff=(minY+maxY)/2-totalTxtH/2;
+
+        const nomTxt  = zg.owner_name||zg.nom||'';
+        const supTxt  = zg.superficie_totale ? parseFloat(zg.superficie_totale).toLocaleString('fr-FR')+' m²' : '';
+        let   dateTxt = '';
+        if (zg.type==='implantation_prevue'&&zg.date_prevue)       dateTxt=formatDate(zg.date_prevue);
+        else if ((zg.type==='deja_implante'||zg.type==='dossier_technique')&&zg.date_confirmee) dateTxt=formatDate(zg.date_confirmee);
+        else if (zg.type==='morcellement'&&zg.date_morcellement)   dateTxt=formatDate(zg.date_morcellement);
+
+        const fontSize   = Math.min(18,Math.max(10,Math.floor(largeur/10)));
+        const nbLignesNom= nomTxt ? Math.ceil(nomTxt.length*fontSize*0.6/largeur)||1 : 0;
+        const ligneH     = fontSize*1.3;
+        const totalTxtH  = (nbLignesNom*ligneH)+(supTxt?ligneH:0)+(dateTxt?ligneH:0);
+        let   yOff       = (minY+maxY)/2 - totalTxtH/2;
+
         const gAll=document.createElementNS('http://www.w3.org/2000/svg','g');
-        gAll.style.pointerEvents='none'; gAll.classList.add('zone-groupe-el');
-        if(nomTxt){const{g:gNom,hauteur:hNom}=mkTextMultiline(svg,cx,yOff+(nbLignesNom*ligneH)/2,nomTxt,String(fontSize),'800',couleur,'3',largeur-10);gAll.appendChild(gNom);yOff+=hNom+4;}
-        if(supTxt){gAll.appendChild(mkText(cx,yOff+ligneH/2,supTxt,String(Math.max(9,fontSize-2)),'700','#1d4ed8','2.5'));yOff+=ligneH+2;}
-        if(dateTxt){gAll.appendChild(mkText(cx,yOff+ligneH/2,dateTxt,String(Math.max(8,fontSize-3)),'500','#374151','2'));}
+        gAll.style.pointerEvents='none';
+        gAll.classList.add('zone-groupe-el');
+
+        if (nomTxt) {
+            // ✅ Texte du nom en NOIR avec contour blanc épais
+            const {g:gNom,hauteur:hNom} = mkTextMultiline(
+                svg, cx, yOff+(nbLignesNom*ligneH)/2,
+                nomTxt, String(fontSize), '900',
+                '#000000', // ✅ NOIR
+                '4',        // contour blanc plus épais
+                largeur-10
+            );
+            gAll.appendChild(gNom);
+            yOff += hNom+4;
+        }
+        if (supTxt) {
+            gAll.appendChild(mkText(cx, yOff+ligneH/2, supTxt, String(Math.max(9,fontSize-2)), '700', '#1d4ed8', '2.5'));
+            yOff += ligneH+2;
+        }
+        if (dateTxt) {
+            gAll.appendChild(mkText(cx, yOff+ligneH/2, dateTxt, String(Math.max(8,fontSize-3)), '500', '#374151', '2'));
+        }
+
         svg.appendChild(gAll);
     });
 }
 
-function getColor(type){return{implantation_prevue:'#7c3aed',deja_implante:'#16a34a',dossier_technique:'#dc2626',morcellement:'#ea580c'}[type]||'#0d6efd';}
-function hexToRgba(hex,alpha){if(!hex||!hex.startsWith('#'))return`rgba(245,158,11,${alpha})`;const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${alpha})`;}
-function formatDate(s){if(!s)return'';const d=new Date(s);return isNaN(d)?s:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});}
-
 function initSVG() {
     const svg=getSVG(); if(!svg) return;
     const lotIdsMasques=new Set();
-    zonesGroupes.forEach(zg=>{if(zg.type&&zg.lot_ids&&zg.lot_ids.length>0)zg.lot_ids.forEach(id=>lotIdsMasques.add(id));});
+    zonesGroupes.forEach(zg=>{
+        if(zg.type&&zg.lot_ids&&zg.lot_ids.length>0)
+            zg.lot_ids.forEach(id=>lotIdsMasques.add(id));
+    });
     svg.querySelectorAll('path').forEach(el=>{
         const zoneId=(el.getAttribute('id')||'').trim().toLowerCase();
         const lot=lots.find(l=>(l.code||'').trim().toLowerCase()===zoneId);
         el.style.cursor='pointer'; el.style.strokeWidth='2.5px';
-        if(lot&&lotIdsMasques.has(lot.id)){
+        if (lot&&lotIdsMasques.has(lot.id)) {
             el.style.stroke='transparent'; el.style.fill='transparent'; el.style.strokeDasharray='';
             el.addEventListener('click',function(e){if(currentTool!=='select')return;openModal(zoneId,lot);});
             return;
         }
-        if(!lot||!lot.origine){el.style.stroke='#bbb';el.style.fill='transparent';el.style.strokeDasharray='2,2';}
-        else if(lot.origine==='famille'){el.style.stroke='#c8a882';el.style.fill='rgba(250,245,238,0.35)';el.style.strokeDasharray='';}
-        else if(lot.origine==='eden'){
+        if (!lot||!lot.origine) {
+            el.style.stroke='#bbb'; el.style.fill='transparent'; el.style.strokeDasharray='2,2';
+        } else if (lot.origine==='famille') {
+            el.style.stroke='#c8a882'; el.style.fill='rgba(250,245,238,0.35)'; el.style.strokeDasharray='';
+        } else if (lot.origine==='eden') {
             el.style.strokeDasharray='';
-            if(!lot.type){el.style.stroke='#0d6efd';el.style.fill='rgba(13,110,253,0.25)';}
-            else{const color=getColor(lot.type);el.style.stroke=color;el.style.fill=hexToRgba(color,0.40);afficherInfoSurLot(svg,el,lot);}
+            if (!lot.type) {
+                el.style.stroke='#0d6efd'; el.style.fill='rgba(13,110,253,0.25)';
+            } else {
+                const color=getColor(lot.type);
+                el.style.stroke=color; el.style.fill=hexToRgba(color,0.50); // ✅ fond renforcé
+                afficherInfoSurLot(svg,el,lot);
+            }
         }
         el.addEventListener('click',function(e){
             if(currentTool!=='select')return;
@@ -600,13 +635,13 @@ function initSVG() {
     });
 }
 
-function afficherInfoSurLot(svg,pathEl,lot){
+function afficherInfoSurLot(svg,pathEl,lot) {
     try{
         const bbox=pathEl.getBBox(), cx=bbox.x+bbox.width/2, cy=bbox.y+bbox.height/2, largeur=bbox.width;
         let dateTxt='';
-        if(lot.type==='implantation_prevue'&&lot.date_prevue)dateTxt=formatDate(lot.date_prevue);
-        else if((lot.type==='deja_implante'||lot.type==='dossier_technique')&&lot.date_confirmee)dateTxt=formatDate(lot.date_confirmee);
-        else if(lot.type==='morcellement'&&lot.date_morcellement)dateTxt=formatDate(lot.date_morcellement);
+        if(lot.type==='implantation_prevue'&&lot.date_prevue) dateTxt=formatDate(lot.date_prevue);
+        else if((lot.type==='deja_implante'||lot.type==='dossier_technique')&&lot.date_confirmee) dateTxt=formatDate(lot.date_confirmee);
+        else if(lot.type==='morcellement'&&lot.date_morcellement) dateTxt=formatDate(lot.date_morcellement);
         const nomTxt=lot.owner_name||'';
         if(!nomTxt&&!dateTxt)return;
         const fontSize=Math.min(13,Math.max(7,Math.floor(largeur/8)));
@@ -619,11 +654,51 @@ function afficherInfoSurLot(svg,pathEl,lot){
     }catch(e){}
 }
 
-function ouvrirZoneGroupeExistante(zg){
+// ✅ PANEL VISITES RAPIDES
+function afficherVisitesPanel(clientId, clientNom) {
+    currentClientIdForVisites = clientId;
+    const panel = document.getElementById('visitesPanel');
+    document.getElementById('vp-name').innerText = '👤 ' + clientNom;
+    document.getElementById('vp-liste').innerHTML = '<div style="color:#94a3b8;">Chargement...</div>';
+    panel.style.display = 'block';
+    positionnerVisitesPanel();
+
+    fetch(`/admin/lots/client-visites/${clientId}`)
+    .then(r=>r.json()).then(visites=>{
+        if (!visites.length) {
+            document.getElementById('vp-liste').innerHTML = '<div style="color:#94a3b8;font-size:11px;">Aucune visite enregistrée</div>';
+            return;
+        }
+        document.getElementById('vp-liste').innerHTML = visites.slice(0,8).map(v=>
+            `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:11px;">
+                <div style="display:flex;justify-content:space-between;">
+                    <span>📅 ${v.date}</span>
+                    <span style="color:#64748b;">${v.heure_arrivee??'--'} → ${v.heure_depart??'--'}</span>
+                </div>
+                ${v.type==='client'?'<span style="font-size:9px;color:#059669;font-weight:600;">💳 Visite client</span>':''}
+            </div>`
+        ).join('') + (visites.length>8 ? `<div style="font-size:10px;color:#94a3b8;text-align:right;margin-top:4px;">${visites.length} visite(s) au total</div>` : '');
+    }).catch(()=>{
+        document.getElementById('vp-liste').innerHTML = '<div style="color:#94a3b8;font-size:11px;">Erreur de chargement</div>';
+    });
+}
+
+function positionnerVisitesPanel() {
+    const panel  = document.getElementById('visitesPanel');
+    const cpanel = document.getElementById('clientPanel');
+    // Positionner à droite du clientPanel si visible, sinon à droite du lotModal
+    const ref = cpanel.style.display !== 'none' ? cpanel : document.getElementById('lotModal');
+    const rect = ref.getBoundingClientRect();
+    let left   = rect.right + 10;
+    if (left + 270 > window.innerWidth) left = rect.left - 270;
+    panel.style.left = Math.max(4, left) + 'px';
+}
+
+function ouvrirZoneGroupeExistante(zg) {
     currentZoneGroupeId=zg.id; currentZoneGroupePoints=zg.points; currentZoneGroupeLotIds=zg.lot_ids||[];
     const etapeSuivante=getEtapeSuivante({type:zg.type}), etapeInfoEl=document.getElementById('zgEtapeInfo');
-    if(etapeSuivante===null)etapeInfoEl.innerHTML='<span style="color:#28a745;">✅ Toutes les étapes complètes</span>';
-    else if(zg.type)etapeInfoEl.innerHTML=`Étape : <strong>${etapeLabels[zg.type]}</strong> <span class="badge-next-step">→ ${etapeLabels[etapeSuivante]}</span>`;
+    if(etapeSuivante===null) etapeInfoEl.innerHTML='<span style="color:#28a745;">✅ Toutes les étapes complètes</span>';
+    else if(zg.type) etapeInfoEl.innerHTML=`Étape : <strong>${etapeLabels[zg.type]}</strong> <span class="badge-next-step">→ ${etapeLabels[etapeSuivante]}</span>`;
     else etapeInfoEl.innerText='Aucune étape définie';
     const superfTotale=lots.filter(l=>(currentZoneGroupeLotIds||[]).includes(l.id)).reduce((s,l)=>s+(parseFloat(l.superficie)||0),0);
     document.getElementById('zg_superficie_info').style.display='block';
@@ -633,13 +708,17 @@ function ouvrirZoneGroupeExistante(zg){
         document.getElementById('zg_clientExistantNom').innerText=zg.owner_name||'-';
         document.getElementById('zg_client_search').style.display='none';
         document.getElementById('zg_client_id').value=zg.client_id;
-        chargerDossiersZG(zg.client_id,zg.dossier_client_id); loadClientPanel(zg.client_id);
-    }else{
+        chargerDossiersZG(zg.client_id,zg.dossier_client_id);
+        loadClientPanel(zg.client_id);
+        // ✅ Afficher aussi le panel visites
+        afficherVisitesPanel(zg.client_id, zg.owner_name||'Client');
+    } else {
         document.getElementById('zg_clientExistantInfo').style.display='none';
         document.getElementById('zg_client_search').style.display='block';
         document.getElementById('zg_client_search').value=zg.nom||'';
         document.getElementById('zg_client_id').value='';
         document.getElementById('zg_dossierSelectField').style.display='none';
+        document.getElementById('visitesPanel').style.display='none';
     }
     document.getElementById('zg_client_info').style.display='none';
     const zgTypeEl=document.getElementById('zg_type');
@@ -649,13 +728,13 @@ function ouvrirZoneGroupeExistante(zg){
         zgTypeEl.value=etapeSuivante;
         const ordre=['implantation_prevue','deja_implante','dossier_technique','morcellement'];
         Array.from(zgTypeEl.options).forEach(opt=>{if(opt.value===''){opt.disabled=false;return;}opt.disabled=(ordre.indexOf(opt.value)!==ordre.indexOf(zg.type)+1);});
-    }else{
+    } else {
         zgTypeEl.value='implantation_prevue';
         Array.from(zgTypeEl.options).forEach(opt=>{if(opt.value===''){opt.disabled=false;return;}opt.disabled=opt.value!=='implantation_prevue';});
     }
-    document.getElementById('zg_date_prevue').value      =zg.date_prevue      ?zg.date_prevue.substring(0,10)      :'';
-    document.getElementById('zg_date_confirmee').value   =zg.date_confirmee   ?zg.date_confirmee.substring(0,10)   :'';
-    document.getElementById('zg_date_morcellement').value=zg.date_morcellement?zg.date_morcellement.substring(0,10):'';
+    document.getElementById('zg_date_prevue').value       = zg.date_prevue       ? zg.date_prevue.substring(0,10)       : '';
+    document.getElementById('zg_date_confirmee').value    = zg.date_confirmee    ? zg.date_confirmee.substring(0,10)    : '';
+    document.getElementById('zg_date_morcellement').value = zg.date_morcellement ? zg.date_morcellement.substring(0,10) : '';
     zgTypeChange();
     document.getElementById('zg_deleteBtn').style.display='block';
     modalOverlay.style.display='block';
@@ -679,7 +758,10 @@ document.getElementById('zg_client_search').addEventListener('input',function(){
                     const info=document.getElementById('zg_client_info');
                     info.innerHTML=`✅ <strong>${this.dataset.name}</strong> ${this.dataset.phone}`;
                     info.style.display='block';
-                    chargerDossiersZG(this.dataset.id,null); loadClientPanel(this.dataset.id);
+                    chargerDossiersZG(this.dataset.id,null);
+                    loadClientPanel(this.dataset.id);
+                    // ✅ Ouvrir panel visites
+                    afficherVisitesPanel(this.dataset.id, this.dataset.name);
                 });
             });
         });
@@ -703,9 +785,9 @@ function chargerDossiersZG(clientId,selectedId){
 
 function zgTypeChange(){
     const type=document.getElementById('zg_type').value;
-    document.getElementById('zg_datePrevueGroup').style.display      =type==='implantation_prevue'?'block':'none';
-    document.getElementById('zg_dateConfirmeeGroup').style.display   =(type==='deja_implante'||type==='dossier_technique')?'block':'none';
-    document.getElementById('zg_dateMorcellementGroup').style.display=type==='morcellement'?'block':'none';
+    document.getElementById('zg_datePrevueGroup').style.display      = type==='implantation_prevue'?'block':'none';
+    document.getElementById('zg_dateConfirmeeGroup').style.display   = (type==='deja_implante'||type==='dossier_technique')?'block':'none';
+    document.getElementById('zg_dateMorcellementGroup').style.display = type==='morcellement'?'block':'none';
 }
 
 function saveZoneGroupe(){
@@ -714,15 +796,15 @@ function saveZoneGroupe(){
     const nom=document.getElementById('zg_client_search').value.trim()||null;
     const type=document.getElementById('zg_type').value||null;
     const payload={
-        tf_id:tfId,client_id:clientId,
+        tf_id:tfId, client_id:clientId,
         dossier_client_id:document.getElementById('zg_dossier_id').value||null,
-        nom,points:currentZoneGroupePoints,lot_ids:currentZoneGroupeLotIds,type,
-        date_prevue:document.getElementById('zg_date_prevue').value||null,
-        date_confirmee:document.getElementById('zg_date_confirmee').value||null,
-        date_morcellement:document.getElementById('zg_date_morcellement').value||null,
+        nom, points:currentZoneGroupePoints, lot_ids:currentZoneGroupeLotIds, type,
+        date_prevue:       document.getElementById('zg_date_prevue').value       || null,
+        date_confirmee:    document.getElementById('zg_date_confirmee').value    || null,
+        date_morcellement: document.getElementById('zg_date_morcellement').value || null,
     };
-    const url=currentZoneGroupeId?`/admin/zone-groupes/${currentZoneGroupeId}`:'/admin/zone-groupes';
-    const method=currentZoneGroupeId?'PUT':'POST';
+    const url    = currentZoneGroupeId ? `/admin/zone-groupes/${currentZoneGroupeId}` : '/admin/zone-groupes';
+    const method = currentZoneGroupeId ? 'PUT' : 'POST';
     fetch(url,{method,headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify(payload)})
     .then(r=>r.json()).then(data=>{if(data.success)location.reload();else alert(data.message||'Erreur');})
     .catch(e=>alert('Erreur réseau : '+e.message));
@@ -738,6 +820,7 @@ function closeZoneGroupeModal(){
     document.getElementById('zoneGroupeModal').style.display='none';
     modalOverlay.style.display='none';
     document.getElementById('clientPanel').style.display='none';
+    document.getElementById('visitesPanel').style.display='none';
     document.getElementById('zg_type').disabled=false;
     Array.from(document.getElementById('zg_type').options).forEach(o=>o.disabled=false);
     annulerDessin();
@@ -748,6 +831,7 @@ clientSearch.addEventListener('input',function(){
     selectedClientId.value='';
     document.getElementById('client_selected_info').style.display='none';
     document.getElementById('clientPanel').style.display='none';
+    document.getElementById('visitesPanel').style.display='none';
     resetDossierSelect(); clearTimeout(searchTimer);
     if(q.length<1){clientDropdown.style.display='none';return;}
     searchTimer=setTimeout(()=>{
@@ -761,7 +845,10 @@ clientSearch.addEventListener('input',function(){
                     clientDropdown.style.display='none';
                     const info=document.getElementById('client_selected_info');
                     info.innerHTML=`✅ <strong>${this.dataset.name}</strong> ${this.dataset.phone}`;
-                    info.style.display='block'; loadClientPanel(this.dataset.id);
+                    info.style.display='block';
+                    loadClientPanel(this.dataset.id);
+                    // ✅ Panel visites
+                    afficherVisitesPanel(this.dataset.id, this.dataset.name);
                 });
             });
         });
@@ -784,8 +871,8 @@ function resetDossierSelect(){
 
 function loadClientPanel(clientId){
     fetch(`/admin/lots/client-panel/${clientId}`).then(r=>r.json()).then(data=>{
-        document.getElementById('cp-name').innerText=data.name;
-        document.getElementById('cp-phone').innerText='📞 '+(data.phone||'-');
+        document.getElementById('cp-name').innerText  = data.name;
+        document.getElementById('cp-phone').innerText = '📞 '+(data.phone||'-');
         cachedDossiers=data.dossiers||[];
         selectedDossierId.innerHTML='<option value="">-- Choisir un dossier --</option>';
         cachedDossiers.forEach(d=>{
@@ -825,11 +912,13 @@ function loadClientPanel(clientId){
                     ${l.dossier_url?`<a href="${l.dossier_url}" style="display:block;margin-top:6px;background:#1d4ed8;color:white;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;text-decoration:none;text-align:center;">📁 Voir le dossier technique</a>`:''}
                 </div>`;
             }).join('');
+        // Visites dans cp-visites (section existante du clientPanel)
         fetch(`/admin/lots/client-visites/${clientId}`)
         .then(r=>r.json()).then(visites=>{
             if(!visites.length){document.getElementById('cp-visites').innerHTML='<div style="color:#94a3b8;font-size:11px;">Aucune visite enregistrée</div>';return;}
-            document.getElementById('cp-visites').innerHTML=visites.slice(0,5).map(v=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px;"><span>📅 ${v.date} ${v.type==='client'?'💳':''}</span><span style="color:#64748b;">${v.heure_arrivee??'--'} → ${v.heure_depart??'--'}</span></div>`).join('')
-            +(visites.length>5?`<div style="font-size:10px;color:#94a3b8;text-align:right;">${visites.length} visites au total</div>`:'');
+            document.getElementById('cp-visites').innerHTML=visites.slice(0,5).map(v=>
+                `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px;"><span>📅 ${v.date} ${v.type==='client'?'💳':''}</span><span style="color:#64748b;">${v.heure_arrivee??'--'} → ${v.heure_depart??'--'}</span></div>`
+            ).join('')+(visites.length>5?`<div style="font-size:10px;color:#94a3b8;text-align:right;">${visites.length} visites au total</div>`:'');
         }).catch(()=>{document.getElementById('cp-visites').innerHTML='<div style="color:#94a3b8;font-size:11px;">—</div>';});
         positionClientPanel();
         document.getElementById('clientPanel').style.display='block';
@@ -847,11 +936,11 @@ function updateDossierInfo(d){
 selectedDossierId.addEventListener('change',function(){updateDossierInfo(cachedDossiers.find(x=>x.id==this.value)||null);});
 
 function positionClientPanel(){
-    const modal=document.getElementById('lotModal'),panel=document.getElementById('clientPanel');
+    const modal=document.getElementById('lotModal'), panel=document.getElementById('clientPanel');
     if(modal.style.display==='none')return;
-    const rect=modal.getBoundingClientRect(),panelW=310;
+    const rect=modal.getBoundingClientRect(), panelW=310;
     let left=rect.right+14;
-    if(left+panelW>window.innerWidth)left=rect.left-panelW-14;
+    if(left+panelW>window.innerWidth) left=rect.left-panelW-14;
     panel.style.left=Math.max(4,left)+'px';
 }
 
@@ -911,6 +1000,7 @@ function openModal(zoneId,lot=null){
     clientSearchField.style.display='none'; clientExistEl.style.display='none';
     document.getElementById('client_selected_info').style.display='none';
     document.getElementById('clientPanel').style.display='none';
+    document.getElementById('visitesPanel').style.display='none';
     document.getElementById('supprimerLotBtn').style.display=(lot&&lot.id)?'block':'none';
     selectedClientId.value=''; clientSearch.value='';
     const etapeInfoEl=document.getElementById('lotEtapeInfo');
@@ -933,8 +1023,14 @@ function openModal(zoneId,lot=null){
     if(aDejaClient){
         document.getElementById('clientExistantNom').innerText=lot.client?.name??'';
         document.getElementById('clientExistantPhone').innerText=lot.client?.phone?` (${lot.client.phone})`:'';
-        clientExistEl.style.display='block'; selectedClientId.value=lot.client_id; loadClientPanel(lot.client_id);
-    }else if(!lot?.type){clientSearchField.style.display='block';}
+        clientExistEl.style.display='block';
+        selectedClientId.value=lot.client_id;
+        loadClientPanel(lot.client_id);
+        // ✅ Afficher panel visites pour le client du lot
+        afficherVisitesPanel(lot.client_id, lot.client?.name||'Client');
+    }else if(!lot?.type){
+        clientSearchField.style.display='block';
+    }
     modalOverlay.style.display='block'; lotModal.style.display='block';
     lotType.dispatchEvent(new Event('change'));
 }
@@ -942,6 +1038,7 @@ function openModal(zoneId,lot=null){
 function closeModal(){
     lotModal.style.display='none'; modalOverlay.style.display='none';
     document.getElementById('clientPanel').style.display='none';
+    document.getElementById('visitesPanel').style.display='none';
     resetDossierSelect(); closePaiementDossier();
     Array.from(lotType.options).forEach(opt=>opt.disabled=false);
     lotType.disabled=false;
@@ -994,8 +1091,8 @@ function imprimerCarte(){
         <div class="leg"><div class="dot" style="background:#7c3aed;"></div>Implantation prévue</div>
         <div class="leg"><div class="dot" style="background:#16a34a;"></div>Déjà implanté</div>
         <div class="leg"><div class="dot" style="background:#dc2626;"></div>Dossier technique</div>
-        <div class="leg"><div class="dot" style="background:#ea580c;"></div>Morcellement</div>
-        <div class="leg"><div class="dot" style="background:transparent;border:3px solid #f59e0b;"></div>Zone groupée</div>
+        <div class="leg"><div class="dot" style="background:#ca8a04;"></div>Morcellement</div>
+        <div class="leg"><div class="dot" style="background:rgba(0,0,0,0.08);border:3px solid #000;"></div>Zone groupée</div>
     </div>
     <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},800);});<\/script>
     </body></html>`);
