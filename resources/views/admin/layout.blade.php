@@ -20,12 +20,19 @@
             display:flex; flex-direction:column; align-items:center; gap:10px;
         }
         .logo-img-wrap {
-            width:80px; height:80px; border-radius:14px;
-            overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.25);
-        }
-        .logo-img-wrap img {
-            width:120%; height:120%; object-fit:contain; transform:scale(1.8);
-        }
+    width: 180px;   /* avant 80px */
+    height: 150px;  /* avant 80px */
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+    .logo-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
         .logo-placeholder-letter {
             width:80px; height:80px;
             background:linear-gradient(135deg,#1d4ed8 0%,#7c3aed 50%,#dc2626 100%);
@@ -92,7 +99,7 @@
         <div class="logo-box">
             @if(file_exists(public_path('images/eden_group.png')))
                 <div class="logo-img-wrap">
-                    <img src="{{ asset('images/eden_group.png') }}" alt="Logo Eden Group">
+                    <img src="{{ asset('images/eden.webp') }}" alt="Logo Eden Group">
                 </div>
             @else
                 <div class="logo-placeholder-letter">E</div>
