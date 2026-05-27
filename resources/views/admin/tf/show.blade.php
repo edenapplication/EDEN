@@ -522,73 +522,72 @@ function mkTextMultiline(svg,cx,cyStart,txt,fontSize,fontWeight,fill,strokeW,max
 // ✅ DESSINER LES ZONES GROUPES
 // Corrections : bordure NOIRE, fond renforcé, noms en NOIR
 function dessinerZonesGroupes() {
-    const svg=getSVG(); if(!svg) return;
+    const svg = getSVG(); if (!svg) return;
+    svg.querySelectorAll('.zone-groupe-el').forEach(el => el.remove());
 
-    // ✅ Retirer les anciens éléments de zones groupées
-    svg.querySelectorAll('.zone-groupe-el').forEach(el=>el.remove());
+    zonesGroupes.forEach(zg => {
+        // ✅ Normaliser points et lot_ids si SQLite les retourne en string
+        let pts = zg.points;
+        if (typeof pts === 'string') {
+            try { pts = JSON.parse(pts); } catch(e) { pts = []; }
+        }
+        if (!Array.isArray(pts) || pts.length < 3) return;
 
-    zonesGroupes.forEach(zg=>{
-        if(!zg.points||zg.points.length<3) return;
+        let lotIds = zg.lot_ids;
+        if (typeof lotIds === 'string') {
+            try { lotIds = JSON.parse(lotIds); } catch(e) { lotIds = []; }
+        }
+        zg.points  = pts;
+        zg.lot_ids = Array.isArray(lotIds) ? lotIds : [];
 
-        const ptsStr = zg.points.map(p=>`${p.x},${p.y}`).join(' ');
-
-        // ✅ Fond plus opaque (0.45 au lieu de 0.22), bordure NOIRE
+        const ptsStr    = pts.map(p => `${p.x},${p.y}`).join(' ');
         const fillColor = zg.type ? hexToRgba(getColor(zg.type), 0.45) : 'rgba(0,0,0,0.06)';
-        const borderColor = '#000000'; // ✅ NOIR
 
-        const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        poly.setAttribute('points', ptsStr);
-        poly.setAttribute('fill',   fillColor);
-        poly.setAttribute('stroke', borderColor); // ✅ bordure noire
-        poly.setAttribute('stroke-width', '4');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points',          ptsStr);
+        poly.setAttribute('fill',            fillColor);
+        poly.setAttribute('stroke',          '#000000');
+        poly.setAttribute('stroke-width',    '4');
         poly.setAttribute('stroke-linejoin', 'round');
         poly.style.cursor = 'pointer';
         poly.classList.add('zone-groupe-el');
         poly.dataset.zgId = zg.id;
-        poly.addEventListener('click', function(e){ e.stopPropagation(); ouvrirZoneGroupeExistante(zg); });
+        poly.addEventListener('click', function(e) { e.stopPropagation(); ouvrirZoneGroupeExistante(zg); });
         svg.appendChild(poly);
 
-        // Bbox du polygone
-        const xs=zg.points.map(p=>p.x), ys=zg.points.map(p=>p.y);
-        const minX=Math.min(...xs), maxX=Math.max(...xs);
-        const minY=Math.min(...ys), maxY=Math.max(...ys);
-        const cx=(minX+maxX)/2, largeur=maxX-minX;
+        const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        const cx = (minX + maxX) / 2, largeur = maxX - minX;
 
-        const nomTxt  = zg.owner_name||zg.nom||'';
-        const supTxt  = zg.superficie_totale ? parseFloat(zg.superficie_totale).toLocaleString('fr-FR')+' m²' : '';
-        let   dateTxt = '';
-        if (zg.type==='implantation_prevue'&&zg.date_prevue)       dateTxt=formatDate(zg.date_prevue);
-        else if ((zg.type==='deja_implante'||zg.type==='dossier_technique')&&zg.date_confirmee) dateTxt=formatDate(zg.date_confirmee);
-        else if (zg.type==='morcellement'&&zg.date_morcellement)   dateTxt=formatDate(zg.date_morcellement);
+        const nomTxt = zg.owner_name || zg.nom || '';
+        const supTxt = zg.superficie_totale ? parseFloat(zg.superficie_totale).toLocaleString('fr-FR') + ' m²' : '';
+        let dateTxt  = '';
+        if (zg.type === 'implantation_prevue' && zg.date_prevue)                              dateTxt = formatDate(zg.date_prevue);
+        else if ((zg.type === 'deja_implante' || zg.type === 'dossier_technique') && zg.date_confirmee) dateTxt = formatDate(zg.date_confirmee);
+        else if (zg.type === 'morcellement' && zg.date_morcellement)                          dateTxt = formatDate(zg.date_morcellement);
 
-        const fontSize   = Math.min(18,Math.max(10,Math.floor(largeur/10)));
-        const nbLignesNom= nomTxt ? Math.ceil(nomTxt.length*fontSize*0.6/largeur)||1 : 0;
-        const ligneH     = fontSize*1.3;
-        const totalTxtH  = (nbLignesNom*ligneH)+(supTxt?ligneH:0)+(dateTxt?ligneH:0);
-        let   yOff       = (minY+maxY)/2 - totalTxtH/2;
+        const fontSize    = Math.min(18, Math.max(10, Math.floor(largeur / 10)));
+        const nbLignesNom = nomTxt ? Math.ceil(nomTxt.length * fontSize * 0.6 / largeur) || 1 : 0;
+        const ligneH      = fontSize * 1.3;
+        const totalTxtH   = (nbLignesNom * ligneH) + (supTxt ? ligneH : 0) + (dateTxt ? ligneH : 0);
+        let   yOff        = (minY + maxY) / 2 - totalTxtH / 2;
 
-        const gAll=document.createElementNS('http://www.w3.org/2000/svg','g');
-        gAll.style.pointerEvents='none';
+        const gAll = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        gAll.style.pointerEvents = 'none';
         gAll.classList.add('zone-groupe-el');
 
         if (nomTxt) {
-            // ✅ Texte du nom en NOIR avec contour blanc épais
-            const {g:gNom,hauteur:hNom} = mkTextMultiline(
-                svg, cx, yOff+(nbLignesNom*ligneH)/2,
-                nomTxt, String(fontSize), '900',
-                '#000000', // ✅ NOIR
-                '4',        // contour blanc plus épais
-                largeur-10
-            );
+            const { g: gNom, hauteur: hNom } = mkTextMultiline(svg, cx, yOff + (nbLignesNom * ligneH) / 2, nomTxt, String(fontSize), '900', '#000000', '4', largeur - 10);
             gAll.appendChild(gNom);
-            yOff += hNom+4;
+            yOff += hNom + 4;
         }
         if (supTxt) {
-            gAll.appendChild(mkText(cx, yOff+ligneH/2, supTxt, String(Math.max(9,fontSize-2)), '700', '#1d4ed8', '2.5'));
-            yOff += ligneH+2;
+            gAll.appendChild(mkText(cx, yOff + ligneH / 2, supTxt, String(Math.max(9, fontSize - 2)), '700', '#1d4ed8', '2.5'));
+            yOff += ligneH + 2;
         }
         if (dateTxt) {
-            gAll.appendChild(mkText(cx, yOff+ligneH/2, dateTxt, String(Math.max(8,fontSize-3)), '500', '#374151', '2'));
+            gAll.appendChild(mkText(cx, yOff + ligneH / 2, dateTxt, String(Math.max(8, fontSize - 3)), '500', '#374151', '2'));
         }
 
         svg.appendChild(gAll);
@@ -596,12 +595,20 @@ function dessinerZonesGroupes() {
 }
 
 function initSVG() {
-    const svg=getSVG(); if(!svg) return;
-    const lotIdsMasques=new Set();
-    zonesGroupes.forEach(zg=>{
-        if(zg.type&&zg.lot_ids&&zg.lot_ids.length>0)
-            zg.lot_ids.forEach(id=>lotIdsMasques.add(id));
+    const svg = getSVG(); if (!svg) return;
+    const lotIdsMasques = new Set();
+
+    zonesGroupes.forEach(zg => {
+        // ✅ Normaliser lot_ids si string (SQLite)
+        let ids = zg.lot_ids;
+        if (typeof ids === 'string') { try { ids = JSON.parse(ids); } catch(e) { ids = []; } }
+        if (!Array.isArray(ids)) ids = [];
+        zg.lot_ids = ids;
+
+        if (zg.type && ids.length > 0)
+            ids.forEach(id => lotIdsMasques.add(id));
     });
+    
     svg.querySelectorAll('path').forEach(el=>{
         const zoneId=(el.getAttribute('id')||'').trim().toLowerCase();
         const lot=lots.find(l=>(l.code||'').trim().toLowerCase()===zoneId);
