@@ -17,9 +17,35 @@
 .tool-btn.active { background:#f59e0b; color:white; }
 .tool-btn:not(.active) { background:#e2e8f0; color:#374151; }
 .tool-btn:hover:not(.active) { background:#d1d5db; }
-#tf-map-container { overflow:auto; position:relative; max-height:calc(100vh - 220px); min-height:500px; cursor:default; user-select:none; background:#f9fafb; }
+#tf-map-container {
+    overflow: auto;
+    position: relative;
+    max-height: calc(100vh - 220px);
+    min-height: 500px;
+    cursor: default;
+    user-select: none;
+    background: #f9fafb;
+    border-radius: 8px;
+    /* ✅ Centrage initial */
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
 #tf-map-container.zone-drawing { cursor:crosshair; }
-#map-inner { display:inline-block; transform-origin:0 0; position:relative; }
+#map-inner {
+    display: inline-block;
+    transform-origin: 0 0;
+    position: relative;
+    /* ✅ Ne pas laisser le SVG déborder */
+    flex-shrink: 0;
+}
+
+#map-inner svg {
+    display: block;
+    max-width: none; /* override Bootstrap */
+}
+
 .client-search-wrap { position:relative; }
 .client-dropdown { position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:999999; max-height:200px; overflow-y:auto; display:none; }
 .client-option { padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid #f8fafc; display:flex; justify-content:space-between; align-items:center; }
@@ -111,8 +137,22 @@
         $ext     = pathinfo($tf->file_path, PATHINFO_EXTENSION);
     @endphp
     @if($ext === 'svg')
-        <div id="tf-map-container">
-            <div id="map-inner">
+        <div id="tf-map-container" style="
+    overflow:auto;
+    position:relative;
+    max-height:calc(100vh - 220px);
+    min-height:500px;
+    cursor:default;
+    user-select:none;
+    background:#f9fafb;
+    border-radius:8px;
+">
+            <div id="map-inner" style="
+    display:inline-block;
+    transform-origin:0 0;
+    position:relative;
+    line-height:0;
+">
                 {!! file_get_contents($svgPath) !!}
                 <canvas id="draw-canvas" style="position:absolute;top:0;left:0;pointer-events:none;"></canvas>
             </div>
@@ -345,13 +385,29 @@ function getSVG() { return mapInner?.querySelector('svg'); }
 
 // ZOOM
 function appliquerZoom(val) {
-    mapInner.style.transform       = `scale(${val/100})`;
+    const scale = val / 100;
+    mapInner.style.transform       = `scale(${scale})`;
     mapInner.style.transformOrigin = '0 0';
+    // ✅ Ajuster la hauteur du map-inner pour que le scroll fonctionne bien
+    const svg = getSVG();
+    if (svg) {
+        const svgW = parseFloat(svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800);
+        const svgH = parseFloat(svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600);
+        mapInner.style.width  = (svgW * scale) + 'px';
+        mapInner.style.height = (svgH * scale) + 'px';
+    }
     document.getElementById('svg-zoom-val').innerText = val + '%';
     redessinerCanvas();
     sessionStorage.setItem(ZOOM_KEY, val);
 }
-function resetZoom() { document.getElementById('svg-zoom').value = 100; appliquerZoom(100); }
+function resetZoom() {
+    const zoom = calculerZoomInitial();
+    document.getElementById('svg-zoom').value = zoom;
+    appliquerZoom(zoom);
+    // ✅ Remettre le scroll en haut à gauche
+    container.scrollTop  = 0;
+    container.scrollLeft = 0;
+}
 document.getElementById('svg-zoom').addEventListener('input', function() { appliquerZoom(parseInt(this.value)); });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -361,12 +417,71 @@ document.addEventListener('DOMContentLoaded', function() {
     syncCanvas(); initSVG(); dessinerZonesGroupes();
 });
 
+function calculerZoomInitial() {
+    const svg = getSVG();
+    if (!svg) return 100;
+
+    const svgW = parseFloat(svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800);
+    const svgH = parseFloat(svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600);
+
+    if (!svgW || !svgH) return 100;
+
+    const contW = container.clientWidth  || container.offsetWidth  || 900;
+    const contH = container.clientHeight || container.offsetHeight || 500;
+
+    // Zoom pour que la carte rentre en largeur, avec un peu de marge
+    const zoomW = Math.floor((contW  / svgW) * 95);
+    const zoomH = Math.floor((contH  / svgH) * 95);
+
+    // On prend le plus petit pour que tout soit visible
+    const zoom  = Math.min(zoomW, zoomH, 200); // max 200%
+    return Math.max(zoom, 20); // min 20%
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ Si zoom sauvegardé en session → l'utiliser, sinon calculer automatiquement
+    const savedZoom = sessionStorage.getItem(ZOOM_KEY);
+    let zoomVal;
+
+    if (savedZoom) {
+        zoomVal = parseInt(savedZoom);
+    } else {
+        // Attendre que le SVG soit rendu pour mesurer
+        zoomVal = 100; // valeur temporaire
+    }
+
+    document.getElementById('svg-zoom').value = zoomVal;
+    appliquerZoom(zoomVal);
+    syncCanvas();
+    initSVG();
+    dessinerZonesGroupes();
+
+    // ✅ Si pas de zoom sauvegardé, recalculer après rendu complet
+    if (!savedZoom) {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const autoZoom = calculerZoomInitial();
+                document.getElementById('svg-zoom').value = autoZoom;
+                appliquerZoom(autoZoom);
+                syncCanvas();
+            });
+        });
+    }
+});
+
 function syncCanvas() {
     const svg = getSVG(); if (!svg) return;
-    const w = svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800;
-    const h = svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600;
-    canvas.width = parseFloat(w); canvas.height = parseFloat(h);
-    canvas.style.width = parseFloat(w)+'px'; canvas.style.height = parseFloat(h)+'px';
+    const w = parseFloat(svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800);
+    const h = parseFloat(svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600);
+    canvas.width        = w;
+    canvas.height       = h;
+    canvas.style.width  = w + 'px';
+    canvas.style.height = h + 'px';
+    // ✅ Positionner le canvas par-dessus le SVG exactement
+    canvas.style.position = 'absolute';
+    canvas.style.top      = '0';
+    canvas.style.left     = '0';
+    canvas.style.pointerEvents = 'none';
 }
 
 function setTool(tool) {
