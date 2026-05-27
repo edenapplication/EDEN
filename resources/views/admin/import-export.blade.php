@@ -173,8 +173,8 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Fichier SQL (.sql ou .txt)</label>
-                    <input type="file" name="fichier_sql" class="form-control" accept=".sql,.txt" required>
+                    <label class="form-label fw-semibold">Fichier SQL (.sql ou .txt ou .json)</label>
+                    <input type="file" name="fichier_sql" class="form-control" accept=".sql,.txt,.json" required>
                     <div style="font-size:11px;color:#64748b;margin-top:4px;">
                         Taille maximale : 100 MB. Fichier généré par Eden Group uniquement.
                     </div>
