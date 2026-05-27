@@ -15,8 +15,8 @@ class ZoneGroupe extends Model
 
     // ✅ Cast explicite — indispensable pour SQLite qui stocke JSON en TEXT
     protected $casts = [
-        'points'  => 'array',
-        'lot_ids' => 'array',
+        'points'  => 'json',
+        'lot_ids' => 'json',
     ];
 
     public function tf()           { return $this->belongsTo(Tf::class); }
