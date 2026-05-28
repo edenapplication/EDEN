@@ -8,12 +8,36 @@ use App\Models\GrandSite;
 
 class SiteController extends Controller
 {
-    public function index($grand_site_id)
-    {
-        $grandsite = GrandSite::findOrFail($grand_site_id);
-        $sites     = Site::where('grand_site_id', $grand_site_id)->with('tfs')->get();
-        return view('admin.sites.index', compact('sites', 'grandsite'));
-    }
+    public function index($grandSiteId)
+{
+    $grandsite = GrandSite::findOrFail($grandSiteId);
+
+    $sites = Site::where('grand_site_id', $grandSiteId)
+        ->with(['tfs.lots', 'tfs.zoneGroupes'])
+        ->get()
+        ->map(function($site) {
+            $lots  = $site->tfs->flatMap(fn($tf) => $tf->lots);
+            $zones = $site->tfs->flatMap(fn($tf) => $tf->zoneGroupes);
+
+            $site->stat_tfs         = $site->tfs->count();
+            $site->stat_lots        = $lots->count();
+            $site->stat_zones       = $zones->count();
+            $site->stat_eden        = $lots->where('origine','eden')->count();
+            $site->stat_famille     = $lots->where('origine','famille')->count();
+            $site->stat_implant     = $lots->where('type','implantation_prevue')->count() + $zones->where('type','implantation_prevue')->count();
+            $site->stat_implante    = $lots->where('type','deja_implante')->count()       + $zones->where('type','deja_implante')->count();
+            $site->stat_dossier     = $lots->where('type','dossier_technique')->count()   + $zones->where('type','dossier_technique')->count();
+            $site->stat_morcel      = $lots->where('type','morcellement')->count()        + $zones->where('type','morcellement')->count();
+            $total  = $site->stat_lots + $site->stat_zones;
+            $actifs = $lots->whereIn('type',['implantation_prevue','deja_implante','dossier_technique','morcellement'])->count()
+                    + $zones->whereIn('type',['implantation_prevue','deja_implante','dossier_technique','morcellement'])->count();
+            $site->stat_activite    = $total > 0 ? round(($actifs / $total) * 100) : 0;
+            $site->stat_superficie  = $lots->sum('superficie');
+            return $site;
+        });
+
+    return view('admin.sites.index', compact('grandsite', 'sites'));
+}
 
     public function create($grand_site_id)
     {

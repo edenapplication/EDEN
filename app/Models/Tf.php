@@ -13,4 +13,8 @@ class Tf extends Model
 
     public function site() { return $this->belongsTo(Site::class); }
     public function lots() { return $this->hasMany(Lot::class); }
+    public function zoneGroupes()
+{
+    return $this->hasMany(ZoneGroupe::class);
+}
 }
