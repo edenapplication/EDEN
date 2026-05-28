@@ -82,7 +82,7 @@
 {{-- HEADER --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 style="font-weight:800;color:#1e3a5f;margin:0;">🏢 Zones & Grand Sites</h2>
+        <h2 style="font-weight:800;color:#1e3a5f;margin:0;">🏢  Grand Sites</h2>
         <div style="font-size:13px;color:#64748b;">{{ $grandsites->count() }} grand(s) site(s) enregistré(s)</div>
     </div>
     <a href="{{ route('grand-sites.create') }}"
@@ -136,10 +136,28 @@
     </div></div>
 </div>
 
+{{-- FILTRE --}}
+<div class="d-flex justify-content-start mb-3">
+    <div style="position:relative;max-width:320px;width:100%;">
+        <input type="text"
+               id="searchGrandSite"
+               class="form-control"
+               placeholder="🔍 Rechercher un grand site..."
+               style="
+                    border-radius:12px;
+                    padding:10px 14px;
+                    border:1px solid #dbe2ea;
+                    box-shadow:none;
+                    font-size:13px;
+               ">
+    </div>
+</div>
+
 @if($grandsites->count())
 <div class="row g-3">
     @foreach($grandsites as $gs)
-    <div class="col-xl-3 col-lg-4 col-md-6">
+    <div class="col-lg-4 col-md-6 gs-filter-item"
+     data-name="{{ strtolower($gs->nom) }}">
         <div class="gs-card">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;">
                 <div class="d-flex gap-3 align-items-center">
@@ -200,11 +218,11 @@
 
             <div class="gs-actions">
                 <a href="{{ route('sites.index', $gs->id) }}" class="gs-btn btn-enter">Entrer →</a>
-                <a href="{{ route('grand-sites.edit', $gs->id) }}" class="gs-btn btn-edit">✏️</a>
+                <a href="{{ route('grand-sites.edit', $gs->id) }}" class="gs-btn btn-edit">✏️Modifier</a>
                 <form action="{{ route('grand-sites.destroy', $gs->id) }}" method="POST"
                       style="display:inline;" onsubmit="return confirm('Supprimer cette zone ?')">
                     @csrf @method('DELETE')
-                    <button class="gs-btn btn-delete">🗑</button>
+                    <button class="gs-btn btn-delete">🗑 Supprimer</button>
                 </form>
             </div>
         </div>
@@ -220,3 +238,30 @@
 @endif
 
 @endsection
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const searchInput = document.getElementById('searchGrandSite');
+    const cards = document.querySelectorAll('.gs-filter-item');
+
+    searchInput.addEventListener('input', function () {
+
+        const value = this.value.toLowerCase().trim();
+
+        cards.forEach(card => {
+
+            const name = card.dataset.name;
+
+            if (name.includes(value)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+
+        });
+
+    });
+
+});
+</script>

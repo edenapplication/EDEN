@@ -1,8 +1,14 @@
+@include('layouts.partials.pwa')
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Eden Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
     <style>
         body { background:#f4f6f9; font-family:"Segoe UI",sans-serif; }
 
@@ -88,9 +94,44 @@
 
         /* ✅ Contenu décalé pour topbar fixe */
         .content { margin-left:230px; padding:24px; padding-top:84px; }
+
+        #splash {
+    position: fixed;
+    top:0;left:0;right:0;bottom:0;
+    background:#1d4ed8;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    font-size:22px;
+    font-weight:bold;
+    z-index:999999;
+}
     </style>
 </head>
+
+
+<script>
+window.addEventListener("load", () => {
+    const splash = document.getElementById('splash');
+
+    if (!splash) return;
+
+    if (sessionStorage.getItem("splashShown")) {
+        splash.remove();
+        return;
+    }
+
+    setTimeout(() => {
+        splash.style.opacity = "0";
+        setTimeout(() => splash.remove(), 300);
+        sessionStorage.setItem("splashShown", "true");
+    }, 800);
+});
+</script>
+
 <body>
+    <div id="splash">⚡ Eden Admin</div>
 
 {{-- ===================== SIDEBAR ===================== --}}
 <div class="sidebar">
@@ -258,6 +299,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log("PWA PRO activée"))
+        .catch(err => console.log(err));
+}
+</script>
+
 @yield('scripts')
 </body>
 </html>

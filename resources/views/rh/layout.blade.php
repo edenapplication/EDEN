@@ -1,3 +1,5 @@
+@include('layouts.partials.pwa')
+
 <!DOCTYPE html>
 <html>
 <head>

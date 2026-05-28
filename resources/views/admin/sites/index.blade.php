@@ -171,9 +171,22 @@
 
 <div class="section-lbl">🏢 Sites disponibles</div>
 
+{{-- FILTRE --}}
+<div class="d-flex justify-content-start mb-3">
+    <div style="max-width:320px;width:100%;position:relative;">
+        <input type="text"
+               id="searchSite"
+               class="form-control"
+               placeholder="🔍 Rechercher un site..."
+               style="border-radius:12px;padding:10px 14px;font-size:13px;">
+    </div>
+</div>
+
 <div class="row g-3">
 @forelse($sites as $site)
-<div class="col-xl-3 col-lg-4 col-md-6">
+<div class="col-lg-4 col-md-6 site-filter-item"
+     data-name="{{ strtolower($site->name) }}">
+
     <div class="site-card site-hover"
          data-name="{{ $site->name }}"
          data-tf="{{ $site->stat_tfs }}"
@@ -256,6 +269,33 @@ document.querySelectorAll('.site-hover').forEach(card => {
         tooltip.style.top  = Math.max(4, top)  + 'px';
     });
     card.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const input = document.getElementById('searchSite');
+    const items = document.querySelectorAll('.site-filter-item');
+
+    input.addEventListener('input', function () {
+
+        const value = this.value.toLowerCase().trim();
+
+        items.forEach(card => {
+
+            const name = card.dataset.name || '';
+
+            if (name.includes(value)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+
+        });
+
+    });
+
 });
 </script>
 @endsection
