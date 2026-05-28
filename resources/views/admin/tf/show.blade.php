@@ -41,9 +41,12 @@
     flex-shrink: 0;
 }
 
+/* Dans le <style> de la vue */
 #map-inner svg {
     display: block;
-    max-width: none; /* override Bootstrap */
+    max-width: none !important;
+    width: auto !important;   /* ✅ laisser le viewBox gérer */
+    height: auto !important;
 }
 
 .client-search-wrap { position:relative; }
@@ -383,59 +386,91 @@ const ZOOM_KEY              = 'tf_zoom_{{ $tf->id }}';
 
 function getSVG() { return mapInner?.querySelector('svg'); }
 
+function getSVGDimensions() {
+    const svg = getSVG();
+    if (!svg) return { w: 800, h: 600 };
+
+    // ✅ Priorité : viewBox (le plus fiable pour les SVG sans width/height)
+    const vb = svg.viewBox?.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+        return { w: vb.width, h: vb.height };
+    }
+    // Fallback : attributs width/height
+    const w = parseFloat(svg.getAttribute('width'))  || 800;
+    const h = parseFloat(svg.getAttribute('height')) || 600;
+    return { w, h };
+}
+
 // ZOOM
 function appliquerZoom(val) {
     const scale = val / 100;
     mapInner.style.transform       = `scale(${scale})`;
     mapInner.style.transformOrigin = '0 0';
-    // ✅ Ajuster la hauteur du map-inner pour que le scroll fonctionne bien
-    const svg = getSVG();
-    if (svg) {
-        const svgW = parseFloat(svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800);
-        const svgH = parseFloat(svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600);
-        mapInner.style.width  = (svgW * scale) + 'px';
-        mapInner.style.height = (svgH * scale) + 'px';
-    }
+    // ✅ Forcer la taille du conteneur interne pour que le scroll soit cohérent
+    const { w: svgW, h: svgH } = getSVGDimensions();
+    mapInner.style.width  = (svgW * scale) + 'px';
+    mapInner.style.height = (svgH * scale) + 'px';
     document.getElementById('svg-zoom-val').innerText = val + '%';
     redessinerCanvas();
     sessionStorage.setItem(ZOOM_KEY, val);
 }
+
+
 function resetZoom() {
+    sessionStorage.removeItem(ZOOM_KEY); // ✅ Forcer recalcul
     const zoom = calculerZoomInitial();
     document.getElementById('svg-zoom').value = zoom;
     appliquerZoom(zoom);
-    // ✅ Remettre le scroll en haut à gauche
     container.scrollTop  = 0;
     container.scrollLeft = 0;
 }
-document.getElementById('svg-zoom').addEventListener('input', function() { appliquerZoom(parseInt(this.value)); });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const zoomVal = parseInt(sessionStorage.getItem(ZOOM_KEY) || '100');
-    document.getElementById('svg-zoom').value = zoomVal;
-    appliquerZoom(zoomVal);
-    syncCanvas(); initSVG(); dessinerZonesGroupes();
+document.getElementById('svg-zoom').addEventListener('input', function() {
+    appliquerZoom(parseInt(this.value));
 });
 
+// ✅ UN SEUL DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    syncCanvas();
+    initSVG();
+    dessinerZonesGroupes();
+
+    const savedZoom = sessionStorage.getItem(ZOOM_KEY);
+
+    if (savedZoom) {
+        // Zoom précédent → le restaurer directement
+        const val = parseInt(savedZoom);
+        document.getElementById('svg-zoom').value = val;
+        appliquerZoom(val);
+    } else {
+        // Pas de zoom sauvegardé → appliquer 100% d'abord pour que le SVG soit rendu,
+        // puis recalculer après 2 frames pour avoir les vraies dimensions du conteneur
+        appliquerZoom(100);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const autoZoom = calculerZoomInitial();
+                document.getElementById('svg-zoom').value = autoZoom;
+                appliquerZoom(autoZoom);
+                syncCanvas();
+                container.scrollTop  = 0;
+                container.scrollLeft = 0;
+            });
+        });
+    }
+});
+
+
 function calculerZoomInitial() {
-    const svg = getSVG();
-    if (!svg) return 100;
-
-    const svgW = parseFloat(svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800);
-    const svgH = parseFloat(svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600);
-
-    if (!svgW || !svgH) return 100;
-
-    const contW = container.clientWidth  || container.offsetWidth  || 900;
-    const contH = container.clientHeight || container.offsetHeight || 500;
-
-    // Zoom pour que la carte rentre en largeur, avec un peu de marge
-    const zoomW = Math.floor((contW  / svgW) * 95);
-    const zoomH = Math.floor((contH  / svgH) * 95);
-
-    // On prend le plus petit pour que tout soit visible
-    const zoom  = Math.min(zoomW, zoomH, 200); // max 200%
-    return Math.max(zoom, 20); // min 20%
+    const { w: svgW, h: svgH } = getSVGDimensions();
+    // Largeur du conteneur moins les scrollbars potentielles
+    const contW = container.clientWidth  - 4;
+    const contH = container.clientHeight - 4;
+    if (!contW || !contH) return 20;
+    // Zoom pour que TOUTE la carte soit visible (le plus contraignant des deux axes)
+    const zoomW = Math.floor((contW / svgW) * 100);
+    const zoomH = Math.floor((contH / svgH) * 100);
+    const zoom  = Math.min(zoomW, zoomH, 200);
+    return Math.max(zoom, 5); // min 5% pour les très grandes cartes
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -470,17 +505,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function syncCanvas() {
-    const svg = getSVG(); if (!svg) return;
-    const w = parseFloat(svg.getAttribute('width')  || svg.viewBox?.baseVal?.width  || 800);
-    const h = parseFloat(svg.getAttribute('height') || svg.viewBox?.baseVal?.height || 600);
+    const { w, h } = getSVGDimensions();
     canvas.width        = w;
     canvas.height       = h;
     canvas.style.width  = w + 'px';
     canvas.style.height = h + 'px';
-    // ✅ Positionner le canvas par-dessus le SVG exactement
-    canvas.style.position = 'absolute';
-    canvas.style.top      = '0';
-    canvas.style.left     = '0';
+    canvas.style.position    = 'absolute';
+    canvas.style.top         = '0';
+    canvas.style.left        = '0';
     canvas.style.pointerEvents = 'none';
 }
 
