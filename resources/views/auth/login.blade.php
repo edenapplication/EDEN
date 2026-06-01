@@ -28,14 +28,27 @@
             text-align: center;
             margin-bottom: 32px;
         }
-        .logo-icon {
-            width: 70px; height: 70px;
-            background: linear-gradient(135deg, #1e3a5f, #2d6cdf);
-            border-radius: 18px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 32px; margin-bottom: 12px;
-            box-shadow: 0 8px 20px rgba(30,58,95,0.3);
-        }
+    .logo-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    background: transparent;   /* ❌ on enlève le bleu */
+    box-shadow: none;          /* optionnel: enlève l’ombre */
+    margin: 0 auto 12px auto;
+}
+
+.logo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* ou cover si tu veux remplir totalement */
+    display: block;
+    object-fit: contain;
+}
         .logo-zone h1 { font-size: 24px; font-weight: 800; color: #1e3a5f; }
         .logo-zone p  { font-size: 13px; color: #64748b; margin-top: 3px; }
         .form-label { font-weight: 600; font-size: 13px; color: #374151; }
@@ -59,7 +72,7 @@
 <body>
 <div class="login-card">
     <div class="logo-zone">
-        <div class="logo-icon">EG</div>
+        <div class="logo-icon"><img src="/images/eden_login.webp" alt="EDEN GROUP"></div>
         <h1>EDEN GROUP</h1>
         <p>Système de gestion EDEN GROUP</p>
     </div>
