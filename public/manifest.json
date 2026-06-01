@@ -1,7 +1,7 @@
 {
     "name": "EDEN GROUP",
     "short_name": "EDEN",
-    "description": "Eden Group — Gestion foncière & RH",
+    "description": "EDEN GROUP — Gestion foncière & RH",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0f172a",
@@ -22,12 +22,12 @@
         {
             "name": "Dashboard Admin",
             "url": "/admin/dashboard",
-            "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+            "icons": [{ "src": "/images/icon-96.png", "sizes": "96x96" }]
         },
         {
             "name": "Dashboard RH",
             "url": "/rh/dashboard",
-            "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+            "icons": [{ "src": "/images/icon-96.png", "sizes": "96x96" }]
         }
     ]
 }

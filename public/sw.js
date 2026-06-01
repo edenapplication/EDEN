@@ -4,8 +4,8 @@ const CACHE_NAME = 'eden-admin-v1';
 const STATIC_ASSETS = [
     '/',
     '/manifest.json',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png',
+    '/images/icon-192.png',
+    '/images/icon-512.png',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
 ];
