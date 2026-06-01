@@ -14,7 +14,7 @@
 }
 </style>
 
-<h2 class="mb-3">💰 Suivi des Dossiers</h2>
+<h2 class="mb-3">💰 Suivi des Parcelles</h2>
 
 {{-- FILTRES --}}
 <form method="GET" class="filter-bar">
