@@ -5,6 +5,13 @@
 
     RewriteEngine On
 
+    # PWA FIX - allow static assets
+RewriteRule ^icons/ - [L]
+RewriteRule ^images/ - [L]
+RewriteRule ^manifest\.json$ - [L]
+RewriteRule ^sw\.js$ - [L]
+RewriteRule ^favicon\.ico$ - [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
