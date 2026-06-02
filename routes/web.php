@@ -230,3 +230,10 @@ Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->
     Route::post('/postes',            [DirectionController::class, 'storePoste'])->name('rh.postes.store');
     Route::delete('/postes/{id}',     [DirectionController::class, 'destroyPoste'])->name('rh.postes.destroy');
 });
+
+Route::post('/deploy', function () {
+
+    exec('/var/www/html/deploy.sh');
+
+    return response('OK', 200);
+});
