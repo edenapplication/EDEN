@@ -8,6 +8,48 @@
 .calc-row { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid #e2e8f0; }
 .calc-row:last-child { border:none; }
 .calc-total { font-size:16px; font-weight:800; color:#1d4ed8; padding-top:8px; border-top:2px solid #1d4ed8; }
+#employe_list {
+    position: absolute;
+    width: 100%;
+    z-index: 9999;
+    background: white;
+    border-radius: 10px;
+    margin-top: 4px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+}
+
+.emp-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.15s ease;
+}
+
+.emp-item:hover {
+    background: #f0f9ff;
+    transform: translateX(2px);
+}
+
+.emp-name {
+    font-weight: 600;
+    color: #1e3a5f;
+    font-size: 14px;
+}
+
+.emp-meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.emp-item:last-child {
+    border-bottom: none;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -27,16 +69,13 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Employé <span class="text-danger">*</span></label>
-                    <select name="employe_id" id="employe_id" class="form-control" required onchange="chargerSalaire()">
-                        <option value="">-- Choisir un employé --</option>
-                        @foreach($employes as $e)
-                            <option value="{{ $e->id }}"
-                                    data-salaire="{{ $e->salaire_base }}"
-                                    {{ request('employe_id') == $e->id ? 'selected' : '' }}>
-                                {{ $e->nom }} {{ $e->prenom }} — {{ $e->matricule }}
-                            </option>
-                        @endforeach
-                    </select>
+
+<input type="text" id="search_employe" class="form-control"
+       placeholder="🔍 Rechercher un employé...">
+
+<input type="hidden" name="employe_id" id="employe_id">
+
+<div id="employe_list" class="list-group position-absolute w-100" style="z-index:999; display:none;"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Période <span class="text-danger">*</span></label>
@@ -273,5 +312,72 @@ function calculer() {
 }
 
 document.addEventListener('DOMContentLoaded', calculer);
+</script>
+<script>
+const employes = [
+    @foreach($employes as $e)
+        {
+            id: {{ $e->id }},
+            nom: "{{ $e->nom }} {{ $e->prenom }}",
+            matricule: "{{ $e->matricule }}",
+            salaire: {{ $e->salaire_base }}
+        },
+    @endforeach
+];
+
+const input = document.getElementById('search_employe');
+const list = document.getElementById('employe_list');
+const hidden = document.getElementById('employe_id');
+
+input.addEventListener('input', function () {
+    const value = this.value.toLowerCase();
+    list.innerHTML = '';
+
+    if (!value) {
+        list.style.display = 'none';
+        return;
+    }
+
+    const filtered = employes.filter(e =>
+        e.nom.toLowerCase().includes(value) ||
+        e.matricule.toLowerCase().includes(value)
+    );
+
+    if (filtered.length === 0) {
+        list.style.display = 'none';
+        return;
+    }
+
+    filtered.forEach(e => {
+        const item = document.createElement('div');
+        item.className = 'emp-item';
+
+        item.innerHTML = `
+            <div class="emp-name">${e.nom}</div>
+            <div class="emp-meta">📌 ${e.matricule}</div>
+        `;
+
+        item.onclick = function () {
+            input.value = e.nom;
+            hidden.value = e.id;
+
+            document.getElementById('salaire_brut').value = e.salaire;
+            calculer();
+
+            list.style.display = 'none';
+        };
+
+        list.appendChild(item);
+    });
+
+    list.style.display = 'block';
+});
+
+// fermer si clic extérieur
+document.addEventListener('click', function (e) {
+    if (!list.contains(e.target) && e.target !== input) {
+        list.style.display = 'none';
+    }
+});
 </script>
 @endsection
