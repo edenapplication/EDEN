@@ -28,6 +28,13 @@ use App\Http\Controllers\RH\SanctionController;
 use App\Http\Controllers\RH\RetardController;
 use App\Http\Controllers\RH\DirectionController;
 
+Route::post('/deploy', function () {
+    exec('cd /var/www/html && git pull origin main');
+    exec('cd /var/www/html && php artisan optimize:clear');
+
+    return response('DEPLOY OK', 200);
+});
+
 // ── AUTHENTIFICATION ─────────────────────────────────────────
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
@@ -229,11 +236,4 @@ Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->
     Route::delete('/services/{id}',   [DirectionController::class, 'destroyService'])->name('rh.services.destroy');
     Route::post('/postes',            [DirectionController::class, 'storePoste'])->name('rh.postes.store');
     Route::delete('/postes/{id}',     [DirectionController::class, 'destroyPoste'])->name('rh.postes.destroy');
-});
-
-Route::post('/deploy', function () {
-    exec('cd /var/www/html && git pull origin main');
-    exec('cd /var/www/html && php artisan optimize:clear');
-
-    return response('DEPLOY OK', 200);
 });
