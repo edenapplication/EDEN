@@ -232,8 +232,8 @@ Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->
 });
 
 Route::post('/deploy', function () {
+    exec('cd /var/www/html && git pull origin main');
+    exec('cd /var/www/html && php artisan optimize:clear');
 
-    exec('/var/www/html/deploy.sh');
-
-    return response('OK', 200);
+    return response('DEPLOY OK', 200);
 });
