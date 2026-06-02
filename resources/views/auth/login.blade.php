@@ -74,7 +74,7 @@
     <div class="logo-zone">
         <div class="logo-icon"><img src="/images/eden_login.webp" alt="EDEN GROUP"></div>
         <h1>EDEN GROUP</h1>
-        <p>Système de gestion EDEN GROUP</p>
+        <p>Système EDEN GROUP</p>
     </div>
 
     @if($errors->any())
