@@ -90,13 +90,14 @@ class PretController extends Controller
             $statut = $request->statut;
 
             // ✅ Normaliser : convertir les valeurs avec accents si elles arrivent
-            $mapping = [
-                'remboursé' => 'rembourse',
-                'rembourse' => 'rembourse',
-                'annulé'    => 'annule',
-                'annule'    => 'annule',
-                'en_cours'  => 'en_cours',
-            ];
+           $mapping = [
+    'remboursé' => 'rembourse',
+    'rembourse' => 'rembourse',
+    'annulé'    => 'annule',
+    'annule'    => 'annule',
+    'en cour'   => 'en_cours',
+    'en_cours'  => 'en_cours',
+];
             $statut = $mapping[$statut] ?? $statut;
 
             if (!in_array($statut, self::STATUTS)) {

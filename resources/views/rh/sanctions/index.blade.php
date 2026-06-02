@@ -43,7 +43,7 @@
     </div>
     <div class="col-md-4">
         <div style="background:white;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:3px solid #16a34a;text-align:center;">
-            <div style="font-size:20px;font-weight:800;color:#16a34a;">{{ $sanctions->where('statut','validé')->count() }}</div>
+            <div style="font-size:20px;font-weight:800;color:#16a34a;">{{ $sanctions->where('statut','valide')->count() }}</div>
             <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Validées</div>
         </div>
     </div>
@@ -70,11 +70,11 @@
         </div>
         <div class="col-md-2">
             <select name="statut" class="form-control form-control-sm">
-                <option value="">Tous statuts</option>
-                <option value="notifié"  {{ request('statut')==='en_attente' ?'selected':'' }}>En attente</option>
-                <option value="validé"   {{ request('statut')==='validé'  ?'selected':'' }}>Validé</option>
-                <option value="annulé"   {{ request('statut')==='annulé'  ?'selected':'' }}>Annulé</option>
-            </select>
+                <option value="en_attente" {{ request('statut')==='en_attente' ?'selected':'' }}>En attente</option>
+<option value="valide"     {{ request('statut')==='valide' ?'selected':'' }}>Validé</option>
+<option value="annule"     {{ request('statut')==='annule' ?'selected':'' }}>Annulé</option>
+<option value="refuse"     {{ request('statut')==='refuse' ?'selected':'' }}>Refusé</option>
+                </select>
         </div>
         <div class="col-md-2">
             <input type="month" name="mois" class="form-control form-control-sm" value="{{ request('mois') }}">
@@ -123,8 +123,8 @@
             <td style="font-weight:700;color:#dc2626;">{{ number_format($s->montant, 0, ',', ' ') }} FCFA</td>
             <td>
                 <span style="font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;
-                    background:{{ $s->statut==='validé'?'#dcfce7':($s->statut==='annulé'?'#f1f5f9':'#fef9c3')}};
-                    color:{{ $s->statut==='validé'?'#15803d':($s->statut==='annulé'?'#475569':'#92400e')}};
+                    background:{{ $s->statut==='valide'?'#dcfce7':($s->statut==='annule'?'#f1f5f9':'#fef9c3')}};
+                    color:{{ $s->statut==='valide'?'#15803d':($s->statut==='annule'?'#475569':'#92400e')}};
                 ">{{ $s->statut }}</span>
             </td>
             <td>
@@ -134,7 +134,7 @@
                             class="btn btn-warning btn-sm" style="font-size:10px;">✏️</button>
                     {{-- ✅ Valider --}}
                     {{-- ✅ Remplacer la condition @if($s->statut === 'en_attente') par : --}}
-@if(in_array($s->statut, ['en_attente', 'notifié', 'notifie']))
+@if(in_array($s->statut, ['en_attente']))
     <form action="{{ route('rh.sanctions.update', $s->id) }}" method="POST" style="display:inline">
         @csrf @method('PUT')
         <input type="hidden" name="statut" value="valide">

@@ -11,7 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class SanctionController extends Controller
 {
     // ✅ Valeurs conformes SQLite — PAS d'accent
-    const STATUTS = ['en_attente', 'valide', 'annule'];
+    const STATUTS = ['en_attente', 'valide', 'annule', 'refuse'];
 
     public function index(Request $request)
     {
@@ -74,14 +74,14 @@ class SanctionController extends Controller
 
         // ✅ Mapping des statuts avec et sans accent → version sans accent
         $mappingStatuts = [
-            'valide'     => 'valide',
-            'validé'     => 'valide',
-            'annule'     => 'annule',
-            'annulé'     => 'annule',
-            'en_attente' => 'en_attente',
-            'notifie'    => 'en_attente',
-            'notifié'    => 'en_attente',
-        ];
+    'validé' => 'valide',
+    'valide' => 'valide',
+    'annulé' => 'annule',
+    'annule' => 'annule',
+    'refusé' => 'refuse',
+    'refuse' => 'refuse',
+    'en_attente' => 'en_attente',
+];
 
         $data = $request->only(['employe_id','type','date','motif','duree_jours','montant','description','statut']);
 
