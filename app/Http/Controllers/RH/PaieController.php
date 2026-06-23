@@ -102,46 +102,82 @@ class PaieController extends Controller
 
     // ✅ PDF liste des bulletins avec solde prêt restant
     public function pdfListe(Request $request)
-    {
-        $periode  = $request->periode ?? now()->format('Y-m');
-        $bulletins = BulletinPaie::with('employe.direction')->where('periode', $periode)->orderBy('vague')->get();
+{
+    $periode = $request->periode ?? now()->format('Y-m');
+    $vague   = $request->vague;
 
-        // Ajouter le solde prêt restant pour chaque employé
-        $bulletins->each(function($b) {
-            $pretRestant = \App\Models\RH\Pret::where('employe_id', $b->employe_id)
-                ->where('statut', 'en_cours')
-                ->get()
-                ->sum(fn($p) => max(0, $p->montant - $p->montant_rembourse));
-            $b->pret_restant = $pretRestant;
-        });
+    $query = BulletinPaie::with('employe.direction')
+                ->where('periode', $periode);
 
-        $pdf = Pdf::loadView('rh.paie.pdf_liste', compact('bulletins', 'periode'))
-                   ->setPaper('a4', 'landscape');
-        return $pdf->download('bulletins_' . $periode . '.pdf');
+    if ($vague) {
+        $query->where('vague', $vague);
     }
 
-    public function recapitulatif(Request $request)
+    $bulletins = $query->orderBy('vague')->get();
+
+    $bulletins->each(function($b) {
+        $pretRestant = \App\Models\RH\Pret::where('employe_id', $b->employe_id)
+            ->where('statut', 'en_cours')
+            ->get()
+            ->sum(fn($p) => max(0, $p->montant - $p->montant_rembourse));
+
+        $b->pret_restant = $pretRestant;
+    });
+
+    $pdf = Pdf::loadView(
+        'rh.paie.pdf_liste',
+        compact('bulletins', 'periode', 'vague')
+    )->setPaper('a4', 'landscape');
+
+    $nom = 'bulletins_'.$periode;
+
+    if ($vague) {
+        $nom .= '_'.str_replace(' ', '_', strtolower($vague));
+    }
+
+    return $pdf->download($nom.'.pdf');
+}
+
+   public function recapitulatif(Request $request)
 {
-    $periode   = $request->periode ?? now()->format('Y-m');
-    $bulletins = BulletinPaie::with('employe.direction')->where('periode', $periode)->get();
+    $periode = $request->periode ?? now()->format('Y-m');
+    $vague   = $request->vague;
+
+    $query = BulletinPaie::with('employe.direction')
+                ->where('periode', $periode);
+
+    if ($vague) {
+        $query->where('vague', $vague);
+    }
+
+    $bulletins = $query->get();
 
     $parDirection = $bulletins->groupBy('employe.direction.nom')->map(fn($g) => [
-        'nb'      => $g->count(),
-        'brut'    => $g->sum('salaire_brut'),
-        'net'     => $g->sum('net_a_payer'),
-        'hs'      => $g->sum('montant_heures_sup'),
-        'sanction'=> $g->sum('montant_sanction'),
-        'acomptes'=> $g->sum('acompte'),
+        'nb'       => $g->count(),
+        'brut'     => $g->sum('salaire_brut'),
+        'net'      => $g->sum('net_a_payer'),
+        'hs'       => $g->sum('montant_heures_sup'),
+        'sanction' => $g->sum('montant_sanction'),
+        'acomptes' => $g->sum('acompte'),
     ]);
 
     if ($request->has('pdf')) {
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rh.paie.recapitulatif_pdf',
-            compact('bulletins', 'periode', 'parDirection')
+        $pdf = Pdf::loadView(
+            'rh.paie.recapitulatif_pdf',
+            compact('bulletins', 'periode', 'parDirection', 'vague')
         )->setPaper('a4', 'landscape');
-        return $pdf->download('recapitulatif_paie_' . $periode . '.pdf');
+
+        $nom = 'recapitulatif_'.$periode;
+
+        if ($vague) {
+            $nom .= '_'.str_replace(' ', '_', strtolower($vague));
+        }
+
+        return $pdf->download($nom.'.pdf');
     }
 
-    return view('rh.paie.recapitulatif', compact('bulletins', 'periode', 'parDirection'));
+    return view('rh.paie.recapitulatif',
+        compact('bulletins', 'periode', 'parDirection', 'vague'));
 }
 
     public function genererMasse(Request $request)

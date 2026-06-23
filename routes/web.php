@@ -236,4 +236,13 @@ Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->
     Route::delete('/services/{id}',   [DirectionController::class, 'destroyService'])->name('rh.services.destroy');
     Route::post('/postes',            [DirectionController::class, 'storePoste'])->name('rh.postes.store');
     Route::delete('/postes/{id}',     [DirectionController::class, 'destroyPoste'])->name('rh.postes.destroy');
+
+    // ===== CONGÉS =====
+Route::get('rh/conges',               [App\Http\Controllers\RH\CongeController::class, 'index'])  ->name('rh.conges.index');
+Route::post('rh/conges',              [App\Http\Controllers\RH\CongeController::class, 'store'])  ->name('rh.conges.store');
+Route::put('rh/conges/{id}',          [App\Http\Controllers\RH\CongeController::class, 'update']) ->name('rh.conges.update');
+Route::delete('rh/conges/{id}',       [App\Http\Controllers\RH\CongeController::class, 'destroy'])->name('rh.conges.destroy');
+Route::get('rh/conges/{id}/pdf',      [App\Http\Controllers\RH\CongeController::class, 'pdf'])    ->name('rh.conges.pdf');
+Route::get('rh/conges/planning-pdf',  [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('rh.conges.planning-pdf');
+
 });

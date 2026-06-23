@@ -23,8 +23,27 @@
             <input type="month" name="periode" class="form-control form-control-sm"
                    value="{{ $periode }}" onchange="this.form.submit()">
         </form>
-        <a href="{{ route('rh.paie.recapitulatif', ['periode' => $periode, 'pdf' => 1]) }}"
-   class="btn btn-outline-danger btn-sm">📄 Télécharger PDF</a>
+        <select name="vague"
+        class="form-select form-select-sm"
+        onchange="this.form.submit()">
+    <option value="">Toutes les vagues</option>
+    <option value="VAGUE 1"
+        {{ request('vague')=='VAGUE 1' ? 'selected' : '' }}>
+        VAGUE 1
+    </option>
+    <option value="VAGUE 2"
+        {{ request('vague')=='VAGUE 2' ? 'selected' : '' }}>
+        VAGUE 2
+    </option>
+</select>
+        <a href="{{ route('rh.paie.recapitulatif', [
+    'periode' => $periode,
+    'vague'   => request('vague'),
+    'pdf'     => 1
+]) }}"
+class="btn btn-outline-danger btn-sm">
+    📄 Télécharger PDF
+</a>
     </div>
 </div>
 
