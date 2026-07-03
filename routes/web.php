@@ -105,6 +105,13 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
 
     // PAIEMENTS — commercial + admin
     Route::middleware('check.role:admin,commercial')->group(function () {
+        // Paiements technique
+Route::post('/paiements-technique/{dossierId}',  [App\Http\Controllers\PaiementTechniqueController::class, 'store'])->name('paiements-technique.store');
+Route::delete('/paiements-technique/{id}',        [App\Http\Controllers\PaiementTechniqueController::class, 'destroy'])->name('paiements-technique.destroy');
+
+// Paiements morcellement
+Route::post('/paiements-morcellement/{dossierId}',[App\Http\Controllers\PaiementMorcellementController::class, 'store'])->name('paiements-morcellement.store');
+Route::delete('/paiements-morcellement/{id}',      [App\Http\Controllers\PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellement.destroy');
         Route::post('/paiements-dossier/{dossierId}',  [PaiementDossierController::class, 'store'])->name('paiements-dossier.store');
         Route::get('/paiements-dossier/{dossierId}',   [PaiementDossierController::class, 'index'])->name('paiements-dossier.index');
         Route::delete('/paiements-dossier/{id}',       [PaiementDossierController::class, 'destroy'])->name('paiements-dossier.destroy');
@@ -245,4 +252,55 @@ Route::delete('rh/conges/{id}',       [App\Http\Controllers\RH\CongeController::
 Route::get('rh/conges/{id}/pdf',      [App\Http\Controllers\RH\CongeController::class, 'pdf'])    ->name('rh.conges.pdf');
 Route::get('rh/conges/planning-pdf',  [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('rh.conges.planning-pdf');
 
+});
+
+// ================================================================
+// MODULE FEB — Espace utilisateur
+// ================================================================
+Route::prefix('feb')->name('feb.')->group(function () {
+
+    // Auth FEB
+    Route::get('login',  [App\Http\Controllers\Feb\AuthController::class, 'showLogin'])->name('login');
+    Route::post('login', [App\Http\Controllers\Feb\AuthController::class, 'login'])->name('login.post');
+    Route::post('logout',[App\Http\Controllers\Feb\AuthController::class, 'logout'])->name('logout');
+
+    Route::middleware('feb.auth')->group(function () {
+
+        // Accueil
+        Route::get('/',      [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('index');
+        Route::get('fiches', [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('fiches.index');
+
+        // ✅ IMPORTANT : routes fixes AVANT les routes avec paramètres {fiche}
+        Route::get('fiches/creer',            [App\Http\Controllers\Feb\FicheController::class, 'creer'])           ->name('fiches.creer');
+        Route::post('fiches/creer-soumettre', [App\Http\Controllers\Feb\FicheController::class, 'creerEtSoumettre'])->name('fiches.creer-soumettre');
+
+        // ✅ Routes avec paramètres APRÈS les routes fixes
+        Route::get('fiches/{fiche}/continuer',[App\Http\Controllers\Feb\FicheController::class, 'continuer'])       ->name('fiches.continuer');
+        Route::get('fiches/{fiche}/utiliser', [App\Http\Controllers\Feb\FicheController::class, 'utiliserModele'])  ->name('fiches.utiliser');
+        Route::get('fiches/{fiche}/pdf',      [App\Http\Controllers\Feb\FicheController::class, 'pdf'])             ->name('fiches.pdf');
+    });
+});
+
+// ================================================================
+// MODULE FEB — Admin
+// ================================================================
+Route::prefix('admin/feb')->name('admin.feb.')->middleware(['auth','check.role:admin'])->group(function () {
+
+    Route::get('/', [App\Http\Controllers\Feb\AdminController::class, 'index'])->name('index');
+
+    // Agences
+    Route::resource('agences',      App\Http\Controllers\Feb\AgenceController::class)     ->names('agences');
+
+    // Colonnes
+    Route::resource('colonnes',     App\Http\Controllers\Feb\ColonneController::class)    ->names('colonnes');
+
+    // Utilisateurs FEB
+    Route::resource('utilisateurs', App\Http\Controllers\Feb\UtilisateurController::class)->names('utilisateurs');
+    Route::post('utilisateurs/{id}/toggle', [App\Http\Controllers\Feb\UtilisateurController::class, 'toggle'])->name('utilisateurs.toggle');
+
+    // ✅ Fiches admin — routes fixes AVANT {fiche}
+    Route::get('fiches',                  [App\Http\Controllers\Feb\AdminFicheController::class, 'index'])    ->name('fiches.index');
+    Route::get('fiches/{fiche}',          [App\Http\Controllers\Feb\AdminFicheController::class, 'show'])     ->name('fiches.show');
+    Route::get('fiches/{fiche}/pdf',      [App\Http\Controllers\Feb\AdminFicheController::class, 'pdf'])      ->name('fiches.pdf');
+    Route::post('fiches/{fiche}/marquer', [App\Http\Controllers\Feb\AdminFicheController::class, 'marquerVue'])->name('fiches.marquer');
 });

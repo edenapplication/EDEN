@@ -8,13 +8,40 @@
 .info-row span:first-child { color:#64748b; }
 .info-row span:last-child  { font-weight:600; color:#1e3a5f; }
 .pay-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid #f8fafc; }
-.pay-amt { font-weight:700; color:#28a745; }
+.pay-amt { font-weight:700; }
 .prog-wrap { height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin-top:4px; }
 .prog-fill  { height:100%; border-radius:4px; }
 .dossier-tab { cursor:pointer; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; background:#f1f5f9; color:#64748b; }
 .dossier-tab.active { background:#0d6efd; color:white; }
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
 .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:400px; }
+
+/* ✅ Blocs de paiement alignés */
+.paiement-blocs { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:16px; }
+.paiement-bloc {
+    border-radius:12px; padding:16px;
+    border:1px solid #e2e8f0;
+    display:flex; flex-direction:column;
+}
+.paiement-bloc.bloc-dossier   { background:#eff6ff; border-left:4px solid #0d6efd; }
+.paiement-bloc.bloc-technique { background:#fff7ed; border-left:4px solid #ea580c; }
+.paiement-bloc.bloc-morcel    { background:#fefce8; border-left:4px solid #ca8a04; }
+
+.paiement-bloc h6 { font-weight:700; font-size:13px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+.btn-add-pay {
+    border:none; color:white; border-radius:8px;
+    padding:5px 12px; font-size:11px; font-weight:600; cursor:pointer;
+}
+.btn-add-pay.dossier   { background:#0d6efd; }
+.btn-add-pay.technique { background:#ea580c; }
+.btn-add-pay.morcel    { background:#ca8a04; }
+
+.pay-total-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
+.pay-historique { margin-top:10px; max-height:160px; overflow-y:auto; }
+
+@media (max-width: 992px) {
+    .paiement-blocs { grid-template-columns:1fr; }
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -23,10 +50,10 @@
         <h2 class="d-inline ms-2">👤 {{ $client->name }}</h2>
     </div>
     <div class="d-flex gap-2">
-    <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}"
-       class="btn btn-primary btn-sm">📂 Nouveau dossier</a>
-    <a href="{{ route('suivi-client.edit', $client->id) }}" class="btn btn-warning btn-sm">✏️ Modifier</a>
-</div>
+        <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}"
+           class="btn btn-primary btn-sm">📂 Nouveau dossier</a>
+        <a href="{{ route('suivi-client.edit', $client->id) }}" class="btn btn-warning btn-sm">✏️ Modifier</a>
+    </div>
 </div>
 
 <div class="row g-3">
@@ -43,7 +70,6 @@
 
     {{-- DOSSIERS CLIENT --}}
     <div class="col-md-8">
-        {{-- ONGLETS DOSSIERS --}}
         @if($client->dossiers->count() > 1)
         <div class="d-flex gap-2 mb-3 flex-wrap">
             @foreach($client->dossiers as $i => $d)
@@ -59,13 +85,7 @@
         <div id="dossier-{{ $dossier->id }}" class="dossier-panel" style="{{ $i > 0 ? 'display:none;' : '' }}">
 
             <div class="section-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
-                    <button class="btn btn-sm btn-success"
-                            onclick="openPaiement({{ $dossier->id }}, '{{ $dossier->nom_dossier }}')">
-                        + Paiement
-                    </button>
-                </div>
+                <h5 class="mb-3">📂 {{ $dossier->nom_dossier }}</h5>
 
                 <div class="info-row"><span>🔗 Facilitateur</span>
                     <span>{{ $dossier->facilitateur?->nom ?? '-' }}
@@ -100,34 +120,101 @@
                     <span>{{ $dossier->prix_superficie ? number_format($dossier->prix_superficie, 0, ',', ' ') . ' FCFA' : '-' }}</span>
                 </div>
 
+                {{-- ============================================================
+                     ✅ TROIS BLOCS DE PAIEMENT DISTINCTS
+                     ============================================================ --}}
                 @php
-                    $totalPaye = $dossier->paiements->sum('montant');
-                    $reste     = max(0, ($dossier->prix_superficie ?? 0) - $totalPaye);
+                    $totalDossier   = $dossier->paiements->sum('montant');
+                    $resteDossier   = max(0, ($dossier->prix_superficie ?? 0) - $totalDossier);
+
+                    $totalTechnique = $dossier->paiementsTechniques->sum('montant');
+                    $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
                 @endphp
 
-                <div class="info-row" style="border-top:2px solid #e2e8f0; margin-top:6px; padding-top:6px;">
-                    <span>Total payé</span>
-                    <span style="color:#28a745; font-weight:700;">{{ number_format($totalPaye, 0, ',', ' ') }} FCFA</span>
-                </div>
-                <div class="info-row">
-                    <span>Reste à payer</span>
-                    <span style="color:{{ $reste > 0 ? '#dc3545' : '#28a745' }}; font-weight:700;">
-                        {{ number_format($reste, 0, ',', ' ') }} FCFA
-                    </span>
-                </div>
+                <div class="paiement-blocs">
 
-                {{-- HISTORIQUE PAIEMENTS --}}
-                @if($dossier->paiements->count())
-                <div style="margin-top:12px;">
-                    <strong style="font-size:12px; color:#64748b;">Historique paiements :</strong>
-                    @foreach($dossier->paiements->sortByDesc('date_paiement') as $p)
-                        <div class="pay-row mt-1">
-                            <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                            <span class="pay-amt">{{ number_format($p->montant, 0, ',', ' ') }} FCFA</span>
+                    {{-- BLOC 1 : PAIEMENT DOSSIER (existant) --}}
+                    <div class="paiement-bloc bloc-dossier">
+                        <h6 style="color:#0d6efd;">
+                            📁 Paiement Parcelle
+                            <button class="btn-add-pay dossier"
+                                    onclick="openPaiement('dossier', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
+                                + Ajouter
+                            </button>
+                        </h6>
+                        <div class="pay-total-row">
+                            <span style="color:#64748b;">Total payé</span>
+                            <span class="pay-amt" style="color:#16a34a;">{{ number_format($totalDossier, 0, ',', ' ') }} FCFA</span>
                         </div>
-                    @endforeach
+                        <div class="pay-total-row">
+                            <span style="color:#64748b;">Reste</span>
+                            <span class="pay-amt" style="color:{{ $resteDossier > 0 ? '#dc2626' : '#16a34a' }};">
+                                {{ number_format($resteDossier, 0, ',', ' ') }} FCFA
+                            </span>
+                        </div>
+                        <div class="pay-historique" id="hist-dossier-{{ $dossier->id }}">
+                            @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row">
+                                    <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
+                                    <span class="pay-amt" style="color:#16a34a;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
+                                </div>
+                            @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- BLOC 2 : PAIEMENT TECHNIQUE --}}
+                    <div class="paiement-bloc bloc-technique">
+                        <h6 style="color:#ea580c;">
+                            🛠️ Paiement Dossier Technique
+                            <button class="btn-add-pay technique"
+                                    onclick="openPaiement('technique', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
+                                + Ajouter
+                            </button>
+                        </h6>
+                        <div class="pay-total-row">
+                            <span style="color:#64748b;">Total payé</span>
+                            <span class="pay-amt" style="color:#ea580c;">{{ number_format($totalTechnique, 0, ',', ' ') }} FCFA</span>
+                        </div>
+                        <div class="pay-historique" id="hist-technique-{{ $dossier->id }}">
+                            @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row">
+                                    <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
+                                    <span class="pay-amt" style="color:#ea580c;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
+                                </div>
+                            @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- BLOC 3 : PAIEMENT MORCELLEMENT --}}
+                    <div class="paiement-bloc bloc-morcel">
+                        <h6 style="color:#ca8a04;">
+                            ✂️ Paiement Morcellement
+                            <button class="btn-add-pay morcel"
+                                    onclick="openPaiement('morcellement', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
+                                + Ajouter
+                            </button>
+                        </h6>
+                        <div class="pay-total-row">
+                            <span style="color:#64748b;">Total payé</span>
+                            <span class="pay-amt" style="color:#ca8a04;">{{ number_format($totalMorcel, 0, ',', ' ') }} FCFA</span>
+                        </div>
+                        <div class="pay-historique" id="hist-morcellement-{{ $dossier->id }}">
+                            @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row">
+                                    <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
+                                    <span class="pay-amt" style="color:#ca8a04;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
+                                </div>
+                            @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                            @endforelse
+                        </div>
+                    </div>
+
                 </div>
-                @endif
             </div>
         </div>
         @endforeach
@@ -140,7 +227,7 @@
 
             @forelse($client->lots as $lot)
                 @php
-                    $typeColors = ['implantation_prevue'=>'#6c757d','deja_implante'=>'#28a745','dossier_technique'=>'#dc3545','morcellement'=>'#fd7e14'];
+                    $typeColors = ['implantation_prevue'=>'#7c3aed','deja_implante'=>'#16a34a','dossier_technique'=>'#dc2626','morcellement'=>'#ca8a04'];
                     $color      = $typeColors[$lot->type] ?? '#0d6efd';
                     $prog       = $lot->dossier?->progression ?? 0;
                     $progColor  = $prog < 40 ? '#dc3545' : ($prog < 75 ? '#fd7e14' : '#28a745');
@@ -177,13 +264,15 @@
     </div>
 </div>
 
-{{-- MODAL PAIEMENT --}}
+{{-- ============================================================
+     MODAL PAIEMENT — réutilisé pour les 3 types
+     ============================================================ --}}
 <div class="modal-overlay" id="paiementOverlay" onclick="closePaiement()"></div>
 <div class="modal-box" id="paiementModal">
-    <h5>💰 Ajouter un paiement — <span id="dossierNom"></span></h5>
-    <input type="number" id="montant" class="form-control mt-3" placeholder="Montant (FCFA)">
+    <h5 id="paiementTitre">💰 Ajouter un paiement — <span id="dossierNom"></span></h5>
+    <input type="number" id="montant"  class="form-control mt-3" placeholder="Montant (FCFA)">
     <input type="date"   id="datePaie" class="form-control mt-2">
-    <input type="text"   id="note"    class="form-control mt-2" placeholder="Note (optionnel)">
+    <input type="text"   id="note"     class="form-control mt-2" placeholder="Note (optionnel)">
     <div class="d-flex justify-content-between mt-3">
         <button class="btn btn-secondary" onclick="closePaiement()">Annuler</button>
         <button class="btn btn-success"   onclick="savePaiement()">Ajouter</button>
@@ -195,6 +284,13 @@
 @section('scripts')
 <script>
 let currentDossierId = null;
+let currentType       = 'dossier'; // dossier | technique | morcellement
+
+const TYPE_CONFIG = {
+    dossier:      { url: '/admin/paiements-dossier',      titre: '📁 Paiement Parcelle — ',      btnColor: 'btn-success' },
+    technique:    { url: '/admin/paiements-technique',    titre: '🛠️ Paiement Dossier Technique — ',    btnColor: 'btn-success' },
+    morcellement: { url: '/admin/paiements-morcellement', titre: '✂️ Paiement Morcellement — ',  btnColor: 'btn-success' },
+};
 
 function showDossier(id, tab) {
     document.querySelectorAll('.dossier-panel').forEach(p => p.style.display = 'none');
@@ -203,9 +299,12 @@ function showDossier(id, tab) {
     tab.classList.add('active');
 }
 
-function openPaiement(dossierId, nom) {
+function openPaiement(type, dossierId, nom) {
     currentDossierId = dossierId;
-    document.getElementById('dossierNom').innerText = nom;
+    currentType       = type;
+    const cfg = TYPE_CONFIG[type];
+
+    document.getElementById('paiementTitre').innerHTML = cfg.titre + '<span id="dossierNom">' + nom + '</span>';
     document.getElementById('montant').value  = '';
     document.getElementById('datePaie').value = '';
     document.getElementById('note').value     = '';
@@ -219,12 +318,18 @@ function closePaiement() {
 }
 
 function savePaiement() {
-    fetch(`/admin/paiements-dossier/${currentDossierId}`, {
+    const cfg = TYPE_CONFIG[currentType];
+    const montant = document.getElementById('montant').value;
+    const date    = document.getElementById('datePaie').value;
+
+    if (!montant || !date) { alert('Montant et date obligatoires.'); return; }
+
+    fetch(`${cfg.url}/${currentDossierId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({
-            montant:       document.getElementById('montant').value,
-            date_paiement: document.getElementById('datePaie').value,
+            montant:       montant,
+            date_paiement: date,
             note:          document.getElementById('note').value,
         })
     })
@@ -232,7 +337,8 @@ function savePaiement() {
     .then(data => {
         if (data.success) location.reload();
         else alert(data.message || 'Erreur');
-    });
+    })
+    .catch(e => alert('Erreur réseau : ' + e.message));
 }
 </script>
 @endsection

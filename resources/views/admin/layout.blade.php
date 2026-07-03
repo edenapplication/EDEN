@@ -98,6 +98,10 @@
         .role-tag.admin    { background:rgba(220,38,38,0.2); color:#fca5a5; }
         .role-tag.rh       { background:rgba(124,58,237,0.2); color:#c4b5fd; }
         .role-tag.commercial { background:rgba(16,185,129,0.2); color:#6ee7b7; }
+        @keyframes badgePulse {
+    0%,100% { background:#dc2626; }
+    50%      { background:#f87171; }
+}
 
         /* TOPBAR */
         .topbar {
@@ -272,6 +276,30 @@
                 @endif
             </div>
             @endif
+
+          {{-- MODULE FEB — admin seulement --}}
+@if($role === 'admin')
+@php
+    $nbFebNew = \App\Models\Feb\Fiche::where('vue_admin', false)
+                    ->where('statut', 'soumise')
+                    ->count();
+@endphp
+<div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;">
+    <a href="{{ route('admin.feb.index') }}" onclick="fermerSidebar()"
+       class="{{ request()->is('admin/feb*') ? 'active' : '' }}"
+       style="position:relative;">
+        <span>📋</span> Fiches d'Expression
+        @if($nbFebNew > 0)
+            <span style="
+                background:#dc2626; color:white; border-radius:10px;
+                font-size:9px; padding:2px 7px; font-weight:800;
+                margin-left:auto; flex-shrink:0;
+                animation:badgePulse 1.5s infinite;
+            ">{{ $nbFebNew }}</span>
+        @endif
+    </a>
+</div>
+@endif
 
             {{-- ✅ RAPPORTS & DONNÉES — admin uniquement --}}
             @if($role === 'admin')

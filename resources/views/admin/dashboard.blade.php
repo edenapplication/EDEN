@@ -181,57 +181,7 @@
     </div>
 </div>
 
-{{-- ===== TABLEAU LOTS ===== --}}
-<div class="dashboard-card mt-2">
-    <h5>📌 Lots</h5>
-    <table class="table table-hover table-sm mt-3" style="font-size:13px;">
-        <thead class="table-dark">
-            <tr>
-                <th>CODE</th>
-                <th>GRAND SITE</th>
-                <th>SITE</th>
-                <th>TF</th>
-                <th>ORIGINE</th>
-                <th>TYPE</th>
-                <th>CLIENT</th>
-                <th>SUPERFICIE</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach($lots as $lot)
-            <tr>
-                <td><strong>{{ strtoupper($lot->code) }}</strong></td>
-                <td>{{ $lot->tf?->site?->grandSite?->nom ?? '-' }}</td>
-                <td>{{ $lot->tf?->site?->name ?? '-' }}</td>
-                <td>
-                    <span class="tf-title-short" title="{{ $lot->tf?->title }}">{{ $lot->tf?->title ?? '-' }}</span>
-                </td>
-                <td>
-                    <span class="badge {{ $lot->origine === 'eden' ? 'bg-primary' : 'bg-dark' }}">
-                        {{ $lot->origine ?? '-' }}
-                    </span>
-                </td>
-                <td>
-                    @if($lot->type)
-                        <span class="badge
-                            @if($lot->type === 'deja_implante') bg-success
-                            @elseif($lot->type === 'implantation_prevue') bg-secondary
-                            @elseif($lot->type === 'dossier_technique') bg-danger
-                            @elseif($lot->type === 'morcellement') bg-warning text-dark
-                            @endif">
-                            {{ str_replace('_', ' ', $lot->type) }}
-                        </span>
-                    @else
-                        <span class="text-muted">-</span>
-                    @endif
-                </td>
-                <td>{{ $lot->owner_name ?? '-' }}</td>
-                <td>{{ $lot->superficie ? number_format($lot->superficie, 0, ',', ' ') . ' m²' : '-' }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-</div>
+
 
 @endsection
 @section('scripts')

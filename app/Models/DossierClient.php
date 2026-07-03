@@ -33,4 +33,14 @@ class DossierClient extends Model
     }
 
     public function lots() { return $this->hasMany(Lot::class); }
+
+    public function paiementsTechniques()
+{
+    return $this->hasMany(PaiementTechnique::class, 'dossier_client_id');
+}
+
+public function paiementsMorcellements()
+{
+    return $this->hasMany(PaiementMorcellement::class, 'dossier_client_id');
+}
 }

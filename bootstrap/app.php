@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
 
             'check.role' => \App\Http\Middleware\CheckRole::class,
+            'feb.auth'   => \App\Http\Middleware\FebAuth::class,
 
         ]);
 
@@ -25,4 +26,4 @@ return Application::configure(basePath: dirname(__DIR__))
 
         //
 
-    })->create();
+    })->create(); 

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nouvelle fiche FEB</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { box-sizing:border-box; }
+        body { background:#f4f6f9; font-family:"Segoe UI",sans-serif; margin:0; }
+
+        .topbar {
+            background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+            color:white; padding:0 28px; height:60px;
+            display:flex; align-items:center; justify-content:space-between;
+            position:sticky; top:0; z-index:200;
+            box-shadow:0 2px 12px rgba(0,0,0,0.15);
+        }
+
+        .page-wrap { display:flex; gap:0; min-height:calc(100vh - 60px); }
+
+        .sidebar-resume {
+            width:270px; flex-shrink:0;
+            background:#0f172a; color:#cbd5e1;
+            position:sticky; top:60px; height:calc(100vh - 60px);
+            overflow-y:auto; padding:16px;
+            scrollbar-width:thin;
+        }
+        .sidebar-resume h6 { color:#60a5fa; font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:700; margin-bottom:10px; }
+        .resume-fiche-titre { font-weight:800; color:white; font-size:14px; margin-bottom:12px; word-break:break-word; }
+        .resume-section { background:rgba(255,255,255,0.06); border-radius:8px; padding:10px; margin-bottom:8px; border-left:3px solid #1d4ed8; cursor:pointer; transition:0.15s; }
+        .resume-section:hover { background:rgba(255,255,255,0.1); }
+        .resume-section.ok { border-left-color:#16a34a; }
+        .resume-section .sec-titre { font-size:12px; font-weight:700; color:white; }
+        .resume-section .sec-stats { font-size:10px; color:#64748b; margin-top:3px; }
+        .resume-total { background:rgba(22,163,74,0.15); border:1px solid #16a34a; border-radius:8px; padding:10px; margin-top:10px; }
+        .resume-total .label { font-size:10px; color:#64748b; text-transform:uppercase; }
+        .resume-total .montant { font-size:18px; font-weight:800; color:#16a34a; }
+
+        .main-content { flex:1; padding:24px; overflow-y:auto; }
+
+        .card-section { background:white; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,0.06); margin-bottom:20px; overflow:hidden; }
+        .card-header-sec { background:#1e3a5f; color:white; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; }
+        .card-header-sec .sec-num { font-size:11px; opacity:0.6; }
+        .card-body-sec { padding:18px; }
+
+        .colonnes-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+        .col-chip { display:inline-flex; align-items:center; gap:5px; border:2px solid #e2e8f0; border-radius:8px; padding:5px 12px; cursor:pointer; font-size:12px; transition:0.15s; user-select:none; background:#f8fafc; }
+        .col-chip input { display:none; }
+        .col-chip.active { background:#dbeafe; border-color:#1d4ed8; color:#1d4ed8; font-weight:700; }
+        .col-chip:hover { border-color:#1d4ed8; }
+
+        .tableau-wrap { overflow-x:auto; margin-bottom:8px; }
+        .tableau-fiche { width:100%; border-collapse:collapse; min-width:500px; }
+        .tableau-fiche thead tr { background:#1e3a5f; color:white; }
+        .tableau-fiche thead th { padding:10px; font-size:12px; font-weight:700; text-align:left; white-space:nowrap; }
+        .tableau-fiche thead th.th-num { width:40px; text-align:center; }
+        .tableau-fiche thead th.th-act { width:36px; }
+        .tableau-fiche tbody td { border-bottom:1px solid #e2e8f0; padding:2px 4px; }
+        .tableau-fiche tbody tr:nth-child(even) td { background:#f8fafc; }
+
+        .cell-input { border:none; background:transparent; width:100%; font-size:13px; padding:7px 8px; outline:none; border-radius:6px; transition:0.1s; }
+        .cell-input:focus { background:#eff6ff; }
+        .cell-input.num { text-align:right; }
+        .cell-input.readonly { color:#16a34a; font-weight:700; background:transparent; cursor:default; }
+
+        .btn-rm-row { background:none; border:none; color:#dc2626; cursor:pointer; font-size:14px; padding:4px 6px; border-radius:4px; }
+        .btn-rm-row:hover { background:#fee2e2; }
+        .btn-add-row { background:white; border:2px dashed #1d4ed8; color:#1d4ed8; border-radius:8px; padding:8px; width:100%; font-weight:700; font-size:13px; cursor:pointer; margin-top:6px; }
+        .btn-add-row:hover { background:#eff6ff; }
+
+        .total-section-bar { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:13px; }
+        .total-section-bar .ts-label { color:#64748b; font-weight:600; }
+        .total-section-bar .ts-val { font-size:17px; font-weight:800; color:#16a34a; }
+
+        .btn-add-section { background:white; border:2px dashed #7c3aed; color:#7c3aed; border-radius:12px; padding:14px; width:100%; font-weight:700; font-size:14px; cursor:pointer; margin-bottom:20px; }
+        .btn-add-section:hover { background:#faf5ff; }
+
+        .footer-actions { background:white; border-radius:14px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:center; }
+        .btn-soumettre { background:linear-gradient(135deg,#16a34a,#15803d); color:white; border:none; border-radius:12px; padding:14px 30px; font-weight:800; font-size:15px; cursor:pointer; }
+        .btn-soumettre:hover { opacity:0.9; }
+        .btn-soumettre:disabled { opacity:0.4; cursor:not-allowed; }
+
+        .total-global { background:linear-gradient(135deg,#1e3a5f,#1d4ed8); color:white; border-radius:14px; padding:18px 22px; text-align:right; margin-bottom:20px; display:none; }
+        .total-global .label { font-size:12px; opacity:0.7; }
+        .total-global .montant { font-size:26px; font-weight:900; }
+
+        .info-bar { background:#dbeafe; border-radius:10px; padding:12px 16px; font-size:13px; color:#1d4ed8; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .btn-rm-section { background:none; border:none; color:rgba(255,255,255,0.6); font-size:16px; cursor:pointer; padding:0 4px; }
+        .btn-rm-section:hover { color:white; }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div>
+        <div style="font-weight:800;font-size:15px;">📋 Nouvelle Fiche d'Expression des Besoins</div>
+        <div style="font-size:11px;opacity:0.7;">Tout se fait sur cette page · Soumettez quand vous êtes prêt</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:12px;background:rgba(255,255,255,0.18);padding:5px 12px;border-radius:16px;">
+            👤 {{ $user->nom_complet }} — {{ $user->agence?->nom ?? '-' }}
+        </div>
+        <a href="{{ route('feb.fiches.index') }}"
+           style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;background:rgba(255,255,255,0.1);padding:5px 12px;border-radius:8px;">
+            ← Mes fiches
+        </a>
+    </div>
+</div>
+
+<div class="page-wrap">
+
+    {{-- SIDEBAR RÉSUMÉ --}}
+    <div class="sidebar-resume">
+        <h6>📋 Résumé en cours</h6>
+        <div class="resume-fiche-titre" id="resume-titre">Sans titre</div>
+        <div id="resume-sections">
+            <div style="color:#475569;font-size:12px;">Aucune section</div>
+        </div>
+        <div class="resume-total mt-3">
+            <div class="label">Total général</div>
+            <div class="montant" id="resume-total-global">0 FCFA</div>
+        </div>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:10px;color:#475569;margin-bottom:6px;">Colonnes disponibles</div>
+            @foreach($colonnes as $col)
+            <div style="font-size:11px;color:#64748b;padding:3px 0;">• {{ $col->libelle }}</div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- CONTENU PRINCIPAL --}}
+    <div class="main-content">
+
+        <div class="info-bar">
+            ℹ️ Remplissez le titre, ajoutez vos sections, choisissez les colonnes et saisissez vos données. Soumettez quand vous avez terminé.
+        </div>
+
+        {{-- TITRE + DESCRIPTION --}}
+        <div class="card-section">
+            <div class="card-body-sec">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold" style="color:#1e3a5f;">
+                            Titre de la fiche <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="fiche-titre" class="form-control form-control-lg"
+                               placeholder="Ex : Expression des besoins Janvier 2025"
+                               oninput="mettreAJourTitre(); mettreAJourBoutonSoumettre();">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold" style="color:#1e3a5f;">
+                            Description <span class="text-muted" style="font-size:11px;">(optionnel)</span>
+                        </label>
+                        <textarea id="fiche-desc" class="form-control" rows="2"
+                                  placeholder="Courte description..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- TOTAL GLOBAL --}}
+        <div class="total-global" id="total-global-bar">
+            <div class="label">TOTAL GÉNÉRAL DE LA FICHE</div>
+            <div class="montant" id="total-global-val">0 FCFA</div>
+        </div>
+
+        {{-- SECTIONS --}}
+        <div id="sections-container"></div>
+
+        {{-- AJOUTER SECTION --}}
+        <button type="button" class="btn-add-section" onclick="ajouterSection()">
+            + Ajouter une section
+        </button>
+
+        {{-- FOOTER --}}
+        <div class="footer-actions">
+            <a href="{{ route('feb.fiches.index') }}" class="btn btn-light">← Annuler</a>
+            <div style="text-align:right;">
+                <div style="font-size:12px;color:#64748b;margin-bottom:6px;" id="hint-soumettre">
+                    Remplissez au moins une section avec des données.
+                </div>
+                <button class="btn-soumettre" id="btn-soumettre" onclick="soumettre()" disabled>
+                    ✅ Soumettre la fiche
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const CSRF          = '{{ csrf_token() }}';
+const MODELE_ID     = {{ $modele?->id ?? 'null' }};
+const URL_SOUMETTRE = '{{ route("feb.fiches.creer-soumettre") }}';
+const URL_RETOUR    = '{{ route("feb.fiches.index") }}';
+
+const COLONNES_DISPO = @json($colonnes->values());
+
+// Libellés qui déclenchent le calcul automatique
+const EST_QTE    = (lib) => lib.toLowerCase().includes('quantit');
+const EST_PU     = (lib) => lib.toLowerCase().includes('prix u') || lib.toLowerCase().includes('p.u') || lib.toLowerCase().includes('unitaire');
+const EST_PT     = (lib) => lib.toLowerCase().includes('prix total') || lib.toLowerCase().includes('p.t') || lib.toLowerCase().includes('montant total');
+const EST_NUM    = (lib) => EST_QTE(lib) || lib.toLowerCase().includes('prix') || lib.toLowerCase().includes('montant');
+
+// ============================================================
+// STATE
+// ============================================================
+let sections     = [];
+let sectionCount = 0;
+let lignesCount  = {};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    @if($modele)
+        // Pré-remplir depuis le modèle
+        document.getElementById('fiche-titre').value = @json($modele->titre ?? '');
+        mettreAJourTitre();
+        @foreach($modele->sections as $sec)
+        (function() {
+            const secId = ajouterSection(@json($sec->titre), false);
+            const sec   = sections.find(s => s.id === secId);
+            if (!sec) return;
+            // Colonnes
+            @foreach($sec->colonnes as $col)
+            if (!sec.colonnesIds.includes({{ $col->id }})) {
+                sec.colonnesIds.push({{ $col->id }});
+                const chip = document.getElementById('chip-' + secId + '-{{ $col->id }}');
+                if (chip) chip.classList.add('active');
+            }
+            @endforeach
+            reconstruireEntete(secId);
+            // Lignes
+            @foreach($sec->lignes as $ligne)
+            ajouterLigne(secId, @json($ligne->valeurs));
+            @endforeach
+            calculerTotaux(secId);
+        })();
+        @endforeach
+    @else
+        ajouterSection();
+    @endif
+
+    mettreAJourResume();
+    mettreAJourBoutonSoumettre();
+});
+
+// ============================================================
+// SECTION
+// ============================================================
+function ajouterSection(titrePre = '', avecLigneVide = true) {
+    sectionCount++;
+    const secId = 'sec-' + sectionCount;
+
+    // Colonnes par défaut (désignation, quantité, prix unitaire, prix total)
+    const defaut = COLONNES_DISPO
+        .filter(c => {
+            const l = c.libelle.toLowerCase();
+            return l.includes('d\u00e9sign') || l.includes('design') ||
+                   EST_QTE(l) || EST_PU(l) || EST_PT(l);
+        })
+        .map(c => c.id);
+
+    sections.push({ id: secId, titre: titrePre, colonnesIds: [...defaut], totalCalcule: 0 });
+    lignesCount[secId] = 0;
+
+    const container = document.getElementById('sections-container');
+    const div = document.createElement('div');
+    div.className     = 'card-section';
+    div.id            = 'card-' + secId;
+    div.dataset.secId = secId;
+
+    div.innerHTML = `
+        <div class="card-header-sec">
+            <div style="flex:1;margin-right:10px;">
+                <div class="sec-num">Section ${sectionCount}</div>
+                <input type="text"
+                       id="titre-${secId}"
+                       class="form-control form-control-sm mt-1"
+                       style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;font-weight:700;font-size:14px;"
+                       placeholder="Titre de la section..."
+                       value="${escHtml(titrePre)}"
+                       oninput="mettreAJourTitreSection('${secId}'); mettreAJourResume();">
+            </div>
+            <button class="btn-rm-section" onclick="supprimerSection('${secId}')" title="Supprimer">✕</button>
+        </div>
+        <div class="card-body-sec">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px;">
+                ① Cochez les colonnes à utiliser
+            </div>
+            <div class="colonnes-grid" id="colonnes-grid-${secId}">
+                ${COLONNES_DISPO.map(col => `
+                    <label class="col-chip ${defaut.includes(col.id) ? 'active' : ''}"
+                           id="chip-${secId}-${col.id}"
+                           onclick="toggleColonne('${secId}', ${col.id})">
+                        <input type="checkbox" ${defaut.includes(col.id) ? 'checked' : ''}>
+                        ${escHtml(col.libelle)}
+                    </label>
+                `).join('')}
+                ${COLONNES_DISPO.length === 0
+                    ? '<div style="color:#f87171;font-size:12px;">⚠️ Aucune colonne — contactez l\'administrateur.</div>'
+                    : ''}
+            </div>
+
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin:14px 0 8px;">
+                ② Saisissez vos données
+            </div>
+            <div class="tableau-wrap">
+                <table class="tableau-fiche" id="table-${secId}">
+                    <thead>
+                        <tr id="thead-${secId}">
+                            <th class="th-num">#</th>
+                            ${defaut.map(cid => {
+                                const col = COLONNES_DISPO.find(c => c.id === cid);
+                                return col ? `<th data-col-id="${cid}">${escHtml(col.libelle)}</th>` : '';
+                            }).join('')}
+                            <th class="th-act"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-${secId}"></tbody>
+                </table>
+            </div>
+            <button type="button" class="btn-add-row" onclick="ajouterLigne('${secId}')">
+                + Ajouter une ligne
+            </button>
+            <div class="total-section-bar">
+                <span class="ts-label">Total de cette section</span>
+                <span class="ts-val" id="total-sec-${secId}">0 FCFA</span>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(div);
+
+    if (avecLigneVide) ajouterLigne(secId);
+
+    mettreAJourResume();
+    mettreAJourBoutonSoumettre();
+    setTimeout(() => div.scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+
+    return secId;
+}
+
+function supprimerSection(secId) {
+    if (sections.length <= 1) { alert('Il faut au moins une section.'); return; }
+    if (!confirm('Supprimer cette section ?')) return;
+    sections = sections.filter(s => s.id !== secId);
+    document.getElementById('card-' + secId)?.remove();
+    mettreAJourResume();
+    mettreAJourTotalGlobal();
+    mettreAJourBoutonSoumettre();
+}
+
+function mettreAJourTitreSection(secId) {
+    const sec = sections.find(s => s.id === secId);
+    if (sec) sec.titre = document.getElementById('titre-' + secId)?.value ?? '';
+}
+
+// ============================================================
+// COLONNES
+// ============================================================
+function toggleColonne(secId, colonneId) {
+    const sec = sections.find(s => s.id === secId);
+    if (!sec) return;
+    const chip = document.getElementById(`chip-${secId}-${colonneId}`);
+    const idx  = sec.colonnesIds.indexOf(colonneId);
+    if (idx === -1) {
+        sec.colonnesIds.push(colonneId);
+        chip?.classList.add('active');
+    } else {
+        sec.colonnesIds.splice(idx, 1);
+        chip?.classList.remove('active');
+    }
+    reconstruireEntete(secId);
+    reconstruireLignes(secId);
+    mettreAJourResume();
+    mettreAJourBoutonSoumettre();
+}
+
+function reconstruireEntete(secId) {
+    const sec      = sections.find(s => s.id === secId);
+    const theadRow = document.getElementById('thead-' + secId);
+    if (!sec || !theadRow) return;
+    theadRow.innerHTML = '<th class="th-num">#</th>';
+    sec.colonnesIds.forEach(cid => {
+        const col = COLONNES_DISPO.find(c => c.id === cid);
+        if (!col) return;
+        const th = document.createElement('th');
+        th.dataset.colId = cid;
+        th.innerText     = col.libelle;
+        theadRow.appendChild(th);
+    });
+    const thAct = document.createElement('th');
+    thAct.className = 'th-act';
+    theadRow.appendChild(thAct);
+}
+
+function reconstruireLignes(secId) {
+    const sec   = sections.find(s => s.id === secId);
+    const tbody = document.getElementById('tbody-' + secId);
+    if (!sec || !tbody) return;
+    // Sauver valeurs
+    const valsSaved = {};
+    tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+        const n = tr.dataset.ligne;
+        valsSaved[n] = {};
+        tr.querySelectorAll('input[data-col]').forEach(inp => {
+            valsSaved[n][inp.dataset.col] = inp.value;
+        });
+    });
+    // Reconstruire
+    tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+        const n    = tr.dataset.ligne;
+        const vals = valsSaved[n] || {};
+        construireCellulesLigne(tr, secId, sec, n, vals);
+    });
+    calculerTotaux(secId);
+}
+
+// ============================================================
+// LIGNES
+// ============================================================
+function ajouterLigne(secId, valeursPre = {}) {
+    const sec   = sections.find(s => s.id === secId);
+    const tbody = document.getElementById('tbody-' + secId);
+    if (!sec || !tbody) return;
+
+    lignesCount[secId] = (lignesCount[secId] || 0) + 1;
+    const numLigne = lignesCount[secId];
+
+    const tr = document.createElement('tr');
+    tr.dataset.ligne = numLigne;
+    construireCellulesLigne(tr, secId, sec, numLigne, valeursPre);
+    tbody.appendChild(tr);
+
+    setTimeout(() => tr.querySelector('.cell-input:not(.readonly)')?.focus(), 50);
+
+    calculerTotaux(secId);
+    mettreAJourResume();
+    mettreAJourBoutonSoumettre();
+}
+
+function construireCellulesLigne(tr, secId, sec, numLigne, valeurs = {}) {
+    tr.innerHTML = `<td style="text-align:center;color:#94a3b8;font-size:11px;padding:4px 6px;min-width:30px;">${numLigne}</td>`;
+
+    sec.colonnesIds.forEach(cid => {
+        const col      = COLONNES_DISPO.find(c => c.id === cid);
+        if (!col) return;
+        const lib      = col.libelle;
+        const estPT    = EST_PT(lib);
+        const estNum   = EST_NUM(lib);
+
+        const td  = document.createElement('td');
+        const inp = document.createElement('input');
+        inp.className    = 'cell-input' + (estNum ? ' num' : '') + (estPT ? ' readonly' : '');
+        inp.dataset.col  = cid;
+        inp.dataset.sec  = secId;
+        inp.placeholder  = lib;
+        inp.value        = valeurs[cid] ?? '';
+        inp.autocomplete = 'off';
+
+        if (estPT) {
+            inp.readOnly = true;
+        } else {
+            inp.addEventListener('input', () => calculerTotaux(secId));
+        }
+        td.appendChild(inp);
+        tr.appendChild(td);
+    });
+
+    const tdAct = document.createElement('td');
+    tdAct.style.textAlign = 'center';
+    tdAct.innerHTML = `<button class="btn-rm-row" onclick="supprimerLigne(this,'${secId}')" title="Supprimer ligne">✕</button>`;
+    tr.appendChild(tdAct);
+}
+
+function supprimerLigne(btn, secId) {
+    const tbody = document.getElementById('tbody-' + secId);
+    if (tbody.querySelectorAll('tr[data-ligne]').length <= 1) {
+        alert('Il faut au moins une ligne.'); return;
+    }
+    btn.closest('tr').remove();
+    tbody.querySelectorAll('tr[data-ligne]').forEach((tr, i) => {
+        tr.dataset.ligne = i + 1;
+        tr.querySelector('td').innerText = i + 1;
+    });
+    lignesCount[secId] = tbody.querySelectorAll('tr[data-ligne]').length;
+    calculerTotaux(secId);
+    mettreAJourResume();
+    mettreAJourBoutonSoumettre();
+}
+
+// ============================================================
+// CALCULS
+// ============================================================
+function calculerTotaux(secId) {
+    const sec   = sections.find(s => s.id === secId);
+    const tbody = document.getElementById('tbody-' + secId);
+    if (!sec || !tbody) return;
+
+    const colQte = sec.colonnesIds.find(cid => {
+        const c = COLONNES_DISPO.find(x => x.id === cid); return c && EST_QTE(c.libelle);
+    });
+    const colPU  = sec.colonnesIds.find(cid => {
+        const c = COLONNES_DISPO.find(x => x.id === cid); return c && EST_PU(c.libelle);
+    });
+    const colPT  = sec.colonnesIds.find(cid => {
+        const c = COLONNES_DISPO.find(x => x.id === cid); return c && EST_PT(c.libelle);
+    });
+
+    let totalSection = 0;
+
+    tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+        if (colQte && colPU && colPT) {
+            const qteStr = tr.querySelector(`[data-col="${colQte}"]`)?.value ?? '0';
+            const puStr  = tr.querySelector(`[data-col="${colPU}"]`)?.value ?? '0';
+            const qte    = parseFloat(qteStr.replace(/\s/g,'').replace(',','.')) || 0;
+            const pu     = parseFloat(puStr.replace(/\s/g,'').replace(',','.')) || 0;
+            const pt     = qte * pu;
+            const inp    = tr.querySelector(`[data-col="${colPT}"]`);
+            if (inp) inp.value = pt > 0 ? fmt(pt) : '';
+            totalSection += pt;
+        } else if (colPT) {
+            const ptStr = tr.querySelector(`[data-col="${colPT}"]`)?.value ?? '0';
+            totalSection += parseFloat(ptStr.replace(/\s/g,'').replace(',','.')) || 0;
+        }
+    });
+
+    sec.totalCalcule = totalSection;
+    const el = document.getElementById('total-sec-' + secId);
+    if (el) el.innerText = fmt(totalSection) + ' FCFA';
+
+    mettreAJourTotalGlobal();
+    mettreAJourResume();
+}
+
+function mettreAJourTotalGlobal() {
+    const total = sections.reduce((s, sec) => s + (sec.totalCalcule || 0), 0);
+    const el    = document.getElementById('total-global-val');
+    const bar   = document.getElementById('total-global-bar');
+    const res   = document.getElementById('resume-total-global');
+    if (el)  el.innerText  = fmt(total) + ' FCFA';
+    if (res) res.innerText = fmt(total) + ' FCFA';
+    if (bar) bar.style.display = total > 0 ? 'block' : 'none';
+}
+
+// ============================================================
+// RÉSUMÉ
+// ============================================================
+function mettreAJourTitre() {
+    const t  = document.getElementById('fiche-titre')?.value || 'Sans titre';
+    const el = document.getElementById('resume-titre');
+    if (el) el.innerText = t;
+}
+
+function mettreAJourResume() {
+    const c = document.getElementById('resume-sections');
+    if (!c) return;
+    if (sections.length === 0) {
+        c.innerHTML = '<div style="color:#475569;font-size:12px;">Aucune section</div>';
+        return;
+    }
+    c.innerHTML = sections.map(sec => {
+        const titre  = document.getElementById('titre-' + sec.id)?.value || 'Section sans titre';
+        const tbody  = document.getElementById('tbody-' + sec.id);
+        const nbL    = tbody ? tbody.querySelectorAll('tr[data-ligne]').length : 0;
+        const nbC    = sec.colonnesIds.length;
+        const total  = sec.totalCalcule || 0;
+        const ok     = nbC > 0 && nbL > 0;
+        return `<div class="resume-section ${ok ? 'ok' : ''}"
+                     onclick="document.getElementById('card-${sec.id}')?.scrollIntoView({behavior:'smooth'})">
+            <div class="sec-titre">${ok ? '✅' : '⏳'} ${escHtml(titre)}</div>
+            <div class="sec-stats">${nbC} col. · ${nbL} ligne(s)${total > 0 ? ' · <strong style="color:#16a34a">' + fmt(total) + ' FCFA</strong>' : ''}</div>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+// BOUTON SOUMETTRE
+// ============================================================
+function mettreAJourBoutonSoumettre() {
+    const btn   = document.getElementById('btn-soumettre');
+    const hint  = document.getElementById('hint-soumettre');
+    const titre = document.getElementById('fiche-titre')?.value?.trim();
+    const ok    = !!titre && sections.some(sec => {
+        const tbody = document.getElementById('tbody-' + sec.id);
+        return sec.colonnesIds.length > 0 && tbody && tbody.querySelectorAll('tr[data-ligne]').length > 0;
+    });
+    btn.disabled   = !ok;
+    hint.innerText = ok ? '✅ Prêt à soumettre.' : (!titre ? 'Saisissez un titre.' : 'Remplissez au moins une section.');
+    hint.style.color = ok ? '#16a34a' : '#64748b';
+}
+
+// ============================================================
+// SOUMETTRE
+// ============================================================
+function soumettre() {
+    const titre = document.getElementById('fiche-titre')?.value?.trim();
+    const desc  = document.getElementById('fiche-desc')?.value?.trim();
+    if (!titre) { alert('Saisissez un titre.'); return; }
+    if (!confirm('Soumettre cette fiche ? Elle sera transmise à l\'administration.')) return;
+
+    const payload = {
+        titre,
+        description: desc,
+        modele_id:   MODELE_ID,
+        sections: sections.map((sec, i) => {
+            const tbody  = document.getElementById('tbody-' + sec.id);
+            const lignes = [];
+            if (tbody) {
+                tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+                    const vals = {};
+                    tr.querySelectorAll('input[data-col]').forEach(inp => {
+                        vals[inp.dataset.col] = inp.value;
+                    });
+                    lignes.push(vals);
+                });
+            }
+            return {
+                titre:    document.getElementById('titre-' + sec.id)?.value?.trim() || 'Section ' + (i+1),
+                colonnes: sec.colonnesIds,
+                lignes,
+            };
+        }),
+    };
+
+    const btn = document.getElementById('btn-soumettre');
+    btn.disabled  = true;
+    btn.innerText = '⏳ Envoi...';
+
+    fetch(URL_SOUMETTRE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Ouvrir le PDF dans un nouvel onglet puis rediriger
+            window.open(data.pdf_url, '_blank');
+            setTimeout(() => { window.location.href = data.retour_url; }, 800);
+        } else {
+            alert('Erreur : ' + (data.message || 'inconnue'));
+            btn.disabled  = false;
+            btn.innerText = '✅ Soumettre la fiche';
+        }
+    })
+    .catch(e => {
+        alert('Erreur réseau : ' + e.message);
+        btn.disabled  = false;
+        btn.innerText = '✅ Soumettre la fiche';
+    });
+}
+
+// ============================================================
+// UTILITAIRES
+// ============================================================
+function fmt(n) {
+    if (!n && n !== 0) return '0';
+    return Math.round(n).toLocaleString('fr-FR');
+}
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

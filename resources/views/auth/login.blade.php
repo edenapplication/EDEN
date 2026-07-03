@@ -99,6 +99,12 @@
             <label for="remember" style="font-size:13px;color:#64748b;cursor:pointer;">Se souvenir de moi</label>
         </div>
         <button type="submit" class="btn-login">Se connecter →</button>
+        <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
+    <a href="{{ route('feb.login') }}"
+       style="display:inline-flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 18px;color:#1d4ed8;text-decoration:none;font-size:13px;font-weight:600;transition:0.2s;">
+        📋 Accès Fiches d'Expression des Besoins
+    </a>
+</div>
     </form>
 </div>
 </body>
