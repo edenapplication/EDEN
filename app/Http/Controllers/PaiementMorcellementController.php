@@ -28,9 +28,11 @@ class PaiementMorcellementController extends Controller
         }
     }
 
-    public function destroy($id)
-    {
-        PaiementMorcellement::findOrFail($id)->delete();
-        return response()->json(['success' => true]);
-    }
+public function destroy($id)
+{
+    $paiement = PaiementMorcellement::findOrFail($id);
+    $paiement->delete();
+
+    return back()->with('success', 'Paiement supprimé avec succès.');
+}
 }

@@ -28,9 +28,12 @@ class PaiementTechniqueController extends Controller
         }
     }
 
-    public function destroy($id)
-    {
-        PaiementTechnique::findOrFail($id)->delete();
-        return response()->json(['success' => true]);
-    }
+   public function destroy($id)
+{
+    $paiement = PaiementTechnique::findOrFail($id);
+    $paiement->delete();
+
+    return back()->with('success', 'Paiement supprimé avec succès.');
+}
+
 }

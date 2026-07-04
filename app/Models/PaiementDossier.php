@@ -13,4 +13,8 @@ class PaiementDossier extends Model
 
     public function dossierClient() { return $this->belongsTo(DossierClient::class); }
     public function client()        { return $this->belongsTo(Client::class); }
+    public function dossier()
+    {
+        return $this->belongsTo(DossierClient::class, 'dossier_client_id');
+    }
 }

@@ -18,6 +18,8 @@ use App\Http\Controllers\ImportExportController;
 use App\Http\Controllers\VisiteController;
 use App\Http\Controllers\ZoneGroupeController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\PaiementTechniqueController;
+use App\Http\Controllers\PaiementMorcellementController;
 
 use App\Http\Controllers\RH\DashboardRHController;
 use App\Http\Controllers\RH\EmployeController;
@@ -102,20 +104,30 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
     Route::post('/dossier/toggle/{lot}',       [DossierTechniqueController::class, 'toggle'])->name('dossier.toggle');
     Route::get('/dossier-zone/{zone}',         [DossierTechniqueController::class, 'showZone'])->name('dossier.zone.show');
     Route::post('/dossier-zone/toggle/{zone}', [DossierTechniqueController::class, 'toggleZone'])->name('dossier.zone.toggle');
+    Route::delete('/suivi-client/dossiers/{dossier}',[SuiviClientController::class, 'destroyDossier'])->name('suivi-client.dossiers.destroy');
 
     // PAIEMENTS — commercial + admin
     Route::middleware('check.role:admin,commercial')->group(function () {
-        // Paiements technique
-Route::post('/paiements-technique/{dossierId}',  [App\Http\Controllers\PaiementTechniqueController::class, 'store'])->name('paiements-technique.store');
-Route::delete('/paiements-technique/{id}',        [App\Http\Controllers\PaiementTechniqueController::class, 'destroy'])->name('paiements-technique.destroy');
 
-// Paiements morcellement
-Route::post('/paiements-morcellement/{dossierId}',[App\Http\Controllers\PaiementMorcellementController::class, 'store'])->name('paiements-morcellement.store');
-Route::delete('/paiements-morcellement/{id}',      [App\Http\Controllers\PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellement.destroy');
-        Route::post('/paiements-dossier/{dossierId}',  [PaiementDossierController::class, 'store'])->name('paiements-dossier.store');
-        Route::get('/paiements-dossier/{dossierId}',   [PaiementDossierController::class, 'index'])->name('paiements-dossier.index');
-        Route::delete('/paiements-dossier/{id}',       [PaiementDossierController::class, 'destroy'])->name('paiements-dossier.destroy');
-    });
+    // Paiement dossier
+    Route::delete('/admin/paiements-techniques/{id}', [PaiementTechniqueController::class, 'destroy'])->name('paiements-techniques.destroy');
+
+Route::delete('/admin/paiements-morcellements/{id}', [PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellements.destroy');
+
+Route::delete('/admin/paiements-dossiers/{id}', [PaiementDossierController::class, 'destroy'])->name('paiements-dossiers.destroy');
+    // Paiement dossier
+Route::post('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'store']);
+Route::get('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'index']);
+
+
+
+
+    // Paiement technique
+    Route::post('/paiements-technique/{dossierId}', [PaiementTechniqueController::class, 'store']);
+
+    // Paiement morcellement
+    Route::post('/paiements-morcellement/{dossierId}', [PaiementMorcellementController::class, 'store']);
+});
 
     // COMMERCIAUX — admin seulement
     Route::middleware('check.role:admin')->group(function () {
@@ -140,6 +152,19 @@ Route::delete('/paiements-morcellement/{id}',      [App\Http\Controllers\Paiemen
         Route::get('/suivi-client/{id}/dossiers', [SuiviClientController::class, 'dossiers'])->name('suivi-client.dossiers');
         Route::delete('/suivi-client/{id}',       [SuiviClientController::class, 'destroy'])->name('suivi-client.destroy');
     });
+
+    Route::middleware('check.role:admin')->group(function () {
+    Route::post('/clients/{clientId}/modifier-nom',
+        [App\Http\Controllers\SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
+
+    // Mise à jour prix dossier
+    Route::post('/dossiers/{dossierId}/maj-prix',
+        [App\Http\Controllers\DossierClientController::class, 'majPrix'])->name('dossiers.maj-prix');
+
+    // Export Excel
+    Route::get('/dossiers/export-excel',
+        [App\Http\Controllers\DossierClientController::class, 'exportExcel'])->name('dossiers.export-excel');
+});
 
     // RAPPORT — admin
     Route::middleware('check.role:admin')->group(function () {

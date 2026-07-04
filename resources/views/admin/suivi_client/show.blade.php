@@ -85,7 +85,21 @@
         <div id="dossier-{{ $dossier->id }}" class="dossier-panel" style="{{ $i > 0 ? 'display:none;' : '' }}">
 
             <div class="section-card">
-                <h5 class="mb-3">📂 {{ $dossier->nom_dossier }}</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
+
+    <form action="{{ route('suivi-client.dossiers.destroy', $dossier->id) }}"
+      method="POST"
+      onsubmit="return confirm('Supprimer ce dossier ?')"
+      style="display:inline;">
+    @csrf
+    @method('DELETE')
+
+    <button class="btn btn-danger btn-sm">
+        🗑 Supprimer
+    </button>
+</form>
+</div>
 
                 <div class="info-row"><span>🔗 Facilitateur</span>
                     <span>{{ $dossier->facilitateur?->nom ?? '-' }}
@@ -123,98 +137,232 @@
                 {{-- ============================================================
                      ✅ TROIS BLOCS DE PAIEMENT DISTINCTS
                      ============================================================ --}}
-                @php
-                    $totalDossier   = $dossier->paiements->sum('montant');
-                    $resteDossier   = max(0, ($dossier->prix_superficie ?? 0) - $totalDossier);
+                {{-- Dans le show.blade.php, section blocs paiements --}}
 
-                    $totalTechnique = $dossier->paiementsTechniques->sum('montant');
-                    $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
-                @endphp
+@php
+    $totalDossier   = $dossier->paiements->sum('montant');
+    $prixRef        = $dossier->prix_superficie ?? 0;
+    $resteDossier   = max(0, $prixRef - $totalDossier);
+    $prixTech       = $dossier->prix_technique ?? 0;
+    $prixMorcel     = $dossier->prix_morcellement ?? 0;
+    $totalTechnique = $dossier->paiementsTechniques->sum('montant');
+    $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
+    $resteTech      = max(0, $prixTech - $totalTechnique);
+    $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
+@endphp
 
-                <div class="paiement-blocs">
+{{-- Prix de référence configurables --}}
+<div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #e2e8f0;">
+    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px;">
+        💰 Prix de référence du dossier
+    </div>
+    <div class="row g-2">
+        <div class="col-md-4">
+            <label style="font-size:11px;color:#64748b;">Prix superficie (FCFA)</label>
+            <div style="display:flex;gap:6px;">
+                <input type="number" id="prix-superficie-{{ $dossier->id }}"
+                       class="form-control form-control-sm"
+                       value="{{ $prixRef }}" placeholder="0">
+                <button onclick="majPrix({{ $dossier->id }})"
+                        class="btn btn-primary btn-sm" style="font-size:11px;">✓</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label style="font-size:11px;color:#ea580c;">Prix technique (FCFA)</label>
+            <div style="display:flex;gap:6px;">
+                <input type="number" id="prix-technique-{{ $dossier->id }}"
+                       class="form-control form-control-sm"
+                       value="{{ $prixTech }}" placeholder="0">
+                <button onclick="majPrix({{ $dossier->id }})"
+                        class="btn btn-warning btn-sm" style="font-size:11px;">✓</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label style="font-size:11px;color:#ca8a04;">Prix morcellement (FCFA)</label>
+            <div style="display:flex;gap:6px;">
+                <input type="number" id="prix-morcellement-{{ $dossier->id }}"
+                       class="form-control form-control-sm"
+                       value="{{ $prixMorcel }}" placeholder="0">
+                <button onclick="majPrix({{ $dossier->id }})"
+                        class="btn btn-sm" style="background:#ca8a04;color:white;font-size:11px;">✓</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-                    {{-- BLOC 1 : PAIEMENT DOSSIER (existant) --}}
-                    <div class="paiement-bloc bloc-dossier">
-                        <h6 style="color:#0d6efd;">
-                            📁 Paiement Parcelle
-                            <button class="btn-add-pay dossier"
-                                    onclick="openPaiement('dossier', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
-                                + Ajouter
-                            </button>
-                        </h6>
-                        <div class="pay-total-row">
-                            <span style="color:#64748b;">Total payé</span>
-                            <span class="pay-amt" style="color:#16a34a;">{{ number_format($totalDossier, 0, ',', ' ') }} FCFA</span>
-                        </div>
-                        <div class="pay-total-row">
-                            <span style="color:#64748b;">Reste</span>
-                            <span class="pay-amt" style="color:{{ $resteDossier > 0 ? '#dc2626' : '#16a34a' }};">
-                                {{ number_format($resteDossier, 0, ',', ' ') }} FCFA
-                            </span>
-                        </div>
-                        <div class="pay-historique" id="hist-dossier-{{ $dossier->id }}">
-                            @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
-                                <div class="pay-row">
-                                    <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                                    <span class="pay-amt" style="color:#16a34a;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
-                                </div>
-                            @empty
-                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
-                            @endforelse
-                        </div>
-                    </div>
+{{-- 3 BLOCS PAIEMENTS --}}
+<div class="paiement-blocs">
 
-                    {{-- BLOC 2 : PAIEMENT TECHNIQUE --}}
-                    <div class="paiement-bloc bloc-technique">
-                        <h6 style="color:#ea580c;">
-                            🛠️ Paiement Dossier Technique
-                            <button class="btn-add-pay technique"
-                                    onclick="openPaiement('technique', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
-                                + Ajouter
-                            </button>
-                        </h6>
-                        <div class="pay-total-row">
-                            <span style="color:#64748b;">Total payé</span>
-                            <span class="pay-amt" style="color:#ea580c;">{{ number_format($totalTechnique, 0, ',', ' ') }} FCFA</span>
-                        </div>
-                        <div class="pay-historique" id="hist-technique-{{ $dossier->id }}">
-                            @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
-                                <div class="pay-row">
-                                    <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                                    <span class="pay-amt" style="color:#ea580c;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
-                                </div>
-                            @empty
-                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
-                            @endforelse
-                        </div>
-                    </div>
+    {{-- BLOC DOSSIER --}}
+    <div class="paiement-bloc bloc-dossier">
+        <h6 style="color:#0d6efd;">
+            📁 Paiement Dossier
+            <button class="btn-add-pay dossier"
+                    onclick="openPaiement('dossier', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
+                + Ajouter
+            </button>
+        </h6>
+        @if($prixRef > 0)
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Référence</span>
+            <span style="font-weight:600;">{{ number_format($prixRef, 0, ',', ' ') }} FCFA</span>
+        </div>
+        @endif
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Payé</span>
+            <span class="pay-amt" style="color:#16a34a;">{{ number_format($totalDossier, 0, ',', ' ') }} FCFA</span>
+        </div>
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Reste</span>
+            <span style="font-weight:700;color:{{ $resteDossier > 0 ? '#dc2626' : '#16a34a' }};">
+                {{ number_format($resteDossier, 0, ',', ' ') }} FCFA
+            </span>
+        </div>
+        @if($prixRef > 0)
+        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+            @php $pct = $prixRef > 0 ? min(100, round(($totalDossier/$prixRef)*100)) : 0; @endphp
+            <div style="width:{{ $pct }}%;height:100%;background:#0d6efd;border-radius:3px;"></div>
+        </div>
+        <div style="font-size:10px;text-align:right;color:#0d6efd;font-weight:700;">{{ $pct }}%</div>
+        @endif
+        <div class="pay-historique">
+            @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
+            <div class="pay-row">
+                <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="pay-amt" style="color:#16a34a;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
+                    {{-- ✅ Supprimer paiement --}}
+                    <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST" style="display:inline;">
+    @csrf
+    @method('DELETE')
 
-                    {{-- BLOC 3 : PAIEMENT MORCELLEMENT --}}
-                    <div class="paiement-bloc bloc-morcel">
-                        <h6 style="color:#ca8a04;">
-                            ✂️ Paiement Morcellement
-                            <button class="btn-add-pay morcel"
-                                    onclick="openPaiement('morcellement', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
-                                + Ajouter
-                            </button>
-                        </h6>
-                        <div class="pay-total-row">
-                            <span style="color:#64748b;">Total payé</span>
-                            <span class="pay-amt" style="color:#ca8a04;">{{ number_format($totalMorcel, 0, ',', ' ') }} FCFA</span>
+    <button type="submit"
+        onclick="return confirm('Supprimer ce paiement ?')"
+        style="background:none;border:none;color:#dc2626;cursor:pointer;">
+        🗑
+    </button>
+</form>
                         </div>
-                        <div class="pay-historique" id="hist-morcellement-{{ $dossier->id }}">
-                            @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
-                                <div class="pay-row">
-                                    <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                                    <span class="pay-amt" style="color:#ca8a04;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
-                                </div>
-                            @empty
-                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
-                            @endforelse
-                        </div>
-                    </div>
+            </div>
+            @empty
+            <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+            @endforelse
+        </div>
+    </div>
 
-                </div>
+    {{-- BLOC TECHNIQUE --}}
+    <div class="paiement-bloc bloc-technique">
+        <h6 style="color:#ea580c;">
+            🛠️ Paiement Technique
+            <button class="btn-add-pay technique"
+                    onclick="openPaiement('technique', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
+                + Ajouter
+            </button>
+        </h6>
+        @if($prixTech > 0)
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Référence</span>
+            <span style="font-weight:600;">{{ number_format($prixTech, 0, ',', ' ') }} FCFA</span>
+        </div>
+        @endif
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Payé</span>
+            <span class="pay-amt" style="color:#ea580c;">{{ number_format($totalTechnique, 0, ',', ' ') }} FCFA</span>
+        </div>
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Reste</span>
+            <span style="font-weight:700;color:{{ $resteTech > 0 ? '#dc2626' : '#16a34a' }};">
+                {{ number_format($resteTech, 0, ',', ' ') }} FCFA
+            </span>
+        </div>
+        @if($prixTech > 0)
+        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+            @php $pctT = $prixTech > 0 ? min(100, round(($totalTechnique/$prixTech)*100)) : 0; @endphp
+            <div style="width:{{ $pctT }}%;height:100%;background:#ea580c;border-radius:3px;"></div>
+        </div>
+        <div style="font-size:10px;text-align:right;color:#ea580c;font-weight:700;">{{ $pctT }}%</div>
+        @endif
+        <div class="pay-historique">
+            @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
+            <div class="pay-row">
+                <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="pay-amt" style="color:#ea580c;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
+                    <form action="{{ route('paiements-techniques.destroy', $p->id) }}" method="POST" style="display:inline;">
+    @csrf
+    @method('DELETE')
+
+    <button type="submit"
+        onclick="return confirm('Supprimer ce paiement ?')"
+        style="background:none;border:none;color:#dc2626;cursor:pointer;">
+        🗑
+    </button>
+</form>
+                        </div>
+            </div>
+            @empty
+            <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+            @endforelse
+        </div>
+    </div>
+
+    {{-- BLOC MORCELLEMENT --}}
+    <div class="paiement-bloc bloc-morcel">
+        <h6 style="color:#ca8a04;">
+            ✂️ Paiement Morcellement
+            <button class="btn-add-pay morcel"
+                    onclick="openPaiement('morcellement', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
+                + Ajouter
+            </button>
+        </h6>
+        @if($prixMorcel > 0)
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Référence</span>
+            <span style="font-weight:600;">{{ number_format($prixMorcel, 0, ',', ' ') }} FCFA</span>
+        </div>
+        @endif
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Payé</span>
+            <span class="pay-amt" style="color:#ca8a04;">{{ number_format($totalMorcel, 0, ',', ' ') }} FCFA</span>
+        </div>
+        <div class="pay-total-row">
+            <span style="color:#64748b;">Reste</span>
+            <span style="font-weight:700;color:{{ $resteMorcel > 0 ? '#dc2626' : '#16a34a' }};">
+                {{ number_format($resteMorcel, 0, ',', ' ') }} FCFA
+            </span>
+        </div>
+        @if($prixMorcel > 0)
+        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+            @php $pctM = $prixMorcel > 0 ? min(100, round(($totalMorcel/$prixMorcel)*100)) : 0; @endphp
+            <div style="width:{{ $pctM }}%;height:100%;background:#ca8a04;border-radius:3px;"></div>
+        </div>
+        <div style="font-size:10px;text-align:right;color:#ca8a04;font-weight:700;">{{ $pctM }}%</div>
+        @endif
+        <div class="pay-historique">
+            @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
+            <div class="pay-row">
+                <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="pay-amt" style="color:#ca8a04;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
+                    <form action="{{ route('paiements-morcellements.destroy', $p->id) }}" method="POST" style="display:inline;">
+    @csrf
+    @method('DELETE')
+
+    <button type="submit"
+        onclick="return confirm('Supprimer ce paiement ?')"
+        style="background:none;border:none;color:#dc2626;cursor:pointer;">
+        🗑
+    </button>
+</form>
+                        </div>
+            </div>
+            @empty
+            <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+            @endforelse
+        </div>
+    </div>
+
+</div>
             </div>
         </div>
         @endforeach
@@ -340,5 +488,63 @@ function savePaiement() {
     })
     .catch(e => alert('Erreur réseau : ' + e.message));
 }
+
+// ✅ Mise à jour prix de référence
+function majPrix(dossierId) {
+    const superficie    = document.getElementById('prix-superficie-'    + dossierId)?.value;
+    const technique     = document.getElementById('prix-technique-'     + dossierId)?.value;
+    const morcellement  = document.getElementById('prix-morcellement-'  + dossierId)?.value;
+
+    fetch(`/admin/dossiers/${dossierId}/maj-prix`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({
+            prix_superficie:    superficie,
+            prix_technique:     technique,
+            prix_morcellement:  morcellement,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Notification succès
+            const notif = document.createElement('div');
+            notif.innerText = '✅ Prix mis à jour';
+            notif.style.cssText = 'position:fixed;top:80px;right:20px;background:#16a34a;color:white;padding:10px 18px;border-radius:10px;z-index:999999;font-weight:700;font-size:13px;';
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 2500);
+        }
+    });
+}
+
+// ✅ Supprimer un paiement
+function supprimerPaiement(type, paiementId, btn) {
+
+    alert("STEP 1 OK");
+
+    console.log("TYPE RAW =", type);
+    console.log("PAIEMENT ID =", paiementId);
+
+    if (!confirm("Supprimer ?")) {
+        alert("STOP CONFIRM");
+        return;
+    }
+
+    alert("STEP 2 OK (après confirm)");
+
+    const urls = {
+        dossier: "OK dossier",
+        technique: "OK technique",
+        morcellement: "OK morcellement",
+    };
+
+    alert("TYPE VALUE = " + type);
+
+    const url = urls[type];
+
+    alert("URL = " + url);
+}
+
+
 </script>
 @endsection

@@ -95,9 +95,12 @@ class PaiementDossierController extends Controller
         return response()->json(['paiements' => $paiements, 'total' => $paiements->sum('montant')]);
     }
 
-    public function destroy($id)
-    {
-        PaiementDossier::findOrFail($id)->delete();
-        return response()->json(['success' => true]);
-    }
+public function destroy($id)
+{
+    $paiement = PaiementDossier::findOrFail($id);
+    $paiement->delete();
+
+    return back()->with('success', 'Paiement supprimé avec succès.');
+}
+
 }
