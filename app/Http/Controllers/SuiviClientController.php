@@ -31,32 +31,48 @@ class SuiviClientController extends Controller
         ];
     }
 
-    public function index(Request $request)
-    {
-        $query = Client::with(['dossiers.grandSite','dossiers.paiements'])
-                       ->orderByDesc('created_at');
+  public function index(Request $request)
+{
+    $query = Client::with([
+        'dossiers.grandSite',
+        'dossiers.paiementsTechniques',
+        'dossiers.paiementsMorcellements'
+    ])
+    ->orderByDesc('created_at');
 
-        if ($request->filled('q')) {
-            $query->where(function($q) use ($request) {
-                $q->where('name',  'like', '%'.$request->q.'%')
-                  ->orWhere('phone','like', '%'.$request->q.'%');
-            });
-        }
-
-        if ($request->filled('du')) $query->whereDate('created_at', '>=', $request->du);
-        if ($request->filled('au')) $query->whereDate('created_at', '<=', $request->au);
-
-        if ($request->filled('grand_site_id')) {
-            $query->whereHas('dossiers', fn($q) =>
-                $q->where('grand_site_id', $request->grand_site_id));
-        }
-
-        $clients    = $query->paginate(25);
-        $grandSites = GrandSite::orderBy('nom')->get();
-
-        // ✅ Nom cohérent avec underscore
-        return view('admin.suivi_client.index', compact('clients','grandSites'));
+    // 🔍 Recherche
+    if ($request->filled('q')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('name', 'like', '%'.$request->q.'%')
+              ->orWhere('phone', 'like', '%'.$request->q.'%');
+        });
     }
+
+    // 📅 Filtre date début
+    if ($request->filled('du')) {
+        $query->whereDate('created_at', '>=', $request->du);
+    }
+
+    // 📅 Filtre date fin
+    if ($request->filled('au')) {
+        $query->whereDate('created_at', '<=', $request->au);
+    }
+
+    // 🏷 Filtre grand site
+    if ($request->filled('grand_site_id')) {
+        $query->whereHas('dossiers', function ($q) use ($request) {
+            $q->where('grand_site_id', $request->grand_site_id);
+        });
+    }
+
+    // 📦 Pagination
+    $clients = $query->paginate(25);
+
+    // 🏢 Liste des sites
+    $grandSites = GrandSite::orderBy('nom')->get();
+
+    return view('admin.suivi_client.index', compact('clients', 'grandSites'));
+}
 
     public function create(Request $request)
     {

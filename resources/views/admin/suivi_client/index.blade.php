@@ -113,7 +113,13 @@
                     <span class="dossier-pill" id="pill-dossier-{{ $d->id }}">
                         <span class="site">{{ $d->grandSite?->nom ?? $d->nom_dossier }} - </span>
                         <span>{{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
-                        
+                        @if($d->paiementsTechniques->count())
+    <span style="color:#0d6efd;">Tech ●</span><br><br>
+@endif
+
+@if($d->paiementsMorcellements->count())
+    <span style="color:#dc2626;">Morc ●</span>
+@endif
                     </span>
                     @endforeach
                 </div>
