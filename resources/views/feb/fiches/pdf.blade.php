@@ -356,9 +356,9 @@
     <!-- Pied de page répété -->
     <div class="pdf-footer">
         <div class="footer-line"></div>
-        EDEN GROUP SARL<br>
-        LEADER EN SÉCURITÉ FONCIÈRE<br>
-        www.edengroup.com | contact@edengroup.com
+        B.P 35531 - Yaounde - Cameroun Tel : 694 123 784 / 675 538 022<br>
+        NIU : M042217297350S    Situe a Texaco Omnisport<br>
+        Agrement No : 0001/MINHDU/SG/DHSPI/SDPIAC du 07 Fevrier 2025
     </div>
 
 </body>

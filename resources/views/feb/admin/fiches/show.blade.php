@@ -167,11 +167,11 @@
 <!-- Infos demandeur -->
 <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;">
     <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:10px;">Informations du demandeur</div>
-    
-    <span class="info-pill">👤 {{ $fiche->utilisateur?->nom_complet }}</span>
-    <span class="info-pill">💼 {{ $fiche->utilisateur?->poste ?? '-' }}</span>
     <span class="info-pill">🏢 {{ $fiche->utilisateur?->agence?->nom ?? '-' }}</span>
     <span class="info-pill">📍 {{ $fiche->utilisateur?->direction ?? '-' }}</span>
+    <span class="info-pill">📍 {{ $fiche->utilisateur->service ?? '-'}}</span>
+    <span class="info-pill">👤 {{ $fiche->utilisateur?->nom_complet }}</span>
+    <span class="info-pill">💼 {{ $fiche->utilisateur?->poste ?? '-' }}</span>
     <span class="info-pill">📅 {{ $fiche->soumise_at?->format('d/m/Y à H:i') ?? '-' }}</span>
 </div>
 
@@ -251,7 +251,7 @@
 {{-- TOTAL GÉNÉRAL --}}
 @if($totalGeneral > 0)
 <div class="total-general">
-    TOTAL GÉNÉRAL : {{ number_format($totalGeneral, 0, ',', ' ') }} FCFA
+    ARRETER LE PRESENT DEVIS AU MONTANT DE : : {{ number_format($totalGeneral, 0, ',', ' ') }} FCFA
 </div>
 @endif
 
