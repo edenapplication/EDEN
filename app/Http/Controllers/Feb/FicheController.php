@@ -82,61 +82,38 @@ class FicheController extends Controller
 
             // Si brouillon existant à mettre à jour
             $ficheId = $request->fiche_id;
-            if ($ficheId) {
-                $fiche = Fiche::where('id', $ficheId)
-                              ->where('utilisateur_id', $user->id)
-                              ->where('statut', 'brouillon')
-                              ->firstOrFail();
-                $fiche->update([
-                    'titre'       => $request->titre,
-                    'description' => $request->description,
-                    'statut'      => $action === 'soumettre' ? 'soumise' : 'brouillon',
-                    'vue_admin'   => false,
-                    'soumise_at'  => $action === 'soumettre' ? now() : null,
-                ]);
-                // Supprimer anciennes sections
-                $fiche->sections()->each(function($s) {
-                    $s->lignes()->delete();
-                    $s->colonnes()->detach();
-                    $s->delete();
-                });
-            } else {
-                $fiche = Fiche::create([
-                    'utilisateur_id' => $user->id,
-                    'titre'          => $request->titre,
-                    'description'    => $request->description,
-                    'statut'         => $action === 'soumettre' ? 'soumise' : 'brouillon',
-                    'vue_admin'      => false,
-                    'soumise_at'     => $action === 'soumettre' ? now() : null,
-                    'modele_id'      => $request->modele_id ?? null,
-                ]);
-            }
+            // Dans creerEtSoumettre(), remplacer la création de $fiche par :
 
-            foreach ($request->sections as $i => $sData) {
-                $section = Section::create([
-                    'fiche_id' => $fiche->id,
-                    'titre'    => $sData['titre'],
-                    'ordre'    => $i,
-                ]);
+$numeroFiche = null;
+if ($action === 'soumettre') {
+    $numeroFiche = $user->genererNumeroDeFiche();
+}
 
-                if (!empty($sData['colonnes'])) {
-                    foreach ($sData['colonnes'] as $j => $colonneId) {
-                        $section->colonnes()->attach((int)$colonneId, ['ordre' => $j]);
-                    }
-                }
-
-                if (!empty($sData['lignes'])) {
-                    foreach ($sData['lignes'] as $num => $valeurs) {
-                        $hasData = !empty(array_filter($valeurs, fn($v) => $v !== '' && $v !== null));
-                        if (!$hasData) continue;
-                        Ligne::create([
-                            'section_id'   => $section->id,
-                            'numero_ligne' => $num + 1,
-                            'valeurs'      => $valeurs,
-                        ]);
-                    }
-                }
-            }
+if ($ficheId) {
+    $fiche = Fiche::where('id', $ficheId)
+                  ->where('utilisateur_id', $user->id)
+                  ->where('statut', 'brouillon')
+                  ->firstOrFail();
+    $fiche->update([
+        'titre'        => $request->titre,
+        'description'  => $request->description,
+        'statut'       => $action === 'soumettre' ? 'soumise' : 'brouillon',
+        'vue_admin'    => false,
+        'soumise_at'   => $action === 'soumettre' ? now() : null,
+        'numero_fiche' => $action === 'soumettre' ? $numeroFiche : $fiche->numero_fiche,
+    ]);
+} else {
+    $fiche = Fiche::create([
+        'utilisateur_id' => $user->id,
+        'numero_fiche'   => $numeroFiche,
+        'titre'          => $request->titre,
+        'description'    => $request->description,
+        'statut'         => $action === 'soumettre' ? 'soumise' : 'brouillon',
+        'vue_admin'      => false,
+        'soumise_at'     => $action === 'soumettre' ? now() : null,
+        'modele_id'      => $request->modele_id ?? null,
+    ]);
+}
 
             return response()->json([
                 'success'    => true,

@@ -54,14 +54,16 @@
         <td>
             <div class="d-flex gap-1">
                 <button onclick="openEditModal(
-                    {{ $u->id }},
-                    '{{ addslashes($u->identifiant) }}',
-                    '{{ addslashes($u->nom) }}',
-                    '{{ addslashes($u->prenom ?? '') }}',
-                    '{{ addslashes($u->poste ?? '') }}',
-                    {{ $u->agence_id ?? 'null' }},
-                    {{ $u->actif ? 1 : 0 }}
-                )" class="btn btn-warning btn-sm" style="font-size:11px;">✏️</button>
+    {{ $u->id }},
+    '{{ addslashes($u->identifiant) }}',
+    '{{ addslashes($u->nom) }}',
+    '{{ addslashes($u->prenom ?? '') }}',
+    '{{ addslashes($u->poste ?? '') }}',
+    {{ $u->agence_id ?? 'null' }},
+    {{ $u->actif ? 1 : 0 }},
+    '{{ addslashes($u->direction ?? '') }}',
+    '{{ addslashes($u->service ?? '') }}'
+)" class="btn btn-warning btn-sm" style="font-size:11px;">✏️</button>
 
                 <form action="{{ route('admin.feb.utilisateurs.toggle', $u->id) }}" method="POST" style="display:inline;">
                     @csrf
@@ -87,6 +89,7 @@
 
 {{-- MODAL AJOUT --}}
 <div class="modal-overlay" id="overlayAdd" onclick="closeAll()"></div>
+{{-- MODAL AJOUT --}}
 <div class="modal-box" id="addModal">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h5 style="color:#1e3a5f;font-weight:800;">👤 Nouvel utilisateur FEB</h5>
@@ -116,13 +119,22 @@
                 <input type="text" name="poste" class="form-control" placeholder="Ex: Responsable achats">
             </div>
             <div class="col-md-6">
-                <label class="form-label fw-semibold">Agence</label>
-                <select name="agence_id" class="form-control">
-                    <option value="">-- Aucune --</option>
+                {{-- ✅ Agence obligatoire --}}
+                <label class="form-label fw-semibold">Agence <span class="text-danger">*</span></label>
+                <select name="agence_id" class="form-control" required>
+                    <option value="">-- Choisir --</option>
                     @foreach($agences as $a)
                         <option value="{{ $a->id }}">{{ $a->nom }}</option>
                     @endforeach
                 </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Direction</label>
+                <input type="text" name="direction" class="form-control" placeholder="Ex: Direction Commerciale">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Service</label>
+                <input type="text" name="service" class="form-control" placeholder="Ex: Service Achats">
             </div>
         </div>
         <div class="d-flex justify-content-end gap-2 mt-4">
@@ -168,6 +180,14 @@
                 </select>
             </div>
             <div class="col-md-6">
+    <label class="form-label fw-semibold">Direction</label>
+    <input type="text" name="direction" id="edit_direction" class="form-control">
+</div>
+<div class="col-md-6">
+    <label class="form-label fw-semibold">Service</label>
+    <input type="text" name="service" id="edit_service" class="form-control">
+</div>
+            <div class="col-md-6">
                 <label class="form-label fw-semibold">Nouveau mot de passe <span class="text-muted" style="font-size:11px;">(laisser vide = inchangé)</span></label>
                 <input type="password" name="password" class="form-control" placeholder="Nouveau mot de passe">
             </div>
@@ -193,17 +213,20 @@ function openModal(id) {
     document.getElementById('overlayAdd').style.display = 'block';
     document.getElementById(id).style.display = 'block';
 }
-function openEditModal(id, ident, nom, prenom, poste, agenceId, actif) {
+function openEditModal(id, ident, nom, prenom, poste, agenceId, actif, direction, service) {
     document.getElementById('editForm').action = `/admin/feb/utilisateurs/${id}`;
-    document.getElementById('edit_ident').value  = ident;
-    document.getElementById('edit_nom').value    = nom;
-    document.getElementById('edit_prenom').value = prenom;
-    document.getElementById('edit_poste').value  = poste;
-    document.getElementById('edit_agence').value = agenceId ?? '';
-    document.getElementById('edit_actif').value  = actif;
+    document.getElementById('edit_ident').value     = ident;
+    document.getElementById('edit_nom').value       = nom;
+    document.getElementById('edit_prenom').value    = prenom;
+    document.getElementById('edit_poste').value     = poste;
+    document.getElementById('edit_agence').value    = agenceId ?? '';
+    document.getElementById('edit_actif').value     = actif;
+    document.getElementById('edit_direction').value = direction || '';
+    document.getElementById('edit_service').value   = service   || '';
     document.getElementById('overlayEdit').style.display = 'block';
     document.getElementById('editModal').style.display   = 'block';
 }
+
 function closeAll() {
     ['overlayAdd','overlayEdit','addModal','editModal'].forEach(id => {
         const el = document.getElementById(id); if(el) el.style.display='none';

@@ -5,7 +5,10 @@ use Illuminate\Database\Eloquent\Model;
 class Fiche extends Model
 {
     protected $table    = 'feb_fiches';
-    protected $fillable = ['utilisateur_id','titre','description','statut','vue_admin','modele_id','soumise_at'];
+    protected $fillable = [
+    'utilisateur_id','numero_fiche','titre','description',
+    'statut','vue_admin','modele_id','soumise_at',
+];
     protected $casts    = ['soumise_at' => 'datetime', 'vue_admin' => 'boolean'];
 
     public function utilisateur() { return $this->belongsTo(Utilisateur::class, 'utilisateur_id'); }

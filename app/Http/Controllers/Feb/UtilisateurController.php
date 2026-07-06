@@ -15,31 +15,42 @@ class UtilisateurController extends Controller
     return view('feb.admin.utilisateurs.index', compact('utilisateurs','agences'));
 }
     public function store(Request $request)
-    {
-        $request->validate([
-            'identifiant' => 'required|unique:feb_utilisateurs,identifiant',
-            'password'    => 'required|min:4',
-            'nom'         => 'required|string',
-            'agence_id'   => 'nullable|exists:feb_agences,id',
-        ]);
-        Utilisateur::create([
-            'identifiant' => $request->identifiant,
-            'password'    => Hash::make($request->password),
-            'nom'         => $request->nom,
-            'prenom'      => $request->prenom,
-            'poste'       => $request->poste,
-            'agence_id'   => $request->agence_id,
-        ]);
-        return back()->with('success','Utilisateur créé.');
-    }
-    public function update(Request $request, $id)
-    {
-        $user = Utilisateur::findOrFail($id);
-        $data = $request->only('nom','prenom','poste','agence_id','actif');
-        if ($request->filled('password')) $data['password'] = Hash::make($request->password);
-        $user->update($data);
-        return back()->with('success','Utilisateur mis à jour.');
-    }
+{
+    $request->validate([
+        'identifiant' => 'required|unique:feb_utilisateurs,identifiant',
+        'password'    => 'required|min:4',
+        'nom'         => 'required|string',
+        'agence_id'   => 'required|exists:feb_agences,id', // ✅ obligatoire
+        'direction'   => 'nullable|string|max:100',
+        'service'     => 'nullable|string|max:100',
+    ]);
+
+    Utilisateur::create([
+        'identifiant' => $request->identifiant,
+        'password'    => \Illuminate\Support\Facades\Hash::make($request->password),
+        'nom'         => $request->nom,
+        'prenom'      => $request->prenom,
+        'poste'       => $request->poste,
+        'direction'   => $request->direction,
+        'service'     => $request->service,
+        'agence_id'   => $request->agence_id,
+    ]);
+
+    return back()->with('success', 'Utilisateur créé.');
+}
+
+public function update(Request $request, $id)
+{
+    $user = Utilisateur::findOrFail($id);
+    $data = $request->only([
+        'nom','prenom','poste','direction','service','agence_id','actif'
+    ]);
+    if ($request->filled('password'))
+        $data['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
+    $user->update($data);
+    return back()->with('success', 'Utilisateur mis à jour.');
+}
+
     public function toggle($id)
     {
         $u = Utilisateur::findOrFail($id);

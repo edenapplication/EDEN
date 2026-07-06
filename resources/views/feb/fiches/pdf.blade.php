@@ -1,337 +1,365 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:DejaVu Sans, sans-serif; font-size:9pt; color:#1e293b; padding:20px; }
+    <meta charset="UTF-8">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { 
+            font-family: DejaVu Sans, sans-serif; 
+            font-size: 9.2pt; 
+            color: #1e293b; 
+            background: white; 
+            line-height: 1.45;
+        }
+        .page { padding: 25px 28px; }
 
-    .entete {
-        display:flex;
-        justify-content:space-between;
-        align-items:flex-start;
-        border-bottom:3px solid #1d4ed8;
-        padding-bottom:14px;
-        margin-bottom:20px;
-    }
-
-    .soc {
-        font-size:15pt;
-        font-weight:bold;
-        color:#1e3a5f;
-    }
-
-    .info-user {
-        font-size:9pt;
-        color:#64748b;
-        line-height:1.8;
-    }
-
-    .titre-doc {
-        text-align:center;
-        margin:0 0 20px;
-    }
-
-    .titre-doc h1 {
-        font-size:16pt;
-        font-weight:bold;
-        color:#1e3a5f;
-        text-transform:uppercase;
-    }
-
-    .titre-doc .desc {
-        font-size:9.5pt;
-        color:#64748b;
-        margin-top:4px;
-    }
-
-    .section-bloc {
-        margin-bottom:24px;
-    }
-
-    table {
-        width:100%;
-        border-collapse:collapse;
-    }
-
-    th {
-        background:#dbeafe;
-        color:#1d4ed8;
-        padding:7px 8px;
-        font-size:8.5pt;
-        text-align:left;
-        border:1px solid #bfdbfe;
-    }
-
-    td {
-        padding:6px 8px;
-        font-size:8.5pt;
-        border:1px solid #e2e8f0;
-    }
-
-    tr:nth-child(even) td {
-        background:#f8fafc;
-    }
-
-    .num-col {
-        color:#94a3b8;
-        text-align:center;
-        width:28px;
-    }
-
-    .vide {
-        color:#94a3b8;
-        font-style:italic;
-        font-size:8pt;
-        padding:12px;
-        text-align:center;
-    }
-
-    .pied {
-        margin-top:24px;
-        text-align:center;
-        font-size:8pt;
-        color:#94a3b8;
-        border-top:1px solid #e2e8f0;
-        padding-top:8px;
-    }
-
-    .user-bloc {
-        background:#f8fafc;
-        border:1px solid #e2e8f0;
-        border-radius:6px;
-        padding:10px 14px;
-        margin-bottom:18px;
-    }
-
-    .user-bloc .u-row {
-        display:flex;
-        gap:24px;
-        font-size:9pt;
-    }
-
-    .u-row span {
-        color:#64748b;
-        margin-right:4px;
-    }
-
-    .u-row strong {
-        color:#1e3a5f;
-    }
-</style>
-</head>
-
-<body>
-
-@php
-$totalGeneral = 0;
-@endphp
-
-{{-- EN-TÊTE --}}
-<div class="entete">
-    <div>
-        <div class="soc">EDEN GROUP</div>
-        <div style="font-size:9pt;color:#64748b;">
-            Fiche d'Expression des Besoins
-        </div>
-    </div>
-
-    <div style="text-align:right;font-size:8.5pt;color:#64748b;">
-        <div>N° {{ str_pad($fiche->id,5,'0',STR_PAD_LEFT) }}</div>
-        <div>Créée le : {{ $fiche->created_at->format('d/m/Y') }}</div>
-
-        @if($fiche->soumise_at)
-        <div>Soumise le : {{ $fiche->soumise_at->format('d/m/Y à H:i') }}</div>
-        @endif
-    </div>
-</div>
-
-{{-- INFORMATIONS --}}
-<div class="user-bloc">
-    <div class="u-row">
-        <div>
-            <span>Nom :</span>
-            <strong>{{ $fiche->utilisateur?->nom_complet }}</strong>
-        </div>
-
-        <div>
-            <span>Poste :</span>
-            <strong>{{ $fiche->utilisateur?->poste ?? '-' }}</strong>
-        </div>
-
-        <div>
-            <span>Agence :</span>
-            <strong>{{ $fiche->utilisateur?->agence?->nom ?? '-' }}</strong>
-        </div>
-    </div>
-</div>
-
-{{-- TITRE --}}
-<div class="titre-doc">
-    <h1>{{ $fiche->titre }}</h1>
-
-    @if($fiche->description)
-        <div class="desc">{{ $fiche->description }}</div>
-    @endif
-</div>
-
-{{-- SECTIONS --}}
-@foreach($fiche->sections as $section)
-
-@php
-
-$totalSection = 0;
-
-$colPrix = $section->colonnes->first(function($col){
-    return in_array(strtolower(trim($col->libelle)),[
-        'prix',
-        'prix total',
-        'total',
-        'montant'
-    ]);
-});
-
-@endphp
-
-<div class="section-bloc">
-
-@if($section->colonnes->count()>0 && $section->lignes->count()>0)
-
-<table>
-
-    <thead>
-
-        <tr>
-
-            <th class="num-col">#</th>
-
-            @foreach($section->colonnes as $col)
-                <th>{{ $col->libelle }}</th>
-            @endforeach
-
-        </tr>
-
-    </thead>
-
-    <tbody>
-
-        {{-- TITRE SECTION JUSTE SOUS LES COLONNES --}}
-        <tr>
-
-            <td colspan="{{ $section->colonnes->count()+1 }}"
-                style="
-                    background:#1e3a5f;
-                    color:#fff;
-                    font-weight:bold;
-                    font-size:10pt;
-                    padding:8px 10px;
-                    border:1px solid #1e3a5f;
-                ">
-
-                {{ $loop->iteration }}. {{ $section->titre }}
-
-            </td>
-
-        </tr>
-
-        @foreach($section->lignes as $ligne)
-
-        @php
-
-        $montant = 0;
-
-        if($colPrix){
-            $montant = (float) str_replace([' ',','],['',''],$ligne->valeurs[$colPrix->id] ?? 0);
+        /* ================= FORMAT A4 PORTRAIT ================= */
+        @page {
+            size: A4 portrait;
+            margin: 1.2cm 1cm 1.8cm 1cm;
         }
 
-        $totalSection += $montant;
+        /* Header Image répété */
+        .pdf-header {
+            position: running(header);
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+        }
 
-        @endphp
+        /* Footer répété */
+        .pdf-footer {
+            position: running(footer);
+            text-align: center;
+            color: #4a2c1a;
+            font-size: 9pt;
+            font-weight: bold;
+            padding-top: 8px;
+        }
+        .footer-line {
+            height: 2.5px;
+            background: #8b4513;
+            margin: 8px auto;
+            width: 70%;
+        }
 
-        <tr>
+        /* ================= EN-TÊTE ================= */
+        .entete {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1d4ed8;
+            padding-bottom: 18px;
+            gap: 20px;
+        }
 
-            <td class="num-col">
-                {{ $ligne->numero_ligne }}
-            </td>
+        .entete-gauche {
+            flex-shrink: 0;
+        }
+        .logo-image {
+            width: 85px;
+            height: 85px;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background: white;
+            padding: 5px;
+            border: 2px solid #1d4ed8;
+        }
 
-            @foreach($section->colonnes as $col)
+        .entete-centre {
+            flex: 1;
+            text-align: center;
+        }
+        .societe-name {
+            font-size: 18pt;
+            font-weight: 900;
+            color: #1e3a5f;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .slogan {
+            font-size: 9pt;
+            color: #dc2626;
+            font-style: italic;
+            margin-top: 4px;
+        }
+        .document-title {
+            font-size: 15pt;
+            font-weight: 900;
+            color: #1e3a5f;
+            text-transform: uppercase;
+            margin-top: 12px;
+            letter-spacing: 0.8px;
+        }
 
-                <td>
-                    {{ $ligne->valeurs[$col->id] ?? '' }}
-                </td>
+        .entete-droite {
+            text-align: right;
+            min-width: 190px;
+            font-size: 9.2pt;
+        }
+        .entete-droite .info-line {
+            margin-bottom: 6px;
+        }
+        .entete-droite strong {
+            color: #1e3a5f;
+        }
 
-            @endforeach
+        /* Infos demandeur */
+        .infos-demandeur {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 22px;
+            gap: 30px;
+        }
+        .infos-gauche, .infos-droite {
+            flex: 1;
+        }
+        .info-label {
+            font-size: 8.5pt;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            font-size: 9.8pt;
+            font-weight: 700;
+            color: #1e3a5f;
+        }
 
-        </tr>
+        /* Autres styles */
+        .section-bloc { margin-bottom:20px; }
+        .section-titre {
+            background:#1e3a5f;
+            color:white;
+            padding:8px 16px;
+            font-size:10.5pt;
+            font-weight:700;
+            border-radius:4px 4px 0 0;
+            display:flex;
+            justify-content:space-between;
+        }
 
-        @endforeach
-        {{-- TOTAL SECTION --}}
-        <tr>
-            <td colspan="{{ $section->colonnes->count() }}"
-                style="
-                    text-align:right;
-                    font-weight:bold;
-                    background:#eef6ff;
-                    color:#1e3a5f;
-                ">
-                TOTAL SECTION :
-            </td>
+        table.tab-data { width:100%; border-collapse:collapse; }
+        table.tab-data thead tr { background:#dbeafe; }
+        table.tab-data thead th {
+            padding:8px 10px; text-align:left;
+            font-size:8.7pt; font-weight:700; color:#1d4ed8;
+            border:1px solid #bfdbfe;
+        }
+        table.tab-data thead th.num-th { width:32px; text-align:center; color:#64748b; }
+        table.tab-data tbody td {
+            padding:7px 10px; font-size:8.7pt;
+            border:1px solid #e2e8f0;
+        }
+        table.tab-data tbody tr:nth-child(even) td { background:#f8fafc; }
+        table.tab-data .num-td { text-align:center; color:#94a3b8; }
+        table.tab-data .montant { text-align:right; font-family:monospace; }
 
-            <td style="
-                    text-align:right;
-                    font-weight:bold;
-                    background:#eef6ff;
-                    color:#1e3a5f;
-                ">
-                {{ number_format($totalSection,0,',',' ') }} FCFA
-            </td>
-        </tr>
+        .total-section {
+            background:#f0fdf4;
+            border:1px solid #bbf7d0;
+            border-top:none;
+            padding:10px 16px;
+            display:flex;
+            justify-content:flex-end;
+            gap:16px;
+        }
+        .total-section .ts-val { font-weight:900; color:#15803d; font-size:11.3pt; }
 
-    </tbody>
+        .total-global {
+            background:#1e3a5f;
+            color:white;
+            border-radius:8px;
+            padding:14px 24px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin:22px 0;
+        }
+        .total-global .tg-val { font-size:16pt; font-weight:900; }
 
-</table>
+        .signatures {
+            display:flex;
+            justify-content:space-between;
+            margin-top:40px;
+            gap:20px;
+        }
+        .sig-box { flex:1; text-align:center; }
+        .sig-line {
+            border-top:1.5px solid #374151;
+            margin-top:50px;
+            padding-top:6px;
+            font-size:8.8pt;
+            color:#374151;
+            font-weight:600;
+        }
 
-@php
-$totalGeneral += $totalSection;
-@endphp
+        .pied {
+            margin-top:45px;
+            padding-top:12px;
+            border-top:1.5px solid #e2e8f0;
+            display:flex;
+            justify-content:space-between;
+            font-size:7.6pt;
+            color:#94a3b8;
+        }
+    </style>
+</head>
+<body>
 
-@else
+    <!-- Image En-tête (répétée sur toutes les pages) -->
+    <div style="position: running(header);">
+        <img src="{{ asset('images/entete2.png') }}" style="width:100%; height:110px; object-fit:cover;" alt="En-tête">
+    </div>
 
-<div class="vide">
-    Section vide
+<div class="page">
+
+    <!-- ================= EN-TÊTE ================= -->
+    <div class="entete">
+        <!-- GAUCHE : Logo Image -->
+        <div class="entete-gauche">
+            <img src="{{ asset('images/eden.webp') }}" alt="EDEN GROUP" class="logo-image">
+        </div>
+
+        <!-- CENTRE -->
+        <div class="entete-centre">
+            <div class="societe-name">EDEN GROUP SARL</div>
+            <div class="document-title">FICHE D'EXPRESSION DES BESOINS</div>
+             @if($fiche->utilisateur?->agence?->nom)
+                <div class="document-title">{{ $fiche->utilisateur->agence->nom }}</div>
+            @endif
+            @if($fiche->utilisateur?->direction)
+                <div style="margin-top:12px;">
+                    <div class="info-value">{{ $fiche->utilisateur->direction }}</div>
+                </div>
+            @endif
+             @if($fiche->utilisateur?->service)
+                <div style="margin-top:8px;">
+                    <div class="info-value">{{ $fiche->utilisateur->service }}</div>
+                </div>
+            @endif
+        </div>
+
+        <!-- DROITE -->
+        <div class="entete-droite">
+            @if($fiche->numero_fiche)
+            <div class="info-line"><strong>N° Document :</strong> {{ $fiche->numero_fiche }}</div>
+            @endif
+            @if($fiche->soumise_at)
+            <div class="info-line"><strong>Date de soumission :</strong> {{ $fiche->soumise_at->format('d/m/Y') }}</div>
+            @endif
+        </div>
+    </div>
+
+@if($fiche->titre)
+                <div style="margin-top:12px;">
+                    <div class="info-label">Motfif</div>
+                    <div class="info-value">{{ $fiche->titre }}</div>
+                </div>
+            @endif
+    {{-- ================= SECTIONS & RESTE DU DOCUMENT (inchangé) ================= --}}
+    @php
+        $totalGlobal = 0;
+        $nbSections  = $fiche->sections->count();
+    @endphp
+
+    @forelse($fiche->sections as $section)
+    @php
+        $colonnes     = $section->colonnes;
+        $lignes       = $section->lignes;
+        $totalSection = 0;
+        $colPT = $colonnes->first(fn($c) => preg_match('/prix.?total|montant.?total/i', $c->libelle));
+        
+        foreach ($lignes as $l) {
+            if ($colPT) {
+                $val = str_replace([' ',' ',','], ['', '', '.'], $l->valeurs[$colPT->id] ?? '0');
+                $totalSection += floatval($val);
+            }
+        }
+        $totalGlobal += $totalSection;
+    @endphp
+
+    <div class="section-bloc">
+        <div class="section-titre">
+            <span>{{ $nbSections > 1 ? $loop->iteration . '. ' : '' }}{{ $section->titre }}</span>
+            @if($totalSection > 0)
+                <span>Total : {{ number_format($totalSection, 0, ',', ' ') }} FCFA</span>
+            @endif
+        </div>
+
+        @if($colonnes->count() > 0 && $lignes->count() > 0)
+        <table class="tab-data">
+            <thead>
+                <tr>
+                    <th class="num-th">#</th>
+                    @foreach($colonnes as $col)
+                    <th>{{ $col->libelle }}</th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($lignes as $ligne)
+                <tr>
+                    <td class="num-td">{{ $ligne->numero_ligne }}</td>
+                    @foreach($colonnes as $col)
+                        @php 
+                            $val = $ligne->valeurs[$col->id] ?? ''; 
+                            $isNum = preg_match('/prix|montant|quantit/i', $col->libelle); 
+                        @endphp
+                        <td class="{{ $isNum ? 'montant' : '' }}">{{ $val }}</td>
+                    @endforeach
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <span class="ts-lbl">Sous-total {{ $section->titre }} :</span>
+            <span class="ts-val">{{ number_format($totalSection, 0, ',', ' ') }} FCFA</span>
+        </div>
+        @else
+        <div style="color:#94a3b8; font-style:italic; padding:16px; text-align:center; border:1px solid #e2e8f0;">
+            — Section vide —
+        </div>
+        @endif
+    </div>
+    @empty
+    <div style="text-align:center; color:#94a3b8; padding:25px;">Aucune section.</div>
+    @endforelse
+
+    @if($totalGlobal > 0)
+    <div class="total-global">
+        <div>💰 ARRETER LE PRESENT DEVIS AU MONTANT DE : </div>
+        <div class="tg-val">{{ number_format($totalGlobal, 0, ',', ' ') }} FCFA</div>
+    </div>
+    @endif
+
+    <div class="entete-droite">
+            @if($fiche->utilisateur?->poste)
+            <div class="info-line"><strong>{{ $fiche->utilisateur->poste }}</strong></div><br><br>
+            @endif
+
+            @if($fiche->utilisateur?->nom_complet)
+            <div class="info-line"><strong>{{ $fiche->utilisateur->nom_complet }}</strong></div>
+            @endif
+        </div>
+
+    <div class="pied">
+        <div>EDEN GROUP SARL — Fiches d'Expression des Besoins</div>
+        <div>{{ $fiche->numero_fiche ?? '' }} — Imprimé le {{ now()->format('d/m/Y à H:i') }}</div>
+    </div>
+
 </div>
 
-@endif
-
-</div>
-
-@endforeach
-
-
-{{-- TOTAL GÉNÉRAL --}}
-@if($totalGeneral > 0)
-
-<div style="
-    margin-top:18px;
-    background:#1e3a5f;
-    color:#fff;
-    padding:10px 14px;
-    font-weight:bold;
-    font-size:10pt;
-    text-align:right;
-">
-    TOTAL GÉNÉRAL : {{ number_format($totalGeneral,0,',',' ') }} FCFA
-</div>
-
-@endif
-
-
-{{-- PIED --}}
-<div class="pied">
-    EDEN GROUP · Fiche d'Expression des Besoins N°
-    {{ str_pad($fiche->id,5,'0',STR_PAD_LEFT) }}
-    · {{ now()->format('d/m/Y') }}
-</div>
+    <!-- Pied de page répété -->
+    <div class="pdf-footer">
+        <div class="footer-line"></div>
+        EDEN GROUP SARL<br>
+        LEADER EN SÉCURITÉ FONCIÈRE<br>
+        www.edengroup.com | contact@edengroup.com
+    </div>
 
 </body>
 </html>
