@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { 
@@ -16,31 +17,28 @@
         /* ================= FORMAT A4 PORTRAIT ================= */
         @page {
             size: A4 portrait;
-            margin: 1.2cm 1cm 1.8cm 1cm;
+            margin: 1.2cm 1cm 2.5cm 1cm;
         }
 
         /* Header Image répété */
         .pdf-header {
             position: running(header);
             width: 100%;
-            height: 110px;
+            height: 155px;
             object-fit: cover;
         }
 
-        /* Footer répété */
+        /* Footer répété - Occupant environ 20% de la hauteur */
         .pdf-footer {
             position: running(footer);
             text-align: center;
             color: #4a2c1a;
-            font-size: 9pt;
+            font-size: 8.7pt;
             font-weight: bold;
-            padding-top: 8px;
-        }
-        .footer-line {
-            height: 2.5px;
-            background: #8b4513;
-            margin: 8px auto;
-            width: 70%;
+            line-height: 1.35;
+            padding: 25px 0 15px 0;   /* Augmenté pour occuper plus d'espace */
+            height: 22%;               /* ≈ 20% de la hauteur de la page */
+            border-top: 2.5px solid #8b4513;
         }
 
         /* ================= EN-TÊTE ================= */
@@ -116,17 +114,30 @@
         .infos-gauche, .infos-droite {
             flex: 1;
         }
-        .info-label {
-            font-size: 8.5pt;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .info-value {
-            font-size: 9.8pt;
-            font-weight: 700;
-            color: #1e3a5f;
-        }
+        .info-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:12px;
+}
+
+.info-label{
+    width:80px;
+    font-size:10pt;
+    font-weight:700;
+    color:#64748b;
+    text-transform:uppercase;
+    white-space:nowrap;
+}
+
+.info-value{
+    flex:1;
+    font-size:14pt;
+    font-weight:700;
+    color:#ef0c0c;
+    border-bottom:1px solid #999;
+    padding-bottom:2px;
+}
 
         /* Autres styles */
         .section-bloc { margin-bottom:20px; }
@@ -169,8 +180,8 @@
         .total-section .ts-val { font-weight:900; color:#15803d; font-size:11.3pt; }
 
         .total-global {
-            background:#1e3a5f;
-            color:white;
+            background:#f5f6f8;
+            color:rgb(6, 6, 6);
             border-radius:8px;
             padding:14px 24px;
             display:flex;
@@ -210,22 +221,16 @@
 <body>
 
     <!-- Image En-tête (répétée sur toutes les pages) -->
-    <div style="position: running(header);">
-        <img src="{{ asset('images/entete2.png') }}" style="width:100%; height:110px; object-fit:cover;" alt="En-tête">
-    </div>
+    <header class="pdf-header">
+        <img src="{{ public_path('images/entete2.png') }}" class="header-image" alt="En-tête" style="width:100%; height:900px; object-fit:cover;">
+    </header>
 
 <div class="page">
 
     <!-- ================= EN-TÊTE ================= -->
     <div class="entete">
-        <!-- GAUCHE : Logo Image -->
-        <div class="entete-gauche">
-            <img src="{{ asset('images/eden.webp') }}" alt="EDEN GROUP" class="logo-image">
-        </div>
-
         <!-- CENTRE -->
         <div class="entete-centre">
-            <div class="societe-name">EDEN GROUP SARL</div>
             <div class="document-title">FICHE D'EXPRESSION DES BESOINS</div>
              @if($fiche->utilisateur?->agence?->nom)
                 <div class="document-title">{{ $fiche->utilisateur->agence->nom }}</div>
@@ -244,9 +249,10 @@
 
         <!-- DROITE -->
         <div class="entete-droite">
-            @if($fiche->numero_fiche)
-            <div class="info-line"><strong>N° Document :</strong> {{ $fiche->numero_fiche }}</div>
-            @endif
+            <!-- Dans l'en-tête ou dans .entete-droite -->
+<div class="info-line">
+    <strong>N° Document :</strong> {{ $fiche->numero_fiche ?? 'EDG-' . str_pad($fiche->id, 6, '0', STR_PAD_LEFT) }}
+</div>
             @if($fiche->soumise_at)
             <div class="info-line"><strong>Date de soumission :</strong> {{ $fiche->soumise_at->format('d/m/Y') }}</div>
             @endif
@@ -254,11 +260,18 @@
     </div>
 
 @if($fiche->titre)
-                <div style="margin-top:12px;">
-                    <div class="info-label">Motfif</div>
-                    <div class="info-value">{{ $fiche->titre }}</div>
-                </div>
-            @endif
+<table style="width:100%; margin-top:12px; border-collapse:collapse;">
+    <tr>
+        <td style="width:80px; font-size:10pt; font-weight:bold; color:#64748b;">
+            Motif :
+        </td>
+        <td style="font-size:14pt; font-weight:bold; color:#ef0c0c; border-bottom:1px solid #999;">
+            {{ $fiche->titre }}
+        </td>
+    </tr>
+</table>
+@endif
+
     {{-- ================= SECTIONS & RESTE DU DOCUMENT (inchangé) ================= --}}
     @php
         $totalGlobal = 0;
@@ -284,16 +297,13 @@
     <div class="section-bloc">
         <div class="section-titre">
             <span>{{ $nbSections > 1 ? $loop->iteration . '. ' : '' }}{{ $section->titre }}</span>
-            @if($totalSection > 0)
-                <span>Total : {{ number_format($totalSection, 0, ',', ' ') }} FCFA</span>
-            @endif
         </div>
 
         @if($colonnes->count() > 0 && $lignes->count() > 0)
         <table class="tab-data">
             <thead>
                 <tr>
-                    <th class="num-th">#</th>
+                    <th class="num-th">Numero</th>
                     @foreach($colonnes as $col)
                     <th>{{ $col->libelle }}</th>
                     @endforeach
@@ -316,7 +326,7 @@
         </table>
 
         <div class="total-section">
-            <span class="ts-lbl">Sous-total {{ $section->titre }} :</span>
+            <span class="ts-lbl">Total {{ $section->titre }} :</span>
             <span class="ts-val">{{ number_format($totalSection, 0, ',', ' ') }} FCFA</span>
         </div>
         @else
@@ -331,7 +341,7 @@
 
     @if($totalGlobal > 0)
     <div class="total-global">
-        <div>💰 ARRETER LE PRESENT DEVIS AU MONTANT DE : </div>
+        <div>💰 ARRETER LE PRESENT DEVIS A LA SOMME DE : </div>
         <div class="tg-val">{{ number_format($totalGlobal, 0, ',', ' ') }} FCFA</div>
     </div>
     @endif
@@ -352,14 +362,6 @@
     </div>
 
 </div>
-
-    <!-- Pied de page répété -->
-    <div class="pdf-footer">
-        <div class="footer-line"></div>
-        B.P 35531 - Yaounde - Cameroun Tel : 694 123 784 / 675 538 022<br>
-        NIU : M042217297350S    Situe a Texaco Omnisport<br>
-        Agrement No : 0001/MINHDU/SG/DHSPI/SDPIAC du 07 Fevrier 2025
-    </div>
 
 </body>
 </html>

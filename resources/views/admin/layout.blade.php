@@ -419,14 +419,14 @@
 
         {{-- LOGO --}}
         <div class="logo-box">
-            @if(file_exists(public_path('images/eden.webp')))
+            @if(file_exists(public_path('images/eden.png')))
                 <div class="logo-img-wrap">
-                    <img src="{{ asset('images/eden.webp') }}" alt="Logo Eden Group"
+                    <img src="{{ asset('images/eden.png') }}" alt="Logo EDEN GROUP"
                          onerror="this.parentNode.innerHTML='<div class=\'logo-placeholder-letter\'>E</div>'">
                 </div>
             @elseif(file_exists(public_path('images/eden_group.png')))
                 <div class="logo-img-wrap">
-                    <img src="{{ asset('images/eden_group.png') }}" alt="Logo Eden Group">
+                    <img src="{{ asset('images/eden_group.png') }}" alt="Logo EDEN GROUP">
                 </div>
             @else
                 <div class="logo-placeholder-letter">E</div>

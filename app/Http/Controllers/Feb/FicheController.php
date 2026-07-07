@@ -9,6 +9,8 @@ use App\Models\Feb\Ligne;
 use App\Models\Feb\Utilisateur;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
+
 
 class FicheController extends Controller
 {
@@ -129,14 +131,25 @@ if ($ficheId) {
     }
 
     // PDF
-    public function pdf(Fiche $fiche)
-    {
-        $this->autoriser($fiche);
-        $fiche->load('sections.colonnes', 'sections.lignes', 'utilisateur.agence');
+
+public function pdf(Fiche $fiche)
+{
+    $this->autoriser($fiche);
+
+    $fiche->load('sections.colonnes','sections.lignes','utilisateur.agence');
         $pdf = Pdf::loadView('feb.fiches.pdf', compact('fiche'))
                   ->setPaper('a4', 'landscape');
-        return $pdf->download('fiche_' . $fiche->id . '_' . now()->format('Y-m-d') . '.pdf');
-    }
+
+    $nomFichier =
+        Str::slug($fiche->titre) .
+        '-' .
+        $fiche->id .
+        '-' .
+        Str::slug($fiche->utilisateur->nom_complet) .
+        '.pdf';
+
+    return $pdf->download($nomFichier);
+}
 
     private function autoriser(Fiche $fiche): void
     {
