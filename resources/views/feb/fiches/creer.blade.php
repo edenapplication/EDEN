@@ -599,16 +599,22 @@ function mettreAJourBoutonSoumettre() {
 // ============================================================
 // SOUMETTRE
 // ============================================================
-function soumettre() {
+function soumettre(action = 'soumettre') {
     const titre = document.getElementById('fiche-titre')?.value?.trim();
     const desc  = document.getElementById('fiche-desc')?.value?.trim();
+
     if (!titre) { alert('Saisissez un titre.'); return; }
-    if (!confirm('Soumettre cette fiche ? Elle sera transmise à l\'administration.')) return;
+
+    if (action === 'soumettre') {
+        if (!confirm('Soumettre définitivement cette fiche ? Elle sera transmise à l\'administration.')) return;
+    }
 
     const payload = {
         titre,
         description: desc,
-        modele_id:   MODELE_ID,
+        action,
+        fiche_id:   FICHE_ID,
+        modele_id:  MODELE_ID,
         sections: sections.map((sec, i) => {
             const tbody  = document.getElementById('tbody-' + sec.id);
             const lignes = [];
@@ -622,38 +628,59 @@ function soumettre() {
                 });
             }
             return {
-                titre:    document.getElementById('titre-' + sec.id)?.value?.trim() || 'Section ' + (i+1),
+                titre:    document.getElementById('titre-' + sec.id)?.value?.trim() || ('Section ' + (i+1)),
                 colonnes: sec.colonnesIds,
                 lignes,
             };
         }),
     };
 
-    const btn = document.getElementById('btn-soumettre');
-    btn.disabled  = true;
-    btn.innerText = '⏳ Envoi...';
+    const btnS = document.getElementById('btn-soumettre');
+    const btnB = document.getElementById('btn-brouillon');
+
+    btnS.disabled = true;
+    btnB.disabled = true;
+    btnS.innerText = action === 'soumettre' ? '⏳ Envoi...'       : '✅ Soumettre la fiche';
+    btnB.innerText = action === 'brouillon' ? '⏳ Sauvegarde...'  : '💾 Sauvegarder brouillon';
+
+    // ✅ Afficher le loader Eden
+    if (window.EdenLoader) window.EdenLoader.show();
 
     fetch(URL_SOUMETTRE, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            // Ouvrir le PDF dans un nouvel onglet puis rediriger
-            window.open(data.pdf_url, '_blank');
-            setTimeout(() => { window.location.href = data.retour_url; }, 800);
+            if (action === 'soumettre' && data.pdf_url) {
+                // Ouvrir le PDF dans un nouvel onglet puis rediriger
+                window.open(data.pdf_url, '_blank');
+                setTimeout(() => { window.location.href = data.retour_url; }, 800);
+            } else {
+                // Brouillon sauvegardé → retour liste
+                window.location.href = data.retour_url;
+            }
+            // Loader reste affiché pendant la redirection
         } else {
+            // ✅ Masquer loader si erreur
+            if (window.EdenLoader) window.EdenLoader.hide();
             alert('Erreur : ' + (data.message || 'inconnue'));
-            btn.disabled  = false;
-            btn.innerText = '✅ Soumettre la fiche';
+            btnS.disabled  = false;
+            btnB.disabled  = false;
+            btnS.innerText = '✅ Soumettre la fiche';
+            btnB.innerText = '💾 Sauvegarder brouillon';
         }
     })
     .catch(e => {
+        // ✅ Masquer loader si erreur réseau
+        if (window.EdenLoader) window.EdenLoader.hide();
         alert('Erreur réseau : ' + e.message);
-        btn.disabled  = false;
-        btn.innerText = '✅ Soumettre la fiche';
+        btnS.disabled  = false;
+        btnB.disabled  = false;
+        btnS.innerText = '✅ Soumettre la fiche';
+        btnB.innerText = '💾 Sauvegarder brouillon';
     });
 }
 

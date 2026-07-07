@@ -466,54 +466,100 @@ function closePaiement() {
 }
 
 function savePaiement() {
-    const cfg = TYPE_CONFIG[currentType];
+    const cfg     = TYPE_CONFIG[currentType];
     const montant = document.getElementById('montant').value;
     const date    = document.getElementById('datePaie').value;
 
     if (!montant || !date) { alert('Montant et date obligatoires.'); return; }
 
+    // ✅ Fermer le modal AVANT le loader
+    closePaiement();
+
+    // ✅ Afficher loader
+    if (window.EdenLoader) window.EdenLoader.show();
+
     fetch(`${cfg.url}/${currentDossierId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        method:  'POST',
+        headers: {
+            'Content-Type':  'application/json',
+            'X-CSRF-TOKEN':  document.querySelector('meta[name="csrf-token"]')?.content
+                             || '{{ csrf_token() }}',
+        },
         body: JSON.stringify({
-            montant:       montant,
+            montant:       parseFloat(montant),
             date_paiement: date,
             note:          document.getElementById('note').value,
-        })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) location.reload();
-        else alert(data.message || 'Erreur');
-    })
-    .catch(e => alert('Erreur réseau : ' + e.message));
-}
-
-// ✅ Mise à jour prix de référence
-function majPrix(dossierId) {
-    const superficie    = document.getElementById('prix-superficie-'    + dossierId)?.value;
-    const technique     = document.getElementById('prix-technique-'     + dossierId)?.value;
-    const morcellement  = document.getElementById('prix-morcellement-'  + dossierId)?.value;
-
-    fetch(`/admin/dossiers/${dossierId}/maj-prix`, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({
-            prix_superficie:    superficie,
-            prix_technique:     technique,
-            prix_morcellement:  morcellement,
         }),
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) throw new Error('Erreur HTTP ' + r.status);
+        return r.json();
+    })
     .then(data => {
         if (data.success) {
-            // Notification succès
+            location.reload();
+        } else {
+            if (window.EdenLoader) window.EdenLoader.hide();
+            alert(data.message || 'Erreur lors du paiement');
+        }
+    })
+    .catch(e => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        alert('Erreur réseau : ' + e.message);
+    });
+}
+
+function majPrix(dossierId) {
+    const superficie   = document.getElementById('prix-superficie-'   + dossierId)?.value ?? '';
+    const technique    = document.getElementById('prix-technique-'    + dossierId)?.value ?? '';
+    const morcellement = document.getElementById('prix-morcellement-' + dossierId)?.value ?? '';
+
+    // ✅ Afficher loader
+    if (window.EdenLoader) window.EdenLoader.show();
+
+    fetch(`/admin/dossiers/${dossierId}/maj-prix`, {
+        method:  'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                            || CSRF,
+        },
+        body: JSON.stringify({
+            prix_superficie:   superficie   !== '' ? parseFloat(superficie)   : null,
+            prix_technique:    technique    !== '' ? parseFloat(technique)    : null,
+            prix_morcellement: morcellement !== '' ? parseFloat(morcellement) : null,
+        }),
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('Erreur HTTP ' + r.status);
+        return r.json();
+    })
+    .then(data => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+
+        if (data.success) {
             const notif = document.createElement('div');
             notif.innerText = '✅ Prix mis à jour';
-            notif.style.cssText = 'position:fixed;top:80px;right:20px;background:#16a34a;color:white;padding:10px 18px;border-radius:10px;z-index:999999;font-weight:700;font-size:13px;';
+            notif.style.cssText = [
+                'position:fixed','top:80px','right:20px',
+                'background:#16a34a','color:white',
+                'padding:10px 18px','border-radius:10px',
+                'z-index:999999','font-weight:700','font-size:13px',
+                'box-shadow:0 4px 16px rgba(0,0,0,0.15)',
+                'transition:opacity 0.3s',
+            ].join(';');
             document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 2500);
+            setTimeout(() => {
+                notif.style.opacity = '0';
+                setTimeout(() => notif.remove(), 300);
+            }, 2200);
+        } else {
+            alert(data.message || 'Erreur lors de la mise à jour des prix');
         }
+    })
+    .catch(e => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        alert('Erreur réseau : ' + e.message);
     });
 }
 
