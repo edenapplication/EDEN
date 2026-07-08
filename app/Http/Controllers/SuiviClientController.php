@@ -14,6 +14,15 @@ use App\Models\GrandSite;
 
 class SuiviClientController extends Controller
 {
+
+public function create(Request $request)
+    {
+        $options  = $this->options();
+        $clientId = $request->client_id;
+        $clientPre= $clientId ? Client::find($clientId) : null;
+        return view('admin.suivi_client.create', compact('options','clientPre'));
+    }
+    
     private function options(): array
     {
         return [

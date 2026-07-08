@@ -318,7 +318,7 @@
             {{ number_format($p->montant,0,',',' ') }}
         </span>
 
-        <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
+        <form action="{{ route('paiements-techniques.destroy', $p->id) }}" method="POST">
             @csrf
             @method('DELETE')
 
@@ -390,7 +390,7 @@
             {{ number_format($p->montant,0,',',' ') }}
         </span>
 
-        <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
+        <form action="{{ route('paiements-morcellements.destroy', $p->id) }}" method="POST">
             @csrf
             @method('DELETE')
 
