@@ -12,6 +12,7 @@ class DossierClient extends Model
         'facilitateur_id', 'agent_commercial_id',
         'grand_site_id', 'direction',
         'superficie_voulue', 'prix_superficie',
+        'prix_technique', 'prix_morcellement',
     ];
 
     public function client()          { return $this->belongsTo(Client::class); }

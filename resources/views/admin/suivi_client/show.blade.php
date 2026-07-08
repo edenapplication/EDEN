@@ -227,23 +227,38 @@
         @endif
         <div class="pay-historique">
             @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
-            <div class="pay-row">
-                <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <span class="pay-amt" style="color:#16a34a;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
-                    {{-- ✅ Supprimer paiement --}}
-                    <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST" style="display:inline;">
-    @csrf
-    @method('DELETE')
+            <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+    
+    <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;">
+            {{ $p->date_paiement }}
+        </div>
 
-    <button type="submit"
-        onclick="return confirm('Supprimer ce paiement ?')"
-        style="background:none;border:none;color:#dc2626;cursor:pointer;">
-        🗑
-    </button>
-</form>
-                        </div>
+        @if($p->note)
+            <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
+                {{ $p->note }}
             </div>
+        @endif
+    </div>
+
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <span class="pay-amt" style="color:#16a34a;font-weight:700;">
+            {{ number_format($p->montant,0,',',' ') }}
+        </span>
+
+        <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
+            @csrf
+            @method('DELETE')
+
+            <button type="submit"
+                    onclick="return confirm('Supprimer ce paiement ?')"
+                    style="background:none;border:none;color:#dc2626;cursor:pointer;">
+                🗑
+            </button>
+        </form>
+    </div>
+
+</div>
             @empty
             <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
             @endforelse
@@ -284,22 +299,38 @@
         @endif
         <div class="pay-historique">
             @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
-            <div class="pay-row">
-                <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <span class="pay-amt" style="color:#ea580c;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
-                    <form action="{{ route('paiements-techniques.destroy', $p->id) }}" method="POST" style="display:inline;">
-    @csrf
-    @method('DELETE')
+            <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+    
+    <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;">
+            {{ $p->date_paiement }}
+        </div>
 
-    <button type="submit"
-        onclick="return confirm('Supprimer ce paiement ?')"
-        style="background:none;border:none;color:#dc2626;cursor:pointer;">
-        🗑
-    </button>
-</form>
-                        </div>
+        @if($p->note)
+            <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
+                {{ $p->note }}
             </div>
+        @endif
+    </div>
+
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <span class="pay-amt" style="color:#16a34a;font-weight:700;">
+            {{ number_format($p->montant,0,',',' ') }}
+        </span>
+
+        <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
+            @csrf
+            @method('DELETE')
+
+            <button type="submit"
+                    onclick="return confirm('Supprimer ce paiement ?')"
+                    style="background:none;border:none;color:#dc2626;cursor:pointer;">
+                🗑
+            </button>
+        </form>
+    </div>
+
+</div>
             @empty
             <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
             @endforelse
@@ -340,22 +371,38 @@
         @endif
         <div class="pay-historique">
             @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
-            <div class="pay-row">
-                <span>{{ $p->date_paiement }} {{ $p->note ? '— '.$p->note : '' }}</span>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <span class="pay-amt" style="color:#ca8a04;">{{ number_format($p->montant, 0, ',', ' ') }}</span>
-                    <form action="{{ route('paiements-morcellements.destroy', $p->id) }}" method="POST" style="display:inline;">
-    @csrf
-    @method('DELETE')
+            <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+    
+    <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;">
+            {{ $p->date_paiement }}
+        </div>
 
-    <button type="submit"
-        onclick="return confirm('Supprimer ce paiement ?')"
-        style="background:none;border:none;color:#dc2626;cursor:pointer;">
-        🗑
-    </button>
-</form>
-                        </div>
+        @if($p->note)
+            <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
+                {{ $p->note }}
             </div>
+        @endif
+    </div>
+
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <span class="pay-amt" style="color:#16a34a;font-weight:700;">
+            {{ number_format($p->montant,0,',',' ') }}
+        </span>
+
+        <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
+            @csrf
+            @method('DELETE')
+
+            <button type="submit"
+                    onclick="return confirm('Supprimer ce paiement ?')"
+                    style="background:none;border:none;color:#dc2626;cursor:pointer;">
+                🗑
+            </button>
+        </form>
+    </div>
+
+</div>
             @empty
             <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
             @endforelse
@@ -538,24 +585,10 @@ function majPrix(dossierId) {
         if (window.EdenLoader) window.EdenLoader.hide();
 
         if (data.success) {
-            const notif = document.createElement('div');
-            notif.innerText = '✅ Prix mis à jour';
-            notif.style.cssText = [
-                'position:fixed','top:80px','right:20px',
-                'background:#16a34a','color:white',
-                'padding:10px 18px','border-radius:10px',
-                'z-index:999999','font-weight:700','font-size:13px',
-                'box-shadow:0 4px 16px rgba(0,0,0,0.15)',
-                'transition:opacity 0.3s',
-            ].join(';');
-            document.body.appendChild(notif);
-            setTimeout(() => {
-                notif.style.opacity = '0';
-                setTimeout(() => notif.remove(), 300);
-            }, 2200);
-        } else {
-            alert(data.message || 'Erreur lors de la mise à jour des prix');
-        }
+    location.reload();
+} else {
+    alert(data.message || 'Erreur lors de la mise à jour des prix');
+}
     })
     .catch(e => {
         if (window.EdenLoader) window.EdenLoader.hide();
