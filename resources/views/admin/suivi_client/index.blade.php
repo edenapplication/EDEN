@@ -30,7 +30,7 @@
     <div>
         <h2 style="color:#1e3a5f;font-weight:800;margin:0;">👤 Suivi Clients</h2>
         <div style="font-size:13px;color:#64748b;" id="compteur-clients">
-            {{ $clients->total() }} client(s)
+            {{ $clients->count() }} client(s)
         </div>
     </div>
     <div class="d-flex gap-2">
@@ -104,7 +104,6 @@
                 <div style="font-size:12px;color:#64748b;margin-top:2px;">
                     📞 {{ $client->phone ?? '-' }}
                     &nbsp;·&nbsp; 📂 <span id="nb-dossiers-{{ $client->id }}">{{ $client->dossiers->count() }}</span> dossier(s)
-                    &nbsp;·&nbsp; 📅 {{ $client->created_at->format('d/m/Y') }}
                 </div>
 
                 {{-- ✅ Dossiers sous forme de pills avec bouton supprimer --}}
@@ -135,8 +134,6 @@
     </div>
     @endforelse
 </div>
-
-<div class="mt-3" id="pagination-wrap">{{ $clients->appends(request()->all())->links() }}</div>
 
 {{-- MODAL MODIFIER NOM --}}
 <div class="modal-overlay" id="overlayNom" onclick="fermerEditNom()"></div>
@@ -193,10 +190,6 @@ function filtrerClients(terme) {
     // Mettre à jour compteur
     const compteur = document.getElementById('compteur-clients');
     if (compteur) compteur.innerText = visible + ' client(s)';
-
-    // Masquer pagination si filtre actif
-    const pag = document.getElementById('pagination-wrap');
-    if (pag) pag.style.display = t ? 'none' : '';
 }
 
 // Filtres serveur (date + site)
@@ -212,8 +205,6 @@ function appliquerFiltresServeur() {
     q    ? url.searchParams.set('q',            q)    : url.searchParams.delete('q');
     window.location.href = url.toString();
 }
-
-
 
 // ============================================================
 // MODIFIER NOM CLIENT

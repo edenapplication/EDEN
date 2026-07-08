@@ -31,8 +31,3 @@
 @empty
     <div class="alert alert-info">Aucun client trouvé.</div>
 @endforelse
-
-{{-- PAGINATION --}}
-<div class="d-flex justify-content-center mt-3">
-    {{ $clients->onEachSide(1)->links('pagination::bootstrap-5') }}
-</div>

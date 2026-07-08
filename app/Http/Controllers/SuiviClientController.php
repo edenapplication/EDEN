@@ -37,50 +37,38 @@ class SuiviClientController extends Controller
         'dossiers.grandSite',
         'dossiers.paiementsTechniques',
         'dossiers.paiementsMorcellements'
-    ])
-    ->orderByDesc('created_at');
+    ])->orderByDesc('created_at');
 
-    // 🔍 Recherche
+    // Recherche
     if ($request->filled('q')) {
-        $query->where(function ($q) use ($request) {
-            $q->where('name', 'like', '%'.$request->q.'%')
-              ->orWhere('phone', 'like', '%'.$request->q.'%');
+        $q = trim($request->q);
+        $query->where(function($qry) use ($q) {
+            $qry->where('name', 'LIKE', "%{$q}%")
+                ->orWhere('phone', 'LIKE', "%{$q}%")
+                ->orWhereHas('dossiers', function($dq) use ($q) {
+                    $dq->where('nom_dossier', 'LIKE', "%{$q}%");
+                });
         });
     }
 
-    // 📅 Filtre date début
-    if ($request->filled('du')) {
+    if ($request->filled('du'))
         $query->whereDate('created_at', '>=', $request->du);
-    }
 
-    // 📅 Filtre date fin
-    if ($request->filled('au')) {
+    if ($request->filled('au'))
         $query->whereDate('created_at', '<=', $request->au);
-    }
 
-    // 🏷 Filtre grand site
     if ($request->filled('grand_site_id')) {
-        $query->whereHas('dossiers', function ($q) use ($request) {
-            $q->where('grand_site_id', $request->grand_site_id);
-        });
+        $query->whereHas('dossiers', fn($q) => 
+            $q->where('grand_site_id', $request->grand_site_id));
     }
 
-    // 📦 Pagination
-    $clients = $query->paginate(25);
+    // ✅ Sans pagination : tout afficher
+    $clients = $query->get();
 
-    // 🏢 Liste des sites
-    $grandSites = GrandSite::orderBy('nom')->get();
+    $grandSites = \App\Models\GrandSite::orderBy('nom')->get();
 
     return view('admin.suivi_client.index', compact('clients', 'grandSites'));
 }
-
-    public function create(Request $request)
-    {
-        $options  = $this->options();
-        $clientId = $request->client_id;
-        $clientPre= $clientId ? Client::find($clientId) : null;
-        return view('admin.suivi_client.create', compact('options','clientPre'));
-    }
 
     public function store(Request $request)
     {
