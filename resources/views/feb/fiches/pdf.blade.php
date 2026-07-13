@@ -152,17 +152,16 @@
             justify-content:space-between;
         }
 
-        table.tab-data { width:100%; border-collapse:collapse; }
+        table.tab-data { width:100%; border-collapse:collapse;  table-layout: fixed; font-size: 7.8pt; }
         table.tab-data thead tr { background:#dbeafe; }
         table.tab-data thead th {
-            padding:8px 10px; text-align:left;
-            font-size:8.7pt; font-weight:700; color:#1d4ed8;
+            padding:5px 6px; text-align:left;
+            font-size:7.7pt; font-weight:700; color:#1d4ed8;
             border:1px solid #bfdbfe;
         }
-        table.tab-data thead th.num-th { width:32px; text-align:center; color:#64748b; }
+        table.tab-data thead th.num-th { width:28px; text-align:center; color:#64748b; }
         table.tab-data tbody td {
-            padding:7px 10px; font-size:8.7pt;
-            border:1px solid #e2e8f0;
+            padding:4px 6px; font-size:7.7pt; border:1px solid #e2e8f0; word-wrap: break-word; overflow-wrap: break-word;
         }
         table.tab-data tbody tr:nth-child(even) td { background:#f8fafc; }
         table.tab-data .num-td { text-align:center; color:#94a3b8; }
@@ -172,12 +171,12 @@
             background:#f0fdf4;
             border:1px solid #bbf7d0;
             border-top:none;
-            padding:10px 16px;
+            padding:6px 12px;
             display:flex;
             justify-content:flex-end;
             gap:16px;
         }
-        .total-section .ts-val { font-weight:900; color:#15803d; font-size:11.3pt; }
+        .total-section .ts-val { font-weight:900; color:#15803d; font-size:9.5pt; }
 
         .total-global {
             background:#f5f6f8;
@@ -279,65 +278,75 @@
     @endphp
 
     @forelse($fiche->sections as $section)
-    @php
-        $colonnes     = $section->colonnes;
-        $lignes       = $section->lignes;
-        $totalSection = 0;
-        $colPT = $colonnes->first(fn($c) => preg_match('/prix.?total|montant.?total/i', $c->libelle));
-        
-        foreach ($lignes as $l) {
-            if ($colPT) {
-                $val = str_replace([' ',' ',','], ['', '', '.'], $l->valeurs[$colPT->id] ?? '0');
-                $totalSection += floatval($val);
-            }
+@php
+    $colonnes     = $section->colonnes;
+    $lignes       = $section->lignes;
+    $totalSection = 0;
+    $colPT = $colonnes->first(fn($c) => preg_match('/prix.?total|montant.?total/i', $c->libelle));
+    
+    foreach ($lignes as $l) {
+        if ($colPT) {
+            $val = str_replace([' ',' ',','], ['', '', '.'], $l->valeurs[$colPT->id] ?? '0');
+            $totalSection += floatval($val);
         }
-        $totalGlobal += $totalSection;
-    @endphp
+    }
+    $totalGlobal += $totalSection;
 
-    <div class="section-bloc">
-        <div class="section-titre">
-            <span>{{ $nbSections > 1 ? $loop->iteration . '. ' : '' }}{{ $section->titre }}</span>
-        </div>
+    // Vérifier si le titre est personnalisé (pas "Section 1", "Section 2", etc.)
+    $hasCustomTitle = !empty(trim($section->titre)) && !str_starts_with(trim($section->titre), 'Section ');
+@endphp
 
-        @if($colonnes->count() > 0 && $lignes->count() > 0)
-        <table class="tab-data">
-            <thead>
-                <tr>
-                    <th class="num-th">Numero</th>
-                    @foreach($colonnes as $col)
-                    <th>{{ $col->libelle }}</th>
-                    @endforeach
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($lignes as $ligne)
-                <tr>
-                    <td class="num-td">{{ $ligne->numero_ligne }}</td>
-                    @foreach($colonnes as $col)
-                        @php 
-                            $val = $ligne->valeurs[$col->id] ?? ''; 
-                            $isNum = preg_match('/prix|montant|quantit/i', $col->libelle); 
-                        @endphp
-                        <td class="{{ $isNum ? 'montant' : '' }}">{{ $val }}</td>
-                    @endforeach
-                </tr>
+<div class="section-bloc">
+    {{-- AFFICHER LE TITRE SEULEMENT S'IL EST PERSONNALISÉ --}}
+    @if($hasCustomTitle)
+    <div class="section-titre">
+        <span>{{ $nbSections > 1 ? $loop->iteration . '. ' : '' }}{{ $section->titre }}</span>
+    </div><br>
+    @endif
+
+    @if($colonnes->count() > 0 && $lignes->count() > 0)
+    <table class="tab-data">
+        <thead>
+            <tr>
+                <th class="num-th">Numero</th>
+                @foreach($colonnes as $col)
+                <th>{{ $col->libelle }}</th>
                 @endforeach
-            </tbody>
-        </table>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($lignes as $ligne)
+            <tr>
+                <td class="num-td">{{ $ligne->numero_ligne }}</td>
+                @foreach($colonnes as $col)
+                    @php 
+                        $val = $ligne->valeurs[$col->id] ?? ''; 
+                        $isNum = preg_match('/prix|montant|quantit/i', $col->libelle); 
+                    @endphp
+                    <td class="{{ $isNum ? 'montant' : '' }}">{{ $val }}</td>
+                @endforeach
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
 
-        <div class="total-section">
-            <span class="ts-lbl">Total {{ $section->titre }} :</span>
-            <span class="ts-val">{{ number_format($totalSection, 0, ',', ' ') }} FCFA</span>
-        </div>
-        @else
-        <div style="color:#94a3b8; font-style:italic; padding:16px; text-align:center; border:1px solid #e2e8f0;">
-            — Section vide —
-        </div>
-        @endif
+    {{-- AFFICHER LE TOTAL SECTION UNIQUEMENT S'IL Y A PLUS D'UNE SECTION --}}
+    @if($nbSections > 1)
+    <div class="total-section">
+        <span class="ts-lbl">Total {{ $hasCustomTitle ? $section->titre : '' }} :</span>
+        <span class="ts-val">{{ number_format($totalSection, 0, ',', ' ') }} FCFA</span>
     </div>
-    @empty
-    <div style="text-align:center; color:#94a3b8; padding:25px;">Aucune section.</div>
-    @endforelse
+    @endif
+
+    @else
+    <div style="color:#94a3b8; font-style:italic; padding:16px; text-align:center; border:1px solid #e2e8f0;">
+        — Section vide —
+    </div>
+    @endif
+</div>
+@empty
+<div style="text-align:center; color:#94a3b8; padding:25px;">Aucune section.</div>
+@endforelse
 
     @if($totalGlobal > 0)
     <div class="total-global">

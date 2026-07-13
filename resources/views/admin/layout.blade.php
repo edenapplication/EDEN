@@ -180,7 +180,7 @@
 </script>
 
 <body>
-    {{-- ============ PAGE DE CHARGEMENT ============ --}}
+ {{-- ============ PAGE DE CHARGEMENT ============ --}}
 <div id="eden-loader" style="
     display:none;
     position:fixed;
@@ -208,6 +208,27 @@
             position:absolute;top:0;left:0;right:0;height:5px;
             background:linear-gradient(90deg,#1d4ed8 0%,#7c3aed 50%,#dc2626 100%);
         "></div>
+
+        {{-- BOUTON CROIX FERMER --}}
+        <button id="eden-loader-close" style="
+            position:absolute;
+            top:12px;
+            right:14px;
+            background:none;
+            border:none;
+            font-size:20px;
+            font-weight:300;
+            color:#94a3b8;
+            cursor:pointer;
+            padding:4px 8px;
+            border-radius:8px;
+            transition:all 0.2s;
+            line-height:1;
+            z-index:10;
+        " onmouseover="this.style.background='#f1f5f9'; this.style.color='#ef4444';" 
+          onmouseout="this.style.background='transparent'; this.style.color='#94a3b8';">
+            ✕
+        </button>
 
         {{-- Logo / Initiale --}}
         <div style="
@@ -269,6 +290,14 @@
                 transition:width 0.3s ease;
             "></div>
         </div>
+
+        {{-- Petit texte annuler --}}
+        <div style="
+            margin-top:12px;
+            font-size:9pt;
+            color:#94a3b8;
+            font-weight:400;
+        ">Cliquez sur ✕ pour annuler</div>
     </div>
 </div>
 
@@ -280,6 +309,14 @@
 #eden-loader.actif {
     display: flex !important;
 }
+
+/* Animation d'apparition de la croix au survol */
+#eden-loader-close {
+    transition: all 0.2s ease;
+}
+#eden-loader-close:hover {
+    transform: scale(1.1);
+}
 </style>
 
 <script>
@@ -287,6 +324,9 @@
     const loader  = document.getElementById('eden-loader');
     const dots    = document.getElementById('eden-dots');
     const progBar = document.getElementById('eden-prog-bar');
+    const closeBtn = document.getElementById('eden-loader-close');
+
+    let estAnnule = false;
 
     // ============================================================
     // ANIMATION DES POINTS
@@ -295,6 +335,7 @@
     let dotsTimer = null;
     function animerPoints() {
         dotsTimer = setInterval(() => {
+            if (estAnnule) return;
             dotsCount = (dotsCount + 1) % 4;
             dots.innerText = '.'.repeat(dotsCount);
         }, 400);
@@ -306,15 +347,15 @@
     let progValue  = 0;
     let progTimer  = null;
     function demarrerProgression() {
+        estAnnule = false;
         progValue = 0;
         progBar.style.width = '0%';
         progTimer = setInterval(() => {
-            // Avancer rapidement jusqu'à 85%, puis ralentir
+            if (estAnnule) return;
             if (progValue < 30)       progValue += 4;
             else if (progValue < 60)  progValue += 2.5;
             else if (progValue < 80)  progValue += 1;
             else if (progValue < 88)  progValue += 0.3;
-            // Bloquer à 88% jusqu'à vraie fin
             if (progValue >= 88) {
                 progValue = 88;
                 clearInterval(progTimer);
@@ -332,12 +373,37 @@
     }
 
     // ============================================================
+    // ANNULER / FERMER
+    // ============================================================
+    function annulerChargement() {
+        estAnnule = true;
+        clearInterval(dotsTimer);
+        clearInterval(progTimer);
+        loader.classList.remove('actif');
+        dots.innerText = '';
+        progBar.style.width = '0%';
+        
+        // Optionnel : petit message de confirmation
+        const msg = document.getElementById('eden-loader-msg');
+        if (msg) {
+            msg.innerText = '⏹ Chargement annulé';
+            setTimeout(() => {
+                msg.innerText = 'Chargement en cours';
+            }, 1500);
+        }
+    }
+
+    // ============================================================
     // AFFICHER / MASQUER
     // ============================================================
     function afficher() {
+        estAnnule = false;
         loader.classList.add('actif');
         demarrerProgression();
         animerPoints();
+        // Remettre le message original
+        const msg = document.getElementById('eden-loader-msg');
+        if (msg) msg.innerText = 'Chargement en cours';
     }
 
     function masquer() {
@@ -346,6 +412,17 @@
             clearInterval(dotsTimer);
             dotsCount = 0;
             if (dots) dots.innerText = '';
+            estAnnule = false;
+        });
+    }
+
+    // ============================================================
+    // ÉVÉNEMENT CROIX FERMER
+    // ============================================================
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            annulerChargement();
         });
     }
 
@@ -353,41 +430,40 @@
     // DÉCLENCHEURS
     // ============================================================
 
-    // 1. Tous les liens qui causent une navigation (sauf ancres, modals, js)
+    // 1. Tous les liens qui causent une navigation
     document.addEventListener('click', function(e) {
         const a = e.target.closest('a');
         if (!a) return;
         const href = a.getAttribute('href');
         if (!href) return;
-        // Ignorer : ancres, javascript:, target _blank, téléchargements
         if (href.startsWith('#'))         return;
         if (href.startsWith('javascript'))return;
         if (a.target === '_blank')        return;
         if (a.download)                   return;
-        // Ignorer : boutons qui ouvrent des modals (onclick sans navigation)
         if (a.dataset.bsToggle)           return;
+        if (estAnnule)                    return;
         afficher();
     });
 
-    // 2. Tous les formulaires soumis (sauf fetch/ajax)
+    // 2. Tous les formulaires soumis
     document.addEventListener('submit', function(e) {
         const form = e.target;
-        // Ignorer les formulaires sans action réelle
         if (form.dataset.ajax === 'true') return;
+        if (estAnnule)                    return;
         afficher();
     });
 
-    // 3. Boutons submit classiques (dans forms)
+    // 3. Boutons submit classiques
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('button[type="submit"]');
         if (!btn) return;
         const form = btn.closest('form');
         if (form && form.dataset.ajax !== 'true') {
-            afficher();
+            if (!estAnnule) afficher();
         }
     });
 
-    // 4. Masquer dès que la page est chargée (retour arrière, etc.)
+    // 4. Masquer dès que la page est chargée
     window.addEventListener('pageshow', function(e) {
         masquer();
     });
@@ -400,11 +476,12 @@
     }
 
     // ============================================================
-    // API GLOBALE — pour appeler manuellement depuis n'importe où
+    // API GLOBALE
     // ============================================================
     window.EdenLoader = {
         show: afficher,
         hide: masquer,
+        cancel: annulerChargement,
     };
 })();
 </script>
