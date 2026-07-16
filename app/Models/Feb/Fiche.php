@@ -14,4 +14,16 @@ class Fiche extends Model
     public function utilisateur() { return $this->belongsTo(Utilisateur::class, 'utilisateur_id'); }
     public function sections()    { return $this->hasMany(Section::class, 'fiche_id')->orderBy('ordre'); }
     public function modele()      { return $this->belongsTo(Fiche::class, 'modele_id'); }
+
+
+    public function destinataires()
+    {
+        return $this->belongsToMany(
+            Destinataire::class,
+            'feb_destinataire_fiche',
+            'fiche_id',
+            'destinataire_id'
+        )->withPivot('ordre')
+         ->orderBy('pivot_ordre');
+    }
 }

@@ -30,6 +30,8 @@ use App\Http\Controllers\RH\SanctionController;
 use App\Http\Controllers\RH\RetardController;
 use App\Http\Controllers\RH\DirectionController;
 
+use App\Http\Controllers\Feb\DestinataireController;
+
 Route::post('/deploy', function () {
     exec('cd /var/www/html && git pull origin main');
     exec('cd /var/www/html && php artisan optimize:clear');
@@ -295,6 +297,11 @@ Route::prefix('feb')->name('feb.')->group(function () {
         Route::get('/',      [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('index');
         Route::get('fiches', [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('fiches.index');
 
+         // Routes pour les destinataires
+    Route::get('destinataires', [DestinataireController::class, 'index'])->name('destinataires.index');
+    Route::get('destinataires/search', [DestinataireController::class, 'search'])->name('destinataires.search');
+    Route::post('destinataires', [DestinataireController::class, 'store'])->name('destinataires.store');
+    Route::delete('destinataires/{id}', [DestinataireController::class, 'destroy'])->name('destinataires.destroy');
         // ✅ IMPORTANT : routes fixes AVANT les routes avec paramètres {fiche}
         Route::get('fiches/creer',            [App\Http\Controllers\Feb\FicheController::class, 'creer'])           ->name('fiches.creer');
         Route::post('fiches/creer-soumettre', [App\Http\Controllers\Feb\FicheController::class, 'creerEtSoumettre'])->name('fiches.creer-soumettre');

@@ -5,6 +5,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Feb\Fiche;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
+use NumberToWords\NumberToWords;
 
 class AdminFicheController extends Controller
 {
@@ -43,10 +45,49 @@ class AdminFicheController extends Controller
     }
 
     public function pdf(Fiche $fiche)
-    {
-        $fiche->load('sections.colonnes','sections.lignes','utilisateur.agence');
-        $pdf = Pdf::loadView('feb.fiches.pdf', compact('fiche'))
-                  ->setPaper('a4', 'landscape');
-        return $pdf->download('fiche_admin_' . $fiche->id . '.pdf');
+{
+    // Charger toutes les relations nécessaires
+    $fiche->load([
+        'sections.colonnes',
+        'sections.lignes',
+        'utilisateur.agence',
+        'destinataires'  // Les destinataires seront disponibles dans la vue
+    ]);
+
+    // Calcul du montant total
+    $totalGlobal = 0;
+
+    foreach ($fiche->sections as $section) {
+        $colPT = $section->colonnes
+            ->first(fn($c) => preg_match('/prix.?total|montant.?total/i', $c->libelle));
+
+        if ($colPT) {
+            foreach ($section->lignes as $ligne) {
+                $val = str_replace(
+                    [' ', ' ', ','],
+                    ['', '', '.'],
+                    $ligne->valeurs[$colPT->id] ?? '0'
+                );
+                $totalGlobal += floatval($val);
+            }
+        }
     }
+
+    // Conversion en lettres
+    $numberToWords = new NumberToWords();
+    $converter = $numberToWords->getNumberTransformer('fr');
+    $totalLettre = ucfirst($converter->toWords($totalGlobal)) . " Franc CFA";
+
+    // Génération du PDF
+    $pdf = Pdf::loadView('feb.fiches.pdf', [
+        'fiche' => $fiche,
+        'totalGlobal' => $totalGlobal,
+        'totalLettre' => $totalLettre,
+        'hasDestinataires' => $fiche->destinataires->isNotEmpty() // Optionnel
+    ])
+    ->setPaper('a4', 'landscape');
+
+    return $pdf->download('fiche_admin_' . $fiche->id . '.pdf');
+}
+
 }

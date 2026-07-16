@@ -10,6 +10,7 @@ use App\Models\Feb\Utilisateur;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
+use NumberToWords\NumberToWords;
 
 class FicheController extends Controller
 {
@@ -67,102 +68,179 @@ class FicheController extends Controller
     }
 
     // ✅ Créer ET soumettre (ou sauvegarder brouillon)
-    public function creerEtSoumettre(Request $request)
-    {
-        try {
-            $request->validate([
-                'titre'              => 'required|string|max:200',
-                'sections'           => 'required|array|min:1',
-                'sections.*.titre'   => 'required|string|max:150',
-                'sections.*.colonnes'=> 'nullable|array',
-                'sections.*.lignes'  => 'nullable|array',
+public function creerEtSoumettre(Request $request)
+{
+    try {
+        $request->validate([
+            'titre'              => 'required|string|max:200',
+            'sections'           => 'required|array|min:1',
+            'sections.*.titre'   => 'required|string|max:150',
+            'sections.*.colonnes'=> 'nullable|array',
+            'sections.*.lignes'  => 'nullable|array',
+            'destinataires'      => 'nullable|array',
+            'destinataires.*'    => 'exists:feb_destinataires,id', // ✅ Correction : feb_destinataires
+        ]);
+
+        $user   = $this->utilisateur();
+        $action = $request->action ?? 'soumettre';
+
+        // Si brouillon existant à mettre à jour
+        $ficheId = $request->fiche_id;
+        if ($ficheId) {
+            $fiche = Fiche::where('id', $ficheId)
+                          ->where('utilisateur_id', $user->id)
+                          ->where('statut', 'brouillon')
+                          ->firstOrFail();
+            $fiche->update([
+                'titre'       => $request->titre,
+                'description' => $request->description,
+                'statut'      => $action === 'soumettre' ? 'soumise' : 'brouillon',
+                'vue_admin'   => false,
+                'soumise_at'  => $action === 'soumettre' ? now() : null,
+            ]);
+            
+            // Supprimer anciennes sections
+            $fiche->sections()->each(function($s) {
+                $s->lignes()->delete();
+                $s->colonnes()->detach();
+                $s->delete();
+            });
+            
+            // ✅ Supprimer les anciens destinataires
+            $fiche->destinataires()->detach();
+            
+        } else {
+            // ✅ Générer le numéro de fiche
+            $numeroFiche = 'FEB-' . date('Y') . '-' . str_pad(Fiche::count() + 1, 4, '0', STR_PAD_LEFT);
+            
+            $fiche = Fiche::create([
+                'utilisateur_id' => $user->id,
+                'numero_fiche'   => $numeroFiche,
+                'titre'          => $request->titre,
+                'description'    => $request->description,
+                'statut'         => $action === 'soumettre' ? 'soumise' : 'brouillon',
+                'vue_admin'      => false,
+                'soumise_at'     => $action === 'soumettre' ? now() : null,
+                'modele_id'      => $request->modele_id ?? null,
+            ]);
+        }
+
+        // ============================================================
+        // ✅ GESTION DES DESTINATAIRES
+        // ============================================================
+        if ($request->has('destinataires') && !empty($request->destinataires)) {
+            // Créer un tableau associatif avec l'ordre
+            $destinataires = collect($request->destinataires)->mapWithKeys(function ($id, $index) {
+                return [$id => ['ordre' => $index + 1]];
+            })->toArray();
+            
+            $fiche->destinataires()->attach($destinataires);
+        }
+
+        // ============================================================
+        // GESTION DES SECTIONS
+        // ============================================================
+        foreach ($request->sections as $i => $sData) {
+            $section = Section::create([
+                'fiche_id' => $fiche->id,
+                'titre'    => $sData['titre'],
+                'ordre'    => $i,
             ]);
 
-            $user   = $this->utilisateur();
-            $action = $request->action ?? 'soumettre'; // soumettre | brouillon
-
-            // Si brouillon existant à mettre à jour
-            $ficheId = $request->fiche_id;
-            if ($ficheId) {
-                $fiche = Fiche::where('id', $ficheId)
-                              ->where('utilisateur_id', $user->id)
-                              ->where('statut', 'brouillon')
-                              ->firstOrFail();
-                $fiche->update([
-                    'titre'       => $request->titre,
-                    'description' => $request->description,
-                    'statut'      => $action === 'soumettre' ? 'soumise' : 'brouillon',
-                    'vue_admin'   => false,
-                    'soumise_at'  => $action === 'soumettre' ? now() : null,
-                ]);
-                // Supprimer anciennes sections
-                $fiche->sections()->each(function($s) {
-                    $s->lignes()->delete();
-                    $s->colonnes()->detach();
-                    $s->delete();
-                });
-            } else {
-                $fiche = Fiche::create([
-                    'utilisateur_id' => $user->id,
-                    'titre'          => $request->titre,
-                    'description'    => $request->description,
-                    'statut'         => $action === 'soumettre' ? 'soumise' : 'brouillon',
-                    'vue_admin'      => false,
-                    'soumise_at'     => $action === 'soumettre' ? now() : null,
-                    'modele_id'      => $request->modele_id ?? null,
-                ]);
-            }
-
-            foreach ($request->sections as $i => $sData) {
-                $section = Section::create([
-                    'fiche_id' => $fiche->id,
-                    'titre'    => $sData['titre'],
-                    'ordre'    => $i,
-                ]);
-
-                if (!empty($sData['colonnes'])) {
-                    foreach ($sData['colonnes'] as $j => $colonneId) {
-                        $section->colonnes()->attach((int)$colonneId, ['ordre' => $j]);
-                    }
-                }
-
-                if (!empty($sData['lignes'])) {
-                    foreach ($sData['lignes'] as $num => $valeurs) {
-                        $hasData = !empty(array_filter($valeurs, fn($v) => $v !== '' && $v !== null));
-                        if (!$hasData) continue;
-                        Ligne::create([
-                            'section_id'   => $section->id,
-                            'numero_ligne' => $num + 1,
-                            'valeurs'      => $valeurs,
-                        ]);
-                    }
+            if (!empty($sData['colonnes'])) {
+                foreach ($sData['colonnes'] as $j => $colonneId) {
+                    $section->colonnes()->attach((int)$colonneId, ['ordre' => $j]);
                 }
             }
 
-            return response()->json([
-                'success'    => true,
-                'action'     => $action,
-                'fiche_id'   => $fiche->id,
-                'pdf_url'    => $action === 'soumettre' ? route('feb.fiches.pdf', $fiche->id) : null,
-                'retour_url' => route('feb.fiches.index'),
-            ]);
+            if (!empty($sData['lignes'])) {
+                foreach ($sData['lignes'] as $num => $valeurs) {
+                    $hasData = !empty(array_filter($valeurs, fn($v) => $v !== '' && $v !== null));
+                    if (!$hasData) continue;
+                    Ligne::create([
+                        'section_id'   => $section->id,
+                        'numero_ligne' => $num + 1,
+                        'valeurs'      => $valeurs,
+                    ]);
+                }
+            }
+        }
 
-        } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        return response()->json([
+            'success'    => true,
+            'action'     => $action,
+            'fiche_id'   => $fiche->id,
+            'pdf_url'    => $action === 'soumettre' ? route('feb.fiches.pdf', $fiche->id) : null,
+            'retour_url' => route('feb.fiches.index'),
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString() // Pour le débogage
+        ], 500);
+    }
+}
+
+    // PDF
+   public function pdf(Fiche $fiche)
+{
+    $this->autoriser($fiche);
+
+    // ✅ Charger les relations avec les destinataires
+    $fiche->load(
+        'sections.colonnes',
+        'sections.lignes',
+        'utilisateur.agence',
+        'destinataires'  // ✅ Ajout des destinataires
+    );
+
+    // Calcul du montant total
+    $totalGlobal = 0;
+
+    foreach($fiche->sections as $section){
+        $colPT = $section->colonnes
+            ->first(fn($c) => preg_match('/prix.?total|montant.?total/i', $c->libelle));
+
+        if($colPT){
+            foreach($section->lignes as $ligne){
+                $val = str_replace(
+                    [' ', ' ', ','],
+                    ['', '', '.'],
+                    $ligne->valeurs[$colPT->id] ?? 0
+                );
+                $totalGlobal += floatval($val);
+            }
         }
     }
 
-    // PDF
-    public function pdf(Fiche $fiche)
-    {
-        $this->autoriser($fiche);
-        $fiche->load('sections.colonnes', 'sections.lignes', 'utilisateur.agence');
-        $pdf = Pdf::loadView('feb.fiches.pdf', compact('fiche'))
-                  ->setPaper('a4', 'landscape');
-                  $nomPersonne = Str::slug($fiche->utilisateur->nom_complet ?? 'utilisateur');
-        $nomFichier = 'fiche_' . $fiche->id . '_' . $nomPersonne . '_' . now()->format('Y-m-d') . '.pdf';
-        return $pdf->download($nomFichier);
-    }
+    // Conversion en lettres
+    $numberToWords = new NumberToWords();
+    $converter = $numberToWords->getNumberTransformer('fr');
+    $totalLettre = ucfirst($converter->toWords($totalGlobal)) . " Franc CFA";
+
+    $pdf = Pdf::loadView(
+        'feb.fiches.pdf',
+        compact(
+            'fiche',
+            'totalGlobal',
+            'totalLettre'
+        )
+    )
+    ->setPaper('a4', 'landscape');
+
+    $nomPersonne = Str::slug($fiche->utilisateur->nom_complet ?? 'utilisateur');
+    $nomFichier = 'fiche_' . $fiche->id . '_' . $nomPersonne . '_' . now()->format('Y-m-d') . '.pdf';
+
+    return $pdf->download($nomFichier);
+}
 
     private function autoriser(Fiche $fiche): void
     {

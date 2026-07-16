@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ isset($fiche) ? 'Continuer la fiche' : 'Nouvelle fiche' }} — FEB</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -39,6 +40,74 @@
         .card-section { background:white; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,0.06); margin-bottom:20px; overflow:hidden; }
         .card-header-sec { background:#1e3a5f; color:white; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; }
         .card-body-sec { padding:18px; }
+
+        /* DESTINATAIRES */
+        .destinataires-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .destinataires-header {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: #1e3a5f;
+        }
+        .destinataires-list {
+            padding: 12px 16px;
+            min-height: 50px;
+        }
+        .destinataire-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin: 4px;
+        }
+        .destinataire-tag .remove-btn {
+            background: none;
+            border: none;
+            color: #60a5fa;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .destinataire-tag .remove-btn:hover {
+            color: #dc2626;
+        }
+        .destinataire-empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 13px;
+        }
+        .destinataire-actions {
+            padding: 12px 16px;
+            border-top: 1px solid #e2e8f0;
+            background: #fafbfc;
+        }
+        .destinataire-select-group {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        .destinataire-select-group select {
+            flex: 1;
+        }
+        .destinataire-create-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .destinataire-create-group input {
+            flex: 1;
+        }
 
         /* COLONNES */
         .colonnes-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
@@ -177,6 +246,47 @@
             </div>
         </div>
 
+        {{-- ============================================================ --}}
+        {{-- SECTION DESTINATAIRES --}}
+        {{-- ============================================================ --}}
+        <div class="card-section">
+            <div class="card-header-sec" style="background: #0f172a;">
+                <div style="font-weight:700; font-size:14px;">👥 À l'attention de</div>
+                <span style="font-size:11px; opacity:0.6;">Destinataires de la fiche</span>
+            </div>
+            <div class="card-body-sec">
+                <div class="destinataires-container">
+                    <!-- Liste des destinataires sélectionnés -->
+                    <div class="destinataires-list" id="destinataires-list">
+                        <span class="destinataire-empty">Aucun destinataire sélectionné</span>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="destinataire-actions">
+                        <!-- Sélectionner un destinataire existant -->
+                        <div class="destinataire-select-group">
+                            <select id="dest-select" class="form-select form-select-sm">
+                                <option value="">Choisir un destinataire...</option>
+                            </select>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="addSelectedDestinataire()">
+                                + Ajouter
+                            </button>
+                        </div>
+
+                        <!-- Créer un nouveau destinataire -->
+                        <div class="destinataire-create-group">
+                            <input type="text" id="new-dest-name" class="form-control form-control-sm"
+                                   placeholder="Nouveau destinataire..." 
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault();createAndAddDestinataire();}">
+                            <button type="button" class="btn btn-success btn-sm" onclick="createAndAddDestinataire()">
+                                + Créer et ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- TOTAL GLOBAL --}}
         <div class="total-global-bar" id="total-global-bar">
             <div class="label">TOTAL GÉNÉRAL DE LA FICHE</div>
@@ -199,11 +309,9 @@
                         Remplissez au moins une section.
                     </div>
                     <div style="display:flex;gap:10px;">
-                        {{-- ✅ Sauvegarder brouillon --}}
                         <button class="btn-brouillon" id="btn-brouillon" onclick="soumettre('brouillon')" disabled>
                             💾 Sauvegarder brouillon
                         </button>
-                        {{-- ✅ Soumettre --}}
                         <button class="btn-soumettre" id="btn-soumettre" onclick="soumettre('soumettre')" disabled>
                             ✅ Soumettre la fiche
                         </button>
@@ -222,7 +330,9 @@
 const CSRF          = '{{ csrf_token() }}';
 const URL_SOUMETTRE = '{{ route("feb.fiches.creer-soumettre") }}';
 const URL_RETOUR    = '{{ route("feb.fiches.index") }}';
-const FICHE_ID      = {{ isset($fiche) ? $fiche->id : 'null' }}; // brouillon existant
+const URL_DESTINATAIRES = '{{ route("feb.destinataires.index") }}';
+const URL_DESTINATAIRES_STORE = '{{ route("feb.destinataires.store") }}';
+const FICHE_ID      = {{ isset($fiche) ? $fiche->id : 'null' }};
 const MODELE_ID     = {{ $modele?->id ?? 'null' }};
 
 const COLONNES_DISPO = @json($colonnes->values());
@@ -240,17 +350,31 @@ let sections     = [];
 let sectionCount = 0;
 let lignesCount  = {};
 
+// Destinataires
+let selectedDestinataires = [];
+let availableDestinataires = [];
+
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('fiche-titre')?.addEventListener('input', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    // Charger les destinataires
+    chargerDestinataires();
+
+    // Charger les destinataires existants si on est en édition
+    @if(isset($fiche) && $fiche)
+        @foreach($fiche->destinataires as $dest)
+            selectedDestinataires.push({ id: {{ $dest->id }}, nom: '{{ addslashes($dest->nom) }}' });
+        @endforeach
+        afficherDestinataires();
+    @endif
+
+    document.getElementById('fiche-titre')?.addEventListener('input', function() {
         mettreAJourTitre();
         mettreAJourBoutonSoumettre();
     });
 
     @if(isset($fiche) && $fiche)
-        {{-- ✅ Continuer un brouillon --}}
         document.getElementById('fiche-titre').value = @json($fiche->titre ?? '');
         document.getElementById('fiche-desc').value  = @json($fiche->description ?? '');
         mettreAJourTitre();
@@ -261,15 +385,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const secObj = sections.find(s => s.id === secId);
             if (!secObj) return;
 
-            // ✅ Cocher les colonnes de ce brouillon
             secObj.colonnesIds = [];
-           @foreach($sec->colonnes->sortBy('pivot.ordre') as $col)
-    secObj.colonnesIds.push({{ $col->id }});
-@endforeach
+            @foreach($sec->colonnes->sortBy('pivot.ordre') as $col)
+                secObj.colonnesIds.push({{ $col->id }});
+            @endforeach
 
-            // Mettre à jour les chips visuellement
-            COLONNES_DISPO.forEach(col => {
-                const chip = document.getElementById(`chip-${secId}-${col.id}`);
+            COLONNES_DISPO.forEach(function(col) {
+                const chip = document.getElementById('chip-' + secId + '-' + col.id);
                 if (!chip) return;
                 if (secObj.colonnesIds.includes(col.id)) {
                     chip.classList.add('active');
@@ -280,9 +402,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             reconstruireEntete(secId);
 
-            // ✅ Recharger les lignes
             @foreach($sec->lignes->sortBy('numero_ligne') as $ligne)
-            ajouterLigne(secId, @json($ligne->valeurs));
+                ajouterLigne(secId, @json($ligne->valeurs));
             @endforeach
 
             calculerTotaux(secId);
@@ -290,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
         @endforeach
 
     @elseif(isset($modele) && $modele)
-        {{-- Utiliser comme modèle --}}
         document.getElementById('fiche-titre').value = '';
         mettreAJourTitre();
 
@@ -302,11 +422,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             secObj.colonnesIds = [];
             @foreach($sec->colonnes->sortBy('pivot.ordre') as $col)
-    secObj.colonnesIds.push({{ $col->id }});
-@endforeach
+                secObj.colonnesIds.push({{ $col->id }});
+            @endforeach
 
-            COLONNES_DISPO.forEach(col => {
-                const chip = document.getElementById(`chip-${secId}-${col.id}`);
+            COLONNES_DISPO.forEach(function(col) {
+                const chip = document.getElementById('chip-' + secId + '-' + col.id);
                 if (chip) {
                     if (secObj.colonnesIds.includes(col.id)) chip.classList.add('active');
                     else chip.classList.remove('active');
@@ -316,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reconstruireEntete(secId);
 
             @foreach($sec->lignes->sortBy('numero_ligne') as $ligne)
-            ajouterLigne(secId, @json($ligne->valeurs));
+                ajouterLigne(secId, @json($ligne->valeurs));
             @endforeach
 
             calculerTotaux(secId);
@@ -324,7 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
         @endforeach
 
     @else
-        {{-- Nouvelle fiche vide --}}
         ajouterSection();
     @endif
 
@@ -333,16 +452,151 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================================
+// GESTION DES DESTINATAIRES
+// ============================================================
+function chargerDestinataires() {
+    fetch(URL_DESTINATAIRES)
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            availableDestinataires = data;
+            mettreAJourSelectDestinataires();
+        })
+        .catch(function(error) {
+            console.error('Erreur lors du chargement des destinataires:', error);
+        });
+}
+
+function mettreAJourSelectDestinataires() {
+    const select = document.getElementById('dest-select');
+    if (!select) return;
+
+    // Garder l'option "Choisir..."
+    select.innerHTML = '<option value="">Choisir un destinataire...</option>';
+
+    availableDestinataires.forEach(function(dest) {
+        // Ne pas afficher ceux déjà sélectionnés
+        if (!selectedDestinataires.some(function(s) { return s.id === dest.id; })) {
+            const option = document.createElement('option');
+            option.value = dest.id;
+            option.textContent = dest.nom;
+            select.appendChild(option);
+        }
+    });
+}
+
+function addSelectedDestinataire() {
+    const select = document.getElementById('dest-select');
+    const id = parseInt(select.value);
+    if (!id) {
+        alert('Veuillez sélectionner un destinataire.');
+        return;
+    }
+
+    const destinataire = availableDestinataires.find(function(d) { return d.id === id; });
+    if (!destinataire) return;
+
+    if (selectedDestinataires.some(function(d) { return d.id === id; })) {
+        alert('Ce destinataire est déjà sélectionné.');
+        return;
+    }
+
+    selectedDestinataires.push({ ...destinataire });
+    afficherDestinataires();
+    mettreAJourSelectDestinataires();
+    select.value = '';
+}
+
+function createAndAddDestinataire() {
+    const input = document.getElementById('new-dest-name');
+    const nom = input.value.trim();
+    if (!nom) {
+        alert('Veuillez saisir un nom.');
+        return;
+    }
+
+    // Vérifier si déjà sélectionné
+    if (selectedDestinataires.some(function(d) { return d.nom.toLowerCase() === nom.toLowerCase(); })) {
+        alert('Ce destinataire est déjà sélectionné.');
+        return;
+    }
+
+    fetch(URL_DESTINATAIRES_STORE, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF
+        },
+        body: JSON.stringify({ nom: nom })
+    })
+    .then(function(response) {
+        return response.json().then(function(data) {
+            if (!response.ok) {
+                throw new Error(data.errors?.nom?.[0] || 'Erreur lors de la création');
+            }
+            return data;
+        });
+    })
+    .then(function(data) {
+        // Ajouter à la liste disponible
+        availableDestinataires.push(data.destinataire);
+
+        // Ajouter aux sélectionnés
+        selectedDestinataires.push(data.destinataire);
+
+        // Réinitialiser le champ
+        input.value = '';
+
+        // Mettre à jour l'affichage
+        afficherDestinataires();
+        mettreAJourSelectDestinataires();
+    })
+    .catch(function(error) {
+        alert(error.message);
+    });
+}
+
+function removeDestinataire(index) {
+    selectedDestinataires.splice(index, 1);
+    afficherDestinataires();
+    mettreAJourSelectDestinataires();
+}
+
+function afficherDestinataires() {
+    const container = document.getElementById('destinataires-list');
+    if (!container) return;
+
+    if (selectedDestinataires.length === 0) {
+        container.innerHTML = '<span class="destinataire-empty">Aucun destinataire sélectionné</span>';
+        return;
+    }
+
+    let html = '';
+    selectedDestinataires.forEach(function(dest, index) {
+        html += `
+            <span class="destinataire-tag">
+                <span>${escHtml(dest.nom)}</span>
+                <button type="button" class="remove-btn" onclick="removeDestinataire(${index})">✕</button>
+            </span>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// ============================================================
 // SECTION
 // ============================================================
-function ajouterSection(titrePre = '', avecLigneVide = true) {
+function ajouterSection(titrePre, avecLigneVide) {
+    if (titrePre === undefined) titrePre = '';
+    if (avecLigneVide === undefined) avecLigneVide = true;
+    
     sectionCount++;
     const secId = 'sec-' + sectionCount;
 
-    // Colonnes par défaut
     const defaut = COLONNES_DISPO
-        .filter(c => /d[eé]sign/i.test(c.libelle) || estQte(c.libelle) || estPU(c.libelle) || estPT(c.libelle))
-        .map(c => c.id);
+        .filter(function(c) { return /d[eé]sign/i.test(c.libelle) || estQte(c.libelle) || estPU(c.libelle) || estPT(c.libelle); })
+        .map(function(c) { return c.id; });
 
     sections.push({ id: secId, titre: titrePre, colonnesIds: [...defaut], totalCalcule: 0 });
     lignesCount[secId] = 0;
@@ -352,8 +606,27 @@ function ajouterSection(titrePre = '', avecLigneVide = true) {
     div.id            = 'card-' + secId;
     div.dataset.secId = secId;
 
-    // ✅ Titre de section : visible seulement si plusieurs sections
-    const nbSections = sections.length;
+    let colonnesHtml = '';
+    COLONNES_DISPO.forEach(function(col) {
+        const active = defaut.includes(col.id) ? 'active' : '';
+        const check = defaut.includes(col.id) ? '✓' : '';
+        colonnesHtml += `
+            <label class="col-chip ${active}"
+                   id="chip-${secId}-${col.id}"
+                   onclick="toggleColonne('${secId}', ${col.id}); return false;">
+                <span class="chip-check">${check}</span>
+                ${escHtml(col.libelle)}
+            </label>
+        `;
+    });
+
+    let enteteColonnes = '';
+    defaut.forEach(function(cid) {
+        const col = COLONNES_DISPO.find(function(c) { return c.id === cid; });
+        if (col) {
+            enteteColonnes += `<th data-col-id="${cid}">${escHtml(col.libelle)}</th>`;
+        }
+    });
 
     div.innerHTML = `
         <div class="card-header-sec" id="header-${secId}">
@@ -373,14 +646,7 @@ function ajouterSection(titrePre = '', avecLigneVide = true) {
 
             <div class="sec-label-titre">① Colonnes du tableau</div>
             <div class="colonnes-grid" id="colonnes-grid-${secId}">
-                ${COLONNES_DISPO.map(col => `
-                    <label class="col-chip ${defaut.includes(col.id) ? 'active' : ''}"
-                           id="chip-${secId}-${col.id}"
-                           onclick="toggleColonne('${secId}', ${col.id}); return false;">
-                        <span class="chip-check">${defaut.includes(col.id) ? '✓' : ''}</span>
-                        ${escHtml(col.libelle)}
-                    </label>
-                `).join('')}
+                ${colonnesHtml}
                 ${COLONNES_DISPO.length === 0
                     ? '<div style="color:#f87171;font-size:12px;">⚠️ Aucune colonne disponible — contactez l\'administrateur.</div>'
                     : ''}
@@ -392,10 +658,7 @@ function ajouterSection(titrePre = '', avecLigneVide = true) {
                     <thead>
                         <tr id="thead-${secId}">
                             <th class="th-num">#</th>
-                            ${defaut.map(cid => {
-                                const col = COLONNES_DISPO.find(c => c.id === cid);
-                                return col ? `<th data-col-id="${cid}">${escHtml(col.libelle)}</th>` : '';
-                            }).join('')}
+                            ${enteteColonnes}
                             <th class="th-act"></th>
                         </tr>
                     </thead>
@@ -426,7 +689,7 @@ function ajouterSection(titrePre = '', avecLigneVide = true) {
 
     mettreAJourResume();
     mettreAJourBoutonSoumettre();
-    setTimeout(() => div.scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+    setTimeout(function() { div.scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
 
     return secId;
 }
@@ -434,7 +697,7 @@ function ajouterSection(titrePre = '', avecLigneVide = true) {
 function supprimerSection(secId) {
     if (sections.length <= 1) { alert('Il faut au moins une section.'); return; }
     if (!confirm('Supprimer cette section ?')) return;
-    sections       = sections.filter(s => s.id !== secId);
+    sections = sections.filter(function(s) { return s.id !== secId; });
     document.getElementById('card-' + secId)?.remove();
     mettreAJourVisibiliteTitresSections();
     mettreAJourTotalGlobal();
@@ -442,36 +705,34 @@ function supprimerSection(secId) {
     mettreAJourBoutonSoumettre();
 }
 
-// ✅ Masquer le header de section s'il n'y en a qu'une seule
 function mettreAJourVisibiliteTitresSections() {
     const nb = sections.length;
-    sections.forEach(sec => {
+    sections.forEach(function(sec) {
         const header = document.getElementById('header-' + sec.id);
         if (header) header.style.display = nb <= 1 ? 'none' : 'flex';
     });
 }
 
 function onTitreSectionChange(secId) {
-    const sec = sections.find(s => s.id === secId);
+    const sec = sections.find(function(s) { return s.id === secId; });
     if (sec) sec.titre = document.getElementById('titre-' + secId)?.value ?? '';
     mettreAJourResume();
 }
 
 // ============================================================
-// COLONNES — ✅ toggleColonne corrigé
+// COLONNES
 // ============================================================
 function toggleColonne(secId, colonneId) {
     event?.stopPropagation?.();
     event?.preventDefault?.();
 
-    const sec = sections.find(s => s.id === secId);
+    const sec = sections.find(function(s) { return s.id === secId; });
     if (!sec) return;
 
-    const chip = document.getElementById(`chip-${secId}-${colonneId}`);
+    const chip = document.getElementById('chip-' + secId + '-' + colonneId);
     const idx  = sec.colonnesIds.indexOf(colonneId);
 
     if (idx === -1) {
-        // ✅ Ajouter la colonne
         sec.colonnesIds.push(colonneId);
         if (chip) {
             chip.classList.add('active');
@@ -479,7 +740,6 @@ function toggleColonne(secId, colonneId) {
             if (checkEl) checkEl.innerText = '✓';
         }
     } else {
-        // ✅ Retirer la colonne
         sec.colonnesIds.splice(idx, 1);
         if (chip) {
             chip.classList.remove('active');
@@ -495,39 +755,35 @@ function toggleColonne(secId, colonneId) {
 }
 
 function reconstruireEntete(secId) {
-    const sec      = sections.find(s => s.id === secId);
+    const sec      = sections.find(function(s) { return s.id === secId; });
     const theadRow = document.getElementById('thead-' + secId);
     if (!sec || !theadRow) return;
 
-    theadRow.innerHTML = '<th class="th-num">#</th>';
-    sec.colonnesIds.forEach(cid => {
-        const col = COLONNES_DISPO.find(c => c.id === cid);
+    let html = '<th class="th-num">#</th>';
+    sec.colonnesIds.forEach(function(cid) {
+        const col = COLONNES_DISPO.find(function(c) { return c.id === cid; });
         if (!col) return;
-        const th = document.createElement('th');
-        th.dataset.colId = cid;
-        th.innerText     = col.libelle;
-        theadRow.appendChild(th);
+        html += `<th data-col-id="${cid}">${escHtml(col.libelle)}</th>`;
     });
-    const thAct = document.createElement('th');
-    thAct.className = 'th-act';
-    theadRow.appendChild(thAct);
+    html += '<th class="th-act"></th>';
+    theadRow.innerHTML = html;
 }
 
 function reconstruireLignes(secId) {
-    const sec   = sections.find(s => s.id === secId);
+    const sec   = sections.find(function(s) { return s.id === secId; });
     const tbody = document.getElementById('tbody-' + secId);
     if (!sec || !tbody) return;
 
     const valsSaved = {};
-    tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+    tbody.querySelectorAll('tr[data-ligne]').forEach(function(tr) {
         const n = tr.dataset.ligne;
         valsSaved[n] = {};
-        tr.querySelectorAll('input[data-col]').forEach(inp => {
+        tr.querySelectorAll('input[data-col]').forEach(function(inp) {
             valsSaved[n][inp.dataset.col] = inp.value;
         });
     });
 
-    tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+    tbody.querySelectorAll('tr[data-ligne]').forEach(function(tr) {
         construireCellulesLigne(tr, secId, sec, tr.dataset.ligne, valsSaved[tr.dataset.ligne] || {});
     });
 
@@ -537,8 +793,9 @@ function reconstruireLignes(secId) {
 // ============================================================
 // LIGNES
 // ============================================================
-function ajouterLigne(secId, valeursPre = {}) {
-    const sec   = sections.find(s => s.id === secId);
+function ajouterLigne(secId, valeursPre) {
+    if (valeursPre === undefined) valeursPre = {};
+    const sec   = sections.find(function(s) { return s.id === secId; });
     const tbody = document.getElementById('tbody-' + secId);
     if (!sec || !tbody) return;
 
@@ -550,45 +807,48 @@ function ajouterLigne(secId, valeursPre = {}) {
     construireCellulesLigne(tr, secId, sec, numLigne, valeursPre);
     tbody.appendChild(tr);
 
-    setTimeout(() => tr.querySelector('.cell-input:not(.readonly)')?.focus(), 50);
+    setTimeout(function() { tr.querySelector('.cell-input:not(.readonly)')?.focus(); }, 50);
 
     calculerTotaux(secId);
     mettreAJourResume();
     mettreAJourBoutonSoumettre();
 }
 
-function construireCellulesLigne(tr, secId, sec, numLigne, valeurs = {}) {
-    tr.innerHTML = `<td style="text-align:center;color:#94a3b8;font-size:11px;padding:4px 6px;min-width:32px;">${numLigne}</td>`;
+function construireCellulesLigne(tr, secId, sec, numLigne, valeurs) {
+    if (valeurs === undefined) valeurs = {};
+    let html = `<td style="text-align:center;color:#94a3b8;font-size:11px;padding:4px 6px;min-width:32px;">${numLigne}</td>`;
 
-    sec.colonnesIds.forEach(cid => {
-        const col = COLONNES_DISPO.find(c => c.id === cid);
+    sec.colonnesIds.forEach(function(cid) {
+        const col = COLONNES_DISPO.find(function(c) { return c.id === cid; });
         if (!col) return;
         const lib   = col.libelle;
         const isPT  = estPT(lib);
         const isNum = estNum(lib);
 
-        const td  = document.createElement('td');
-        const inp = document.createElement('input');
-        inp.className    = 'cell-input' + (isNum ? ' num' : '') + (isPT ? ' readonly' : '');
-        inp.dataset.col  = cid;
-        inp.placeholder  = lib;
-        inp.value        = valeurs[cid] ?? '';
-        inp.autocomplete = 'off';
-
-        if (isPT) {
-            inp.readOnly = true;
-        } else {
-            inp.addEventListener('input', () => calculerTotaux(secId));
-        }
-
-        td.appendChild(inp);
-        tr.appendChild(td);
+        const val = valeurs[cid] || '';
+        const className = 'cell-input' + (isNum ? ' num' : '') + (isPT ? ' readonly' : '');
+        const readonly = isPT ? 'readonly' : '';
+        const oninput = isPT ? '' : 'oninput="calculerTotaux(\'' + secId + '\')"';
+        
+        html += `
+            <td>
+                <input class="${className}" 
+                       data-col="${cid}" 
+                       placeholder="${escHtml(lib)}" 
+                       value="${escHtml(val)}" 
+                       autocomplete="off"
+                       ${readonly}
+                       ${oninput}>
+            </td>
+        `;
     });
 
-    const tdAct = document.createElement('td');
-    tdAct.style.textAlign = 'center';
-    tdAct.innerHTML = `<button class="btn-rm-row" onclick="supprimerLigne(this,'${secId}')" title="Supprimer">✕</button>`;
-    tr.appendChild(tdAct);
+    html += `
+        <td style="text-align:center;">
+            <button class="btn-rm-row" onclick="supprimerLigne(this,'${secId}')" title="Supprimer">✕</button>
+        </td>
+    `;
+    tr.innerHTML = html;
 }
 
 function supprimerLigne(btn, secId) {
@@ -597,7 +857,7 @@ function supprimerLigne(btn, secId) {
         alert('Il faut au moins une ligne.'); return;
     }
     btn.closest('tr').remove();
-    tbody.querySelectorAll('tr[data-ligne]').forEach((tr, i) => {
+    tbody.querySelectorAll('tr[data-ligne]').forEach(function(tr, i) {
         tr.dataset.ligne = i + 1;
         tr.querySelector('td').innerText = i + 1;
     });
@@ -611,26 +871,26 @@ function supprimerLigne(btn, secId) {
 // CALCULS
 // ============================================================
 function calculerTotaux(secId) {
-    const sec   = sections.find(s => s.id === secId);
+    const sec   = sections.find(function(s) { return s.id === secId; });
     const tbody = document.getElementById('tbody-' + secId);
     if (!sec || !tbody) return;
 
-    const colQte = sec.colonnesIds.find(cid => { const c = COLONNES_DISPO.find(x=>x.id===cid); return c && estQte(c.libelle); });
-    const colPU  = sec.colonnesIds.find(cid => { const c = COLONNES_DISPO.find(x=>x.id===cid); return c && estPU(c.libelle); });
-    const colPT  = sec.colonnesIds.find(cid => { const c = COLONNES_DISPO.find(x=>x.id===cid); return c && estPT(c.libelle); });
+    const colQte = sec.colonnesIds.find(function(cid) { const c = COLONNES_DISPO.find(function(x) { return x.id === cid; }); return c && estQte(c.libelle); });
+    const colPU  = sec.colonnesIds.find(function(cid) { const c = COLONNES_DISPO.find(function(x) { return x.id === cid; }); return c && estPU(c.libelle); });
+    const colPT  = sec.colonnesIds.find(function(cid) { const c = COLONNES_DISPO.find(function(x) { return x.id === cid; }); return c && estPT(c.libelle); });
 
     let totalSection = 0;
 
-    tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+    tbody.querySelectorAll('tr[data-ligne]').forEach(function(tr) {
         if (colQte && colPU && colPT) {
-            const qte = parseFloat((tr.querySelector(`[data-col="${colQte}"]`)?.value ?? '0').replace(/\s/g,'').replace(',','.')) || 0;
-            const pu  = parseFloat((tr.querySelector(`[data-col="${colPU}"]`)?.value ?? '0').replace(/\s/g,'').replace(',','.')) || 0;
+            const qte = parseFloat((tr.querySelector('[data-col="' + colQte + '"]')?.value ?? '0').replace(/\s/g,'').replace(',','.')) || 0;
+            const pu  = parseFloat((tr.querySelector('[data-col="' + colPU + '"]')?.value ?? '0').replace(/\s/g,'').replace(',','.')) || 0;
             const pt  = qte * pu;
-            const inp = tr.querySelector(`[data-col="${colPT}"]`);
+            const inp = tr.querySelector('[data-col="' + colPT + '"]');
             if (inp) inp.value = pt > 0 ? fmt(pt) : '';
             totalSection += pt;
         } else if (colPT) {
-            const ptStr = tr.querySelector(`[data-col="${colPT}"]`)?.value ?? '0';
+            const ptStr = tr.querySelector('[data-col="' + colPT + '"]')?.value ?? '0';
             totalSection += parseFloat(ptStr.replace(/\s/g,'').replace(',','.')) || 0;
         }
     });
@@ -644,7 +904,7 @@ function calculerTotaux(secId) {
 }
 
 function mettreAJourTotalGlobal() {
-    const total = sections.reduce((s, sec) => s + (sec.totalCalcule || 0), 0);
+    const total = sections.reduce(function(s, sec) { return s + (sec.totalCalcule || 0); }, 0);
     const el    = document.getElementById('total-global-val');
     const bar   = document.getElementById('total-global-bar');
     const res   = document.getElementById('resume-total-global');
@@ -671,7 +931,8 @@ function mettreAJourResume() {
         return;
     }
 
-    c.innerHTML = sections.map(sec => {
+    let html = '';
+    sections.forEach(function(sec) {
         const titre  = document.getElementById('titre-' + sec.id)?.value?.trim() || 'Section sans titre';
         const tbody  = document.getElementById('tbody-' + sec.id);
         const nbL    = tbody ? tbody.querySelectorAll('tr[data-ligne]').length : 0;
@@ -680,15 +941,18 @@ function mettreAJourResume() {
         const ok     = nbC > 0 && nbL > 0 && total > 0;
         const partiel= nbC > 0 && nbL > 0 && total === 0;
 
-        return `<div class="resume-section ${ok ? 'ok' : (partiel ? 'partiel' : '')}"
-                     onclick="document.getElementById('card-${sec.id}')?.scrollIntoView({behavior:'smooth'})">
-            <div class="sec-titre">${ok ? '✅' : (partiel ? '⏳' : '○')} ${escHtml(titre)}</div>
-            <div class="sec-stats">
-                ${nbC} col. · ${nbL} ligne(s)
-                ${total > 0 ? '· <strong style="color:#16a34a">' + fmt(total) + ' FCFA</strong>' : ''}
+        html += `
+            <div class="resume-section ${ok ? 'ok' : (partiel ? 'partiel' : '')}"
+                 onclick="document.getElementById('card-${sec.id}')?.scrollIntoView({behavior:'smooth'})">
+                <div class="sec-titre">${ok ? '✅' : (partiel ? '⏳' : '○')} ${escHtml(titre)}</div>
+                <div class="sec-stats">
+                    ${nbC} col. · ${nbL} ligne(s)
+                    ${total > 0 ? '· <strong style="color:#16a34a">' + fmt(total) + ' FCFA</strong>' : ''}
+                </div>
             </div>
-        </div>`;
-    }).join('');
+        `;
+    });
+    c.innerHTML = html;
 }
 
 // ============================================================
@@ -701,15 +965,12 @@ function mettreAJourBoutonSoumettre() {
     const titre = document.getElementById('fiche-titre')?.value?.trim();
 
     const hasTitre = !!titre;
-    const hasDonnees = sections.some(sec => {
+    const hasDonnees = sections.some(function(sec) {
         const tbody = document.getElementById('tbody-' + sec.id);
         return sec.colonnesIds.length > 0 && tbody && tbody.querySelectorAll('tr[data-ligne]').length > 0;
     });
 
-    // Brouillon : juste un titre suffit
     if (btnB) btnB.disabled = !hasTitre;
-
-    // Soumettre : titre + au moins une section remplie
     if (btnS) btnS.disabled = !(hasTitre && hasDonnees);
 
     if (hint) {
@@ -729,7 +990,8 @@ function mettreAJourBoutonSoumettre() {
 // ============================================================
 // SOUMETTRE / BROUILLON
 // ============================================================
-function soumettre(action = 'soumettre') {
+function soumettre(action) {
+    if (action === undefined) action = 'soumettre';
     const titre = document.getElementById('fiche-titre')?.value?.trim();
     const desc  = document.getElementById('fiche-desc')?.value?.trim();
 
@@ -739,19 +1001,23 @@ function soumettre(action = 'soumettre') {
         if (!confirm('Soumettre définitivement cette fiche ? Elle sera transmise à l\'administration.')) return;
     }
 
+    // Récupérer les IDs des destinataires sélectionnés
+    const destinataireIds = selectedDestinataires.map(function(d) { return d.id; });
+
     const payload = {
-        titre,
+        titre: titre,
         description: desc,
-        action,
-        fiche_id:   FICHE_ID,
-        modele_id:  MODELE_ID,
-        sections: sections.map((sec, i) => {
+        action: action,
+        fiche_id: FICHE_ID,
+        modele_id: MODELE_ID,
+        destinataires: destinataireIds,
+        sections: sections.map(function(sec, i) {
             const tbody  = document.getElementById('tbody-' + sec.id);
             const lignes = [];
             if (tbody) {
-                tbody.querySelectorAll('tr[data-ligne]').forEach(tr => {
+                tbody.querySelectorAll('tr[data-ligne]').forEach(function(tr) {
                     const vals = {};
-                    tr.querySelectorAll('input[data-col]').forEach(inp => {
+                    tr.querySelectorAll('input[data-col]').forEach(function(inp) {
                         vals[inp.dataset.col] = inp.value;
                     });
                     lignes.push(vals);
@@ -760,7 +1026,7 @@ function soumettre(action = 'soumettre') {
             return {
                 titre:    document.getElementById('titre-' + sec.id)?.value?.trim() || ('Section ' + (i+1)),
                 colonnes: sec.colonnesIds,
-                lignes,
+                lignes: lignes,
             };
         }),
     };
@@ -777,12 +1043,12 @@ function soumettre(action = 'soumettre') {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
         body: JSON.stringify(payload),
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
         if (data.success) {
             if (action === 'soumettre' && data.pdf_url) {
                 window.open(data.pdf_url, '_blank');
-                setTimeout(() => { window.location.href = URL_RETOUR; }, 600);
+                setTimeout(function() { window.location.href = URL_RETOUR; }, 600);
             } else {
                 window.location.href = URL_RETOUR;
             }
@@ -793,7 +1059,7 @@ function soumettre(action = 'soumettre') {
             btnB.innerText = '💾 Sauvegarder brouillon';
         }
     })
-    .catch(e => {
+    .catch(function(e) {
         alert('Erreur réseau : ' + e.message);
         mettreAJourBoutonSoumettre();
         btnS.innerText = '✅ Soumettre la fiche';
@@ -815,6 +1081,7 @@ function escHtml(str) {
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
