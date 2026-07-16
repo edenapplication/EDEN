@@ -251,8 +251,8 @@
         {{-- ============================================================ --}}
         <div class="card-section">
             <div class="card-header-sec" style="background: #0f172a;">
-                <div style="font-weight:700; font-size:14px;">👥 À l'attention de</div>
-                <span style="font-size:11px; opacity:0.6;">Destinataires de la fiche</span>
+                <div style="font-weight:700; font-size:14px;">👥 DOIT(S)</div>
+                <span style="font-size:11px; opacity:0.6;">DOIT de la fiche</span>
             </div>
             <div class="card-body-sec">
                 <div class="destinataires-container">
