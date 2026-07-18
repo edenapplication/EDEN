@@ -44,7 +44,7 @@ class AdminFicheController extends Controller
         return back()->with('success', 'Marquée comme vue.');
     }
 
-    public function pdf(Fiche $fiche)
+   public function pdf(Fiche $fiche)
 {
     // Charger toutes les relations nécessaires
     $fiche->load([
@@ -63,31 +63,46 @@ class AdminFicheController extends Controller
 
         if ($colPT) {
             foreach ($section->lignes as $ligne) {
-                $val = str_replace(
-                    [' ', ' ', ','],
-                    ['', '', '.'],
-                    $ligne->valeurs[$colPT->id] ?? '0'
-                );
-                $totalGlobal += floatval($val);
+                // ✅ Nettoyage correct des valeurs
+                $valeur = $ligne->valeurs[$colPT->id] ?? '0';
+                $valeurNettoyee = preg_replace('/[^0-9,.]/', '', $valeur);
+                $valeurNettoyee = str_replace(',', '.', $valeurNettoyee);
+                $totalGlobal += floatval($valeurNettoyee);
             }
         }
     }
 
-    // Conversion en lettres
+    // Conversion en lettres avec majuscules
     $numberToWords = new NumberToWords();
     $converter = $numberToWords->getNumberTransformer('fr');
-    $totalLettre = ucfirst($converter->toWords($totalGlobal)) . " Franc CFA";
+    $totalLettre = strtoupper(ucfirst($converter->toWords($totalGlobal))) . " FRANC CFA";
 
     // Génération du PDF
     $pdf = Pdf::loadView('feb.fiches.pdf', [
         'fiche' => $fiche,
         'totalGlobal' => $totalGlobal,
         'totalLettre' => $totalLettre,
-        'hasDestinataires' => $fiche->destinataires->isNotEmpty() // Optionnel
+        'hasDestinataires' => $fiche->destinataires->isNotEmpty()
     ])
     ->setPaper('a4', 'landscape');
 
-    return $pdf->download('fiche_admin_' . $fiche->id . '.pdf');
+    // ✅ Nouveau nom de fichier : Titre-nom-date.pdf
+    $titre = $fiche->titre ?? 'fiche';
+    // Supprimer les accents et caractères spéciaux
+    $titre = iconv('UTF-8', 'ASCII//TRANSLIT', $titre);
+    $titre = preg_replace('/[^a-zA-Z0-9\- ]/', '', $titre);
+    $titre = Str::slug($titre, '-');
+    
+    $nomPersonne = $fiche->utilisateur->nom_complet ?? 'utilisateur';
+    $nomPersonne = iconv('UTF-8', 'ASCII//TRANSLIT', $nomPersonne);
+    $nomPersonne = preg_replace('/[^a-zA-Z0-9\- ]/', '', $nomPersonne);
+    $nomPersonne = Str::slug($nomPersonne, '-');
+    
+    $date = $fiche->soumise_at ? $fiche->soumise_at->format('Y-m-d') : now()->format('Y-m-d');
+    
+    $nomFichier = $titre . '-' . $nomPersonne . '-' . $date . '.pdf';
+
+    return $pdf->download($nomFichier);
 }
 
 }

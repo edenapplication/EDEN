@@ -73,6 +73,17 @@
             color: #1e3a5f;
         }
 
+        .fiche-titre {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #ef0c0c;
+            text-align: center;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
         table.tab-data { 
             width:100%; 
             border-collapse:collapse;  
@@ -91,7 +102,16 @@
             color:#1d4ed8;
             border:1px solid #bfdbfe;
         }
-        table.tab-data thead th.num-th { width:28px; text-align:center; color:#64748b; }
+        /* ✅ Colonne N réduite de 3 (20px → 7px) */
+        table.tab-data thead th.num-th { 
+            width: 7px !important; 
+            min-width: 7px !important;
+            max-width: 7px !important;
+            text-align:center; 
+            color:#64748b; 
+            font-size:6pt;
+            padding:3px 2px;
+        }
 
         table.tab-data tbody td {
             padding:4px 6px;
@@ -102,8 +122,18 @@
             word-wrap:break-word;
             overflow-wrap:break-word;
         }
+        table.tab-data tbody td {
+            text-align:center !important;
+        }
+        
         table.tab-data tbody tr:nth-child(even) td { background:#f8fafc; }
-        table.tab-data .num-td { text-align:center; color:#94a3b8; }
+        table.tab-data .num-td { 
+            text-align:center; 
+            color:#94a3b8;
+            font-weight:600;
+            font-size:6pt;
+            padding:3px 2px;
+        }
         table.tab-data .montant {
             text-align:center;
             font-family:monospace;
@@ -124,7 +154,7 @@
             border:1px solid #bbf7d0 !important;
             border-top:2px solid #86efac !important;
             padding:6px 12px !important;
-            text-align:left !important;
+            text-align:right !important;
             font-weight:600;
         }
         .total-section-row .ts-val {
@@ -139,7 +169,7 @@
             border:1px solid #f5f5f2 !important;
             border-top:3px solid #fcfbf9 !important;
             padding:10px 16px !important;
-            text-align:left !important;
+            text-align:right !important;
             font-weight:700;
             font-size:10pt;
         }
@@ -148,13 +178,6 @@
             font-size:14pt;
             color:#000;
             margin-left:8px;
-        }
-        .total-global-row .tg-lettres {
-            font-size: 8.5pt;
-            font-weight: 600;
-            color: #374151;
-            display: block;
-            margin-top: 4px;
         }
 
         .poste {
@@ -169,6 +192,22 @@
             justify-content:space-between;
             font-size:7.6pt;
             color:#94a3b8;
+        }
+        
+        /* ✅ "Arrêté le présent devis" à gauche avec la même police */
+        .total-lettres {
+            font-size: 8.5pt;
+            font-weight: 600;
+            color: #374151;
+            display: block;
+            margin-top: 4px;
+            text-align: left;
+        }
+        
+        .fiche-titre {
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
         }
     </style>
 </head>
@@ -204,16 +243,16 @@
     </div>
 
     @if($fiche->titre)
-        <div style="font-size:14pt; font-weight:bold; color:#ef0c0c; text-align:left; margin-bottom:10px;">
+        <div class="fiche-titre">
             {{ $fiche->titre }}
         </div>
     @endif
-
-    {{-- ================= DESTINATAIRES (sur une seule ligne) ================= --}}
+<br>
+    {{-- ================= DESTINATAIRES ================= --}}
     @if($fiche->destinataires->isNotEmpty())
         <div style="margin-bottom:15px; font-size:9.5pt; color:#000;">
             <span style="font-weight:700;">DOIT :</span> 
-           <strong> {{ $fiche->destinataires->pluck('nom')->implode(', ') }}</strong>
+            <strong> {{ $fiche->destinataires->pluck('nom')->implode(', ') }}</strong>
         </div>
     @endif
 
@@ -248,8 +287,10 @@
                     
                     foreach ($lignes as $l) {
                         if ($colPT) {
-                            $val = str_replace([' ',' ',','], ['', '', '.'], $l->valeurs[$colPT->id] ?? '0');
-                            $totalSection += floatval($val);
+                            $valeur = $l->valeurs[$colPT->id] ?? '0';
+                            $valeurNettoyee = preg_replace('/[^0-9,.]/', '', $valeur);
+                            $valeurNettoyee = str_replace(',', '.', $valeurNettoyee);
+                            $totalSection += floatval($valeurNettoyee);
                         }
                     }
                     $totalGlobal += $totalSection;
@@ -272,6 +313,9 @@
                             @php 
                                 $val = $ligne->valeurs[$col->id] ?? ''; 
                                 $isNum = preg_match('/prix|montant|quantit/i', $col->libelle); 
+                                if ($isNum && $val) {
+                                    $val = number_format(floatval(preg_replace('/[^0-9,.]/', '', str_replace(',', '.', $val))), 0, ',', ' ');
+                                }
                             @endphp
                             <td class="{{ $isNum ? 'montant' : '' }}">{{ $val }}</td>
                         @endforeach
@@ -284,7 +328,8 @@
                     </tr>
                 @endforelse
 
-                @if($lignes->count() > 1)
+                {{-- ✅ On n'affiche le total section que s'il y a plus d'une section --}}
+                @if($lignes->count() > 0 && $nbSections > 1)
                     <tr class="total-section-row">
                         <td colspan="{{ $colspan }}">
                             <span style="font-weight:600;">Total {{ $hasCustomTitle ? $section->titre : 'Section' }} :</span>
@@ -312,7 +357,11 @@
         </tbody>
     </table>
 
-    <br><span class="tg-lettres">Arrêté le présent dévis a la somme de : <strong>{{ $totalLettre ?? '' }}</strong></span>
+    <br>
+    {{-- ✅ "Arrêté le présent devis" à gauche avec la même taille --}}
+    <div class="total-lettres">
+        Arrêté le présent devis à la somme de : <strong>{{ strtoupper($totalLettre ?? '') }}</strong>
+    </div>
 
     <div style="margin-top:30px; text-align:right;">
         @if($fiche->utilisateur?->poste)

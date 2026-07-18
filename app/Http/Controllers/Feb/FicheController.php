@@ -190,19 +190,17 @@ public function creerEtSoumettre(Request $request)
 }
 
     // PDF
-   public function pdf(Fiche $fiche)
+  public function pdf(Fiche $fiche)
 {
     $this->autoriser($fiche);
 
-    // ✅ Charger les relations avec les destinataires
     $fiche->load(
         'sections.colonnes',
         'sections.lignes',
         'utilisateur.agence',
-        'destinataires'  // ✅ Ajout des destinataires
+        'destinataires'
     );
 
-    // Calcul du montant total
     $totalGlobal = 0;
 
     foreach($fiche->sections as $section){
@@ -211,33 +209,30 @@ public function creerEtSoumettre(Request $request)
 
         if($colPT){
             foreach($section->lignes as $ligne){
-                $val = str_replace(
-                    [' ', ' ', ','],
-                    ['', '', '.'],
-                    $ligne->valeurs[$colPT->id] ?? 0
-                );
-                $totalGlobal += floatval($val);
+                $valeur = $ligne->valeurs[$colPT->id] ?? '0';
+                $valeurNettoyee = preg_replace('/[^0-9,.]/', '', $valeur);
+                $valeurNettoyee = str_replace(',', '.', $valeurNettoyee);
+                $totalGlobal += floatval($valeurNettoyee);
             }
         }
     }
 
-    // Conversion en lettres
     $numberToWords = new NumberToWords();
     $converter = $numberToWords->getNumberTransformer('fr');
-    $totalLettre = ucfirst($converter->toWords($totalGlobal)) . " Franc CFA";
+    $totalLettre = strtoupper(ucfirst($converter->toWords($totalGlobal))) . " FRANC CFA";
 
     $pdf = Pdf::loadView(
         'feb.fiches.pdf',
-        compact(
-            'fiche',
-            'totalGlobal',
-            'totalLettre'
-        )
+        compact('fiche', 'totalGlobal', 'totalLettre')
     )
     ->setPaper('a4', 'landscape');
 
-    $nomPersonne = Str::slug($fiche->utilisateur->nom_complet ?? 'utilisateur');
-    $nomFichier = 'fiche_' . $fiche->id . '_' . $nomPersonne . '_' . now()->format('Y-m-d') . '.pdf';
+    // ✅ Nouveau nom de fichier : Titre-nom-date.pdf
+    $titre = Str::slug($fiche->titre ?? 'fiche', '-');
+    $nomPersonne = Str::slug($fiche->utilisateur->nom_complet ?? 'utilisateur', '-');
+    $date = $fiche->soumise_at ? $fiche->soumise_at->format('Y-m-d') : now()->format('Y-m-d');
+    
+    $nomFichier = $titre . '-' . $nomPersonne . '-' . $date . '.pdf';
 
     return $pdf->download($nomFichier);
 }
