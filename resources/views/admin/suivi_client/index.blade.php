@@ -110,8 +110,13 @@
                 <div style="margin-top:6px;" id="dossiers-pills-{{ $client->id }}">
                     @foreach($client->dossiers as $d)
                     <span class="dossier-pill" id="pill-dossier-{{ $d->id }}">
-                        <span class="site">{{ $d->grandSite?->nom ?? $d->nom_dossier }} - </span>
-                        <span>{{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
+<span class="site">
+    {{ $d->grandSite?->nom ?? $d->nom_dossier }}
+    <small style="color:#6b7280; font-weight:normal;">
+        ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
+    </small>
+    -
+</span>                        <span>{{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
                         @if($d->paiementsTechniques->count())
     <span style="color:#0d6efd;">Tech ●</span><br><br>
 @endif
