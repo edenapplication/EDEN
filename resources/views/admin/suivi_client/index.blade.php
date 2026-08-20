@@ -106,25 +106,170 @@
                     &nbsp;·&nbsp; 📂 <span id="nb-dossiers-{{ $client->id }}">{{ $client->dossiers->count() }}</span> dossier(s)
                 </div>
 
-                {{-- ✅ Dossiers sous forme de pills avec bouton supprimer --}}
+                {{-- ✅ Dossiers sous forme de pills avec statuts de paiement --}}
                 <div style="margin-top:6px;" id="dossiers-pills-{{ $client->id }}">
                     @foreach($client->dossiers as $d)
-                    <span class="dossier-pill" id="pill-dossier-{{ $d->id }}">
-<span class="site">
-    {{ $d->grandSite?->nom ?? $d->nom_dossier }}
-    <small style="color:#6b7280; font-weight:normal;">
-        ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
-    </small>
-    -
-</span>                        <span>{{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
-                        @if($d->paiementsTechniques->count())
-    <span style="color:#0d6efd;">Tech ●</span><br><br>
-@endif
+                    @php
+                        // Totaux versés
+                        $tD = $d->paiements->sum('montant');
+                        $tT = $d->paiementsTechniques->sum('montant');
+                        $tM = $d->paiementsMorcellements->sum('montant');
+                        $tL = $d->paiementsLogistiques?->sum('montant') ?? 0;
 
-@if($d->paiementsMorcellements->count())
-    <span style="color:#dc2626;">Morc ●</span>
-@endif
-                    </span>
+                        // Prix de référence
+                        $rD = $d->prix_superficie   ?? 0;
+                        $rT = $d->prix_technique    ?? 0;
+                        $rM = $d->prix_morcellement ?? 0;
+                        $rL = $d->prix_logistique   ?? 0;
+
+                        // Statut
+                        $statutD = $rD > 0 ? ($tD >= $rD ? 'solde' : ($tD > 0 ? 'en_cours' : 'vide')) : ($tD > 0 ? 'en_cours' : 'vide');
+                        $statutT = $rT > 0 ? ($tT >= $rT ? 'solde' : ($tT > 0 ? 'en_cours' : 'vide')) : ($tT > 0 ? 'en_cours' : 'vide');
+                        $statutM = $rM > 0 ? ($tM >= $rM ? 'solde' : ($tM > 0 ? 'en_cours' : 'vide')) : ($tM > 0 ? 'en_cours' : 'vide');
+                        $statutL = $rL > 0 ? ($tL >= $rL ? 'solde' : ($tL > 0 ? 'en_cours' : 'vide')) : ($tL > 0 ? 'en_cours' : 'vide');
+
+                        // Couleurs
+                        $couleurs = [
+                            'solde' => ['bg' => '#dcfce7', 'border' => '#86efac', 'text' => '#15803d', 'icone' => '✅'],
+                            'en_cours' => ['bg' => '#fef3c7', 'border' => '#fcd34d', 'text' => '#b45309', 'icone' => '⏳'],
+                            'vide' => ['bg' => '#f1f5f9', 'border' => '#cbd5e1', 'text' => '#64748b', 'icone' => '⭕']
+                        ];
+
+                        $totalPaye = $tD + $tT + $tL + $tM;
+                        $totalRef = $rD + $rT + $rL + $rM;
+                        $tousSoldes = ($statutD === 'solde' || $tD == 0) && 
+                                      ($statutT === 'solde' || $tT == 0) && 
+                                      ($statutL === 'solde' || $tL == 0) && 
+                                      ($statutM === 'solde' || $tM == 0);
+                        $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
+                    @endphp
+
+                    <div class="dossier-pill" id="pill-dossier-{{ $d->id }}" style="display:inline-block;margin-bottom:8px;">
+                        <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;border:1px solid #e2e8f0;">
+                            {{-- En-tête du dossier --}}
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span class="site" style="font-weight:700;color:#1e3a5f;">
+                                    {{ $d->grandSite?->nom ?? $d->nom_dossier }}
+                                    <small style="color:#6b7280;font-weight:normal;">
+                                        ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
+                                    </small>
+                                </span>
+                                <span style="color:#64748b;font-size:11px;">
+                                    {{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}
+                                </span>
+                            </div>
+
+                            {{-- Badges de statut --}}
+                            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
+                                @if($tD > 0 || $rD > 0)
+                                <span style="
+                                    display:inline-flex;align-items:center;gap:4px;
+                                    padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;
+                                    background:{{ $couleurs[$statutD]['bg'] }};
+                                    color:{{ $couleurs[$statutD]['text'] }};
+                                    border:1.5px solid {{ $couleurs[$statutD]['border'] }};
+                                ">
+                                    <span style="font-size:10px;">{{ $couleurs[$statutD]['icone'] }}</span>
+                                    📁 Dossier
+                                    @if($statutD === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutD === 'en_cours')
+                                        <span>{{ $rD > 0 ? number_format(round(($tD/$rD)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+
+                                @if($tT > 0 || $rT > 0)
+                                <span style="
+                                    display:inline-flex;align-items:center;gap:4px;
+                                    padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;
+                                    background:{{ $couleurs[$statutT]['bg'] }};
+                                    color:{{ $couleurs[$statutT]['text'] }};
+                                    border:1.5px solid {{ $couleurs[$statutT]['border'] }};
+                                ">
+                                    <span style="font-size:10px;">{{ $couleurs[$statutT]['icone'] }}</span>
+                                    🛠️ Tech.
+                                    @if($statutT === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutT === 'en_cours')
+                                        <span>{{ $rT > 0 ? number_format(round(($tT/$rT)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+
+                                @if($tL > 0 || $rL > 0)
+                                <span style="
+                                    display:inline-flex;align-items:center;gap:4px;
+                                    padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;
+                                    background:{{ $couleurs[$statutL]['bg'] }};
+                                    color:{{ $couleurs[$statutL]['text'] }};
+                                    border:1.5px solid {{ $couleurs[$statutL]['border'] }};
+                                ">
+                                    <span style="font-size:10px;">{{ $couleurs[$statutL]['icone'] }}</span>
+                                    🚗 Logi.
+                                    @if($statutL === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutL === 'en_cours')
+                                        <span>{{ $rL > 0 ? number_format(round(($tL/$rL)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+
+                                @if($tM > 0 || $rM > 0)
+                                <span style="
+                                    display:inline-flex;align-items:center;gap:4px;
+                                    padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;
+                                    background:{{ $couleurs[$statutM]['bg'] }};
+                                    color:{{ $couleurs[$statutM]['text'] }};
+                                    border:1.5px solid {{ $couleurs[$statutM]['border'] }};
+                                ">
+                                    <span style="font-size:10px;">{{ $couleurs[$statutM]['icone'] }}</span>
+                                    ✂️ Morcel.
+                                    @if($statutM === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutM === 'en_cours')
+                                        <span>{{ $rM > 0 ? number_format(round(($tM/$rM)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+                            </div>
+
+                            {{-- Statut global du dossier --}}
+                            @if($totalRef > 0)
+                            <div style="
+                                margin-top:6px;
+                                padding:4px 10px;
+                                border-radius:6px;
+                                background: {{ $tousSoldes ? '#dcfce7' : ($totalPaye > 0 ? '#fef3c7' : '#f1f5f9') }};
+                                border: 1.5px solid {{ $tousSoldes ? '#86efac' : ($totalPaye > 0 ? '#fcd34d' : '#cbd5e1') }};
+                                display:flex;
+                                justify-content:space-between;
+                                align-items:center;
+                                font-size:10px;
+                            ">
+                                <span style="font-weight:700;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
+                                    {{ $tousSoldes ? '✅ SOLDÉ ' : ($totalPaye > 0 ? '⏳ EN COURS ' : '⭕ NON PAYÉ ') }}
+                                </span>
+                                <span style="font-weight:900;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
+                                    @if($totalPaye > 0)
+                                        {{ number_format($totalPaye, 0, ',', ' ') }} FCFA/ {{ number_format($totalRef, 0, ',', ' ') }} FCFA
+                                        <span style="font-size:9px;">({{ $pctGlobal }}%)</span>
+                                    @else
+                                        0 FCFA
+                                    @endif
+                                </span>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
                     @endforeach
                 </div>
             </div>

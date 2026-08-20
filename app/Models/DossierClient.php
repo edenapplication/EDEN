@@ -12,7 +12,7 @@ class DossierClient extends Model
         'facilitateur_id', 'agent_commercial_id',
         'grand_site_id', 'direction',
         'superficie_voulue', 'prix_superficie',
-        'prix_technique', 'prix_morcellement',
+        'prix_technique', 'prix_morcellement','prix_logistique',
     ];
 
     public function client()          { return $this->belongsTo(Client::class); }
@@ -43,5 +43,23 @@ class DossierClient extends Model
 public function paiementsMorcellements()
 {
     return $this->hasMany(PaiementMorcellement::class, 'dossier_client_id');
+}
+
+public function bons()
+{
+    return $this->hasMany(BonPaiement::class, 'dossier_client_id')
+                ->orderByDesc('date_bon');
+}
+
+// Prix unitaire = prix superficie / superficie
+public function getPrixUnitaireAttribute(): float
+{
+    if (!$this->superficie_voulue || $this->superficie_voulue == 0) return 0;
+    return round(($this->prix_superficie ?? 0) / $this->superficie_voulue, 0);
+}
+
+public function paiementsLogistiques()
+{
+    return $this->hasMany(PaiementLogistique::class, 'dossier_client_id');
 }
 }

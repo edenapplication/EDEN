@@ -88,6 +88,15 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
 
+    <a href="{{ route('bons.index', $dossier->id) }}"
+   class="btn btn-outline-primary btn-sm" style="font-size:11px;">
+    🧾 {{ $dossier->bons->count() }} bon(s)
+</a>
+<a href="{{ route('bons.creer', $dossier->id) }}"
+   class="btn btn-primary btn-sm" style="font-size:11px;">
+    + Nouveau paiement
+</a>
+
     <form action="{{ route('suivi-client.dossiers.destroy', $dossier->id) }}"
       method="POST"
       onsubmit="return confirm('Supprimer ce dossier ?')"
@@ -141,14 +150,17 @@
 
 @php
     $totalDossier   = $dossier->paiements->sum('montant');
-    $prixRef        = $dossier->prix_superficie ?? 0;
+    $prixRef        = $dossier->prix_superficie    ?? 0;
     $resteDossier   = max(0, $prixRef - $totalDossier);
-    $prixTech       = $dossier->prix_technique ?? 0;
-    $prixMorcel     = $dossier->prix_morcellement ?? 0;
+    $prixTech       = $dossier->prix_technique     ?? 0;
+    $prixMorcel     = $dossier->prix_morcellement  ?? 0;
+    $prixLogistique = $dossier->prix_logistique    ?? 0;  // ✅ ajouter
     $totalTechnique = $dossier->paiementsTechniques->sum('montant');
     $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
+    $totalLogistique= $dossier->paiementsLogistiques?->sum('montant') ?? 0;
     $resteTech      = max(0, $prixTech - $totalTechnique);
     $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
+    $resteLogistique= max(0, $prixLogistique - $totalLogistique);
 @endphp
 
 {{-- Prix de référence configurables --}}
@@ -157,36 +169,52 @@
         💰 Prix de référence du dossier
     </div>
     <div class="row g-2">
-        <div class="col-md-4">
-            <label style="font-size:11px;color:#64748b;">Prix superficie (FCFA)</label>
+
+        {{-- ✅ 4 colonnes de taille égale sur la même ligne --}}
+        <div class="col-md-3">
+            <label style="font-size:11px;color:#64748b;">💰 Prix superficie (FCFA)</label>
             <div style="display:flex;gap:6px;">
                 <input type="number" id="prix-superficie-{{ $dossier->id }}"
                        class="form-control form-control-sm"
                        value="{{ $prixRef }}" placeholder="0">
                 <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-primary btn-sm" style="font-size:11px;">✓</button>
+                        class="btn btn-primary btn-sm" style="font-size:11px;flex-shrink:0;">✓</button>
             </div>
         </div>
-        <div class="col-md-4">
-            <label style="font-size:11px;color:#ea580c;">Prix technique (FCFA)</label>
+
+        <div class="col-md-3">
+            <label style="font-size:11px;color:#ea580c;">🛠️ Prix technique (FCFA)</label>
             <div style="display:flex;gap:6px;">
                 <input type="number" id="prix-technique-{{ $dossier->id }}"
                        class="form-control form-control-sm"
                        value="{{ $prixTech }}" placeholder="0">
                 <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-warning btn-sm" style="font-size:11px;">✓</button>
+                        class="btn btn-warning btn-sm" style="font-size:11px;flex-shrink:0;">✓</button>
             </div>
         </div>
-        <div class="col-md-4">
+
+        <div class="col-md-3">
+            <label style="font-size:11px;color:#7c3aed;">🚗 Prix logistique (FCFA)</label>
+            <div style="display:flex;gap:6px;">
+                <input type="number" id="prix-logistique-{{ $dossier->id }}"
+                       class="form-control form-control-sm"
+                       value="{{ $prixLogistique ?? $dossier->prix_logistique ?? 0 }}" placeholder="0">
+                <button onclick="majPrix({{ $dossier->id }})"
+                        class="btn btn-sm" style="background:#7c3aed;color:white;font-size:11px;flex-shrink:0;">✓</button>
+            </div>
+        </div>
+
+        <div class="col-md-3">
             <label style="font-size:11px;color:#ca8a04;">Prix morcellement (FCFA)</label>
             <div style="display:flex;gap:6px;">
                 <input type="number" id="prix-morcellement-{{ $dossier->id }}"
                        class="form-control form-control-sm"
                        value="{{ $prixMorcel }}" placeholder="0">
                 <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-sm" style="background:#ca8a04;color:white;font-size:11px;">✓</button>
+                        class="btn btn-sm" style="background:#ca8a04;color:white;font-size:11px;flex-shrink:0;">✓</button>
             </div>
         </div>
+
     </div>
 </div>
 
@@ -196,11 +224,7 @@
     {{-- BLOC DOSSIER --}}
     <div class="paiement-bloc bloc-dossier">
         <h6 style="color:#0d6efd;">
-            📁 Paiement Dossier
-            <button class="btn-add-pay dossier"
-                    onclick="openPaiement('dossier', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
-                + Ajouter
-            </button>
+            📁 Paiement Parcelle
         </h6>
         @if($prixRef > 0)
         <div class="pay-total-row">
@@ -269,10 +293,6 @@
     <div class="paiement-bloc bloc-technique">
         <h6 style="color:#ea580c;">
             🛠️ Paiement Technique
-            <button class="btn-add-pay technique"
-                    onclick="openPaiement('technique', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
-                + Ajouter
-            </button>
         </h6>
         @if($prixTech > 0)
         <div class="pay-total-row">
@@ -340,11 +360,7 @@
     {{-- BLOC MORCELLEMENT --}}
     <div class="paiement-bloc bloc-morcel">
         <h6 style="color:#ca8a04;">
-            ✂️ Paiement Morcellement
-            <button class="btn-add-pay morcel"
-                    onclick="openPaiement('morcellement', {{ $dossier->id }}, '{{ addslashes($dossier->nom_dossier) }}')">
-                + Ajouter
-            </button>
+        Paiement Morcellement
         </h6>
         @if($prixMorcel > 0)
         <div class="pay-total-row">
@@ -560,6 +576,7 @@ function majPrix(dossierId) {
     const superficie   = document.getElementById('prix-superficie-'   + dossierId)?.value ?? '';
     const technique    = document.getElementById('prix-technique-'    + dossierId)?.value ?? '';
     const morcellement = document.getElementById('prix-morcellement-' + dossierId)?.value ?? '';
+    const logistique   = document.getElementById('prix-logistique-'   + dossierId)?.value;
 
     // ✅ Afficher loader
     if (window.EdenLoader) window.EdenLoader.show();
@@ -575,6 +592,7 @@ function majPrix(dossierId) {
             prix_superficie:   superficie   !== '' ? parseFloat(superficie)   : null,
             prix_technique:    technique    !== '' ? parseFloat(technique)    : null,
             prix_morcellement: morcellement !== '' ? parseFloat(morcellement) : null,
+            prix_logistique:   logistique,
         }),
     })
     .then(r => {

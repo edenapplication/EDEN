@@ -17,31 +17,50 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:100',
-            'email'    => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role'     => 'required|in:admin,rh,commercial',
+            'name'      => 'required|string|max:100',
+            'email'     => 'required|email|unique:users,email',
+            'reference' => 'required|string|unique:users,reference|max:50',
+            'password'  => 'required|string|min:6',
+            'role'      => 'required|in:admin,rh,commercial',
         ]);
 
         User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
-            'actif'    => true,
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'reference' => strtoupper($request->reference),
+            'password'  => Hash::make($request->password),
+            'role'      => $request->role,
+            'actif'     => true,
         ]);
 
-        return back()->with('success', 'Utilisateur créé');
+        return back()->with('success', 'Utilisateur créé avec la référence : ' . strtoupper($request->reference));
     }
 
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $data = $request->only('name', 'email', 'role', 'actif');
+        
+        $request->validate([
+            'name'      => 'required|string|max:100',
+            'email'     => 'required|email|unique:users,email,' . $id,
+            'reference' => 'required|string|unique:users,reference,' . $id . '|max:50',
+            'password'  => 'nullable|string|min:6',
+            'role'      => 'required|in:admin,rh,commercial',
+        ]);
+
+        $data = [
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'reference' => strtoupper($request->reference),
+            'role'      => $request->role,
+        ];
+
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
+
         $user->update($data);
+
         return back()->with('success', 'Utilisateur mis à jour');
     }
 

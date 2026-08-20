@@ -212,6 +212,12 @@
             <input type="number" name="prix_superficie" class="form-control"
                    value="{{ old('prix_superficie', $dossier?->prix_superficie) }}">
         </div>
+        <div class="col-md-3">
+    <label style="color:#7c3aed;">🚗 Prix logistique (FCFA)</label>
+    <input type="number" name="prix_logistique" class="form-control"
+           value="{{ old('prix_logistique', $dossier?->prix_logistique) }}"
+           placeholder="0">
+</div>
     </div>
 </div>
 

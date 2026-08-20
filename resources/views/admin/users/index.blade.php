@@ -28,6 +28,7 @@
         <tr>
             <th>Nom</th>
             <th>Email</th>
+            <th>Référence (Signature)</th>
             <th>Rôle</th>
             <th>Statut</th>
             <th>ACTIONS</th>
@@ -44,6 +45,13 @@
             </td>
             <td>{{ $user->email }}</td>
             <td>
+                @if($user->reference)
+                    <span class="badge bg-primary" style="font-size:11px;padding:4px 10px;">{{ $user->reference }}</span>
+                @else
+                    <span class="text-muted" style="font-size:11px;">Non défini</span>
+                @endif
+            </td>
+            <td>
                 <span class="role-badge role-{{ $user->role }}">
                     {{ ['admin' => '🔑 Admin', 'rh' => '👥 RH', 'commercial' => '💼 Commercial'][$user->role] }}
                 </span>
@@ -55,7 +63,7 @@
             </td>
             <td>
                 <div class="d-flex gap-1">
-                    <button onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ $user->email }}', '{{ $user->role }}')"
+                    <button onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ $user->email }}', '{{ $user->role }}', '{{ addslashes($user->reference) }}')"
                             class="btn btn-warning btn-sm" style="font-size:10px;">✏️</button>
 
                     @if($user->id !== auth()->id())
@@ -76,7 +84,7 @@
             </td>
         </tr>
     @empty
-        <tr><td colspan="5" class="text-center text-muted py-4">Aucun utilisateur</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucun utilisateur</td></tr>
     @endforelse
     </tbody>
 </table>
@@ -108,6 +116,14 @@
             <div class="col-12">
                 <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
                 <input type="email" name="email" class="form-control" required placeholder="email@exemple.cm">
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Référence (Signature) <span class="text-danger">*</span></label>
+                <input type="text" name="reference" class="form-control" required placeholder="Ex: EDG-2026-001" 
+                       style="text-transform:uppercase;">
+                <div style="font-size:11px;color:#64748b;margin-top:4px;">
+                    💡 La référence sert de signature sur les documents (Bons de paiement, etc.)
+                </div>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Mot de passe <span class="text-danger">*</span></label>
@@ -153,6 +169,14 @@
                 <label class="form-label fw-semibold">Email</label>
                 <input type="email" name="email" class="form-control" id="edit_email" required>
             </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Référence (Signature)</label>
+                <input type="text" name="reference" class="form-control" id="edit_reference" 
+                       placeholder="Ex: EDG-2026-001" style="text-transform:uppercase;">
+                <div style="font-size:11px;color:#64748b;margin-top:4px;">
+                    💡 La référence sert de signature sur les documents
+                </div>
+            </div>
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Nouveau mot de passe</label>
                 <input type="password" name="password" class="form-control" placeholder="Laisser vide = inchangé" minlength="6">
@@ -186,11 +210,12 @@ function closeAll() {
     document.getElementById('addModal').style.display = 'none';
     document.getElementById('editModal').style.display = 'none';
 }
-function openEditModal(id, name, email, role) {
+function openEditModal(id, name, email, role, reference) {
     document.getElementById('editForm').action = `/admin/users/${id}`;
     document.getElementById('edit_name').value  = name;
     document.getElementById('edit_email').value = email;
     document.getElementById('edit_role').value  = role;
+    document.getElementById('edit_reference').value = reference || '';
     document.getElementById('overlayEdit').style.display = 'block';
     document.getElementById('editModal').style.display   = 'block';
 }

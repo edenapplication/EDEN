@@ -31,6 +31,8 @@ use App\Http\Controllers\RH\RetardController;
 use App\Http\Controllers\RH\DirectionController;
 
 use App\Http\Controllers\Feb\DestinataireController;
+use App\Http\Controllers\Feb\BonPaiementController;
+use Illuminate\Http\Request;
 
 Route::post('/deploy', function () {
     exec('cd /var/www/html && git pull origin main');
@@ -121,8 +123,19 @@ Route::delete('/admin/paiements-dossiers/{id}', [PaiementDossierController::clas
 Route::post('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'store']);
 Route::get('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'index']);
 
-
-
+Route::post('/admin/verifier-reference', function (Request $request) {
+    $reference = $request->input('reference');
+    $existe = \App\Models\User::where('reference', $reference)->exists();
+    return response()->json(['existe' => $existe]);
+})->middleware(['auth']);
+// Dans le groupe admin/*, middleware admin
+Route::get('bons/{dossier}',          [App\Http\Controllers\BonPaiementController::class, 'index'])  ->name('bons.index');
+Route::post('bons/{dossier}',         [App\Http\Controllers\BonPaiementController::class, 'store'])  ->name('bons.store');
+Route::get('bons/{dossier}/creer',    [App\Http\Controllers\BonPaiementController::class, 'creer'])  ->name('bons.creer');
+Route::get('bons/detail/{bon}',       [App\Http\Controllers\BonPaiementController::class, 'show'])   ->name('bons.show');
+Route::get('bons/detail/{bon}/pdf',   [App\Http\Controllers\BonPaiementController::class, 'pdf'])    ->name('bons.pdf');
+Route::delete('bons/detail/{bon}',    [App\Http\Controllers\BonPaiementController::class, 'destroy'])->name('bons.destroy');
+Route::post('bons/detail/{bon}/toggle-reste', [App\Http\Controllers\BonPaiementController::class, 'toggleReste'])->name('bons.toggle-reste');
 
     // Paiement technique
     Route::post('/paiements-technique/{dossierId}', [PaiementTechniqueController::class, 'store']);

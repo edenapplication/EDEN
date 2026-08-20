@@ -45,7 +45,8 @@ public function create(Request $request)
     $query = Client::with([
         'dossiers.grandSite',
         'dossiers.paiementsTechniques',
-        'dossiers.paiementsMorcellements'
+        'dossiers.paiementsMorcellements',
+        'dossiers.paiementsLogistiques',
     ])->orderByDesc('created_at');
 
     // Recherche
@@ -93,6 +94,10 @@ public function create(Request $request)
             'direction'          => 'nullable|string',
             'superficie_voulue'  => 'nullable|numeric',
             'prix_superficie'    => 'nullable|numeric',
+            'prix_logistique'    => 'nullable|numeric', // ✅ AJOUTER
+        'prix_technique'     => 'nullable|numeric', // ✅ AJOUTER
+        'prix_morcellement'  => 'nullable|numeric', // ✅ AJOUTER
+
         ]);
 
         $client = Client::firstOrCreate(
@@ -129,29 +134,34 @@ public function create(Request $request)
             'direction'          => $request->direction,
             'superficie_voulue'  => $request->superficie_voulue,
             'prix_superficie'    => $request->prix_superficie,
+             'prix_logistique'    => $request->prix_logistique ?? 0, // ✅ DÉJÀ PRÉSENT
+        'prix_technique'     => $request->prix_technique ?? 0, // ✅ AJOUTER
+        'prix_morcellement'  => $request->prix_morcellement ?? 0, // ✅ AJOUTER
         ]);
 
         return redirect()->route('suivi-client.show', $client->id)
                          ->with('success', 'Client et dossier créés');
     }
 
-    public function show($id)
-    {
-        $client = Client::with([
-            'dossiers.commercial',
-            'dossiers.conducteur',
-            'dossiers.facilitateur',
-            'dossiers.agentCommercial',
-            'dossiers.grandSite',
-            'dossiers.paiements',
-            'dossiers.paiementsTechniques',
-            'dossiers.paiementsMorcellements',
-            'lots.tf.site.grandSite',
-            'lots.dossier',
-        ])->findOrFail($id);
+   public function show($id)
+{
+    $client = Client::with([
+        'dossiers.commercial',
+        'dossiers.conducteur',
+        'dossiers.facilitateur',
+        'dossiers.agentCommercial',
+        'dossiers.grandSite',
+        'dossiers.paiements',
+        'dossiers.paiementsTechniques',
+        'dossiers.paiementsMorcellements',
+        'dossiers.paiementsLogistiques', // ✅
+        'dossiers.bons',
+        'lots.tf.site.grandSite',
+        'lots.dossier',
+    ])->findOrFail($id);
 
-        return view('admin.suivi_client.show', compact('client'));
-    }
+    return view('admin.suivi_client.show', compact('client'));
+}
 
     public function edit(Request $request, $id)
     {
@@ -208,6 +218,9 @@ public function create(Request $request)
                 'direction'          => $request->direction,
                 'superficie_voulue'  => $request->superficie_voulue,
                 'prix_superficie'    => $request->prix_superficie,
+                 'prix_logistique'    => $request->prix_logistique ?? 0, // ✅ DÉJÀ PRÉSENT
+            'prix_technique'     => $request->prix_technique ?? 0, // ✅ AJOUTER
+            'prix_morcellement'  => $request->prix_morcellement ?? 0, // ✅ AJOUTER
             ]);
         }
 

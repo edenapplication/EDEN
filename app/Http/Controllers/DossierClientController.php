@@ -50,6 +50,7 @@ class DossierClientController extends Controller
             if ($request->has('prix_superficie'))   $data['prix_superficie']   = $request->prix_superficie   ?? 0;
             if ($request->has('prix_technique'))    $data['prix_technique']    = $request->prix_technique    ?? 0;
             if ($request->has('prix_morcellement')) $data['prix_morcellement'] = $request->prix_morcellement ?? 0;
+            if ($request->has('prix_logistique')) $data['prix_logistique'] = $request->prix_logistique ?? 0;
 
             $dossier->update($data);
 
