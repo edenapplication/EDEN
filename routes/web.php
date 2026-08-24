@@ -124,9 +124,8 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
     Route::post('/dossier-zone/toggle/{zone}', [DossierTechniqueController::class, 'toggleZone'])->name('dossier.zone.toggle');
     Route::delete('/suivi-client/dossiers/{dossier}',[SuiviClientController::class, 'destroyDossier'])->name('suivi-client.dossiers.destroy');
     
-    // ✅ Routes pour les étapes
-    Route::post('/dossiers/{dossier}/maj-etape', [DossierClientController::class, 'majEtape'])
-        ->name('dossiers.maj-etape');
+   Route::post('/dossiers/{dossier}/maj-etape', [SuiviClientController::class, 'majEtape'])
+    ->name('dossiers.maj-etape');
 
     // ✅ Routes pour les CNI
     Route::get('/dossiers/{dossier}/cni', [DossierClientController::class, 'getCni'])

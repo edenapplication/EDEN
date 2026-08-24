@@ -357,74 +357,75 @@ class SuiviClientController extends Controller
     // ✅ MÉTHODE POUR LES ÉTAPES
     // ============================================================
     public function majEtape(Request $request, DossierClient $dossier)
-    {
-        try {
-            $etape = $request->input('etape');
-            $date = $request->input('date');
-            $active = $request->input('active');
+{
+    try {
+        $etape = $request->input('etape');
+        $date = $request->input('date');
+        $active = $request->input('active');
 
-            // ✅ Validation manuelle
-            if (!$etape || !in_array($etape, ['implantation_prevue', 'deja_implante', 'dossier_technique', 'morcellement'])) {
-                return response()->json(['success' => false, 'message' => 'Étape invalide'], 400);
-            }
+        // ✅ Validation manuelle
+        if (!$etape || !in_array($etape, ['implantation_prevue', 'deja_implante', 'dossier_technique', 'morcellement'])) {
+            return response()->json(['success' => false, 'message' => 'Étape invalide'], 400);
+        }
 
-            $etapesConfig = DossierClient::etapesConfig();
-            $champDate = $etapesConfig[$etape]['champ'];
+        $etapesConfig = DossierClient::etapesConfig();
+        $champDate = $etapesConfig[$etape]['champ'];
 
-            // ✅ Si active = true ET date vide, on refuse
-            if ($active && !$date) {
-                return response()->json(['success' => false, 'message' => 'Une date est requise pour activer une étape'], 400);
-            }
+        // ✅ Si active = true ET date vide, on refuse
+        if ($active && !$date) {
+            return response()->json(['success' => false, 'message' => 'Une date est requise pour activer une étape'], 400);
+        }
 
-            // Mettre à jour la date
-            if ($active && $date) {
-                $dossier->$champDate = $date;
-            } else {
-                $dossier->$champDate = null;
-            }
+        // Mettre à jour la date
+        if ($active && $date) {
+            $dossier->$champDate = $date;
+        } else {
+            $dossier->$champDate = null;
+        }
 
-            // Mettre à jour l'étape actuelle
-            $etapesOrdre = DossierClient::etapesOrdre();
-            $ordreEtape = $etapesOrdre[$etape];
+        // Mettre à jour l'étape actuelle
+        $etapesOrdre = DossierClient::etapesOrdre();
+        $ordreEtape = $etapesOrdre[$etape];
 
-            if ($active && $date) {
-                $dossier->etape_actuelle = $etape;
-            } else {
-                // Recule à l'étape précédente
-                $nouvelleEtape = null;
-                foreach ($etapesOrdre as $cle => $ordre) {
-                    if ($ordre < $ordreEtape) {
-                        $champ = $etapesConfig[$cle]['champ'];
-                        if ($dossier->$champ) {
-                            $nouvelleEtape = $cle;
-                        }
+        if ($active && $date) {
+            $dossier->etape_actuelle = $etape;
+        } else {
+            // Recule à l'étape précédente
+            $nouvelleEtape = null;
+            foreach ($etapesOrdre as $cle => $ordre) {
+                if ($ordre < $ordreEtape) {
+                    $champ = $etapesConfig[$cle]['champ'];
+                    if ($dossier->$champ) {
+                        $nouvelleEtape = $cle;
                     }
                 }
-                $dossier->etape_actuelle = $nouvelleEtape;
             }
-
-            $dossier->save();
-
-            // Dates formatées
-            $dates = [];
-            foreach ($etapesConfig as $cle => $cfg) {
-                $champ = $cfg['champ'];
-                $dates[$cle] = $dossier->$champ ? $dossier->$champ->format('d/m/Y') : null;
-            }
-
-            return response()->json([
-                'success' => true,
-                'etape_actuelle' => $dossier->etape_actuelle,
-                'dates' => $dates,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur majEtape: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
+            $dossier->etape_actuelle = $nouvelleEtape;
         }
+
+        $dossier->save();
+
+        // Dates formatées
+        $dates = [];
+        foreach ($etapesConfig as $cle => $cfg) {
+            $champ = $cfg['champ'];
+            $dates[$cle] = $dossier->$champ ? $dossier->$champ->format('d/m/Y') : null;
+        }
+
+        return response()->json([
+            'success' => true,
+            'etape_actuelle' => $dossier->etape_actuelle,
+            'dates' => $dates,
+        ]);
+
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Erreur majEtape: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
+
 }

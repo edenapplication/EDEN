@@ -823,6 +823,7 @@ function supprimerEtape() {
     
     if (window.EdenLoader) window.EdenLoader.show();
     
+    // ✅ Envoyer date = null et active = false
     fetch(`/admin/dossiers/${modalDossierId}/maj-etape`, {
         method: 'POST',
         headers: { 
@@ -831,8 +832,8 @@ function supprimerEtape() {
         },
         body: JSON.stringify({ 
             etape: modalEtapeKey, 
-            date: null, 
-            active: false 
+            date: null,      // ✅ null au lieu de date vide
+            active: false    // ✅ false pour désactiver
         }),
     })
     .then(r => r.json())
