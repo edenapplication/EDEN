@@ -56,15 +56,17 @@ Route::get('/', [HomeController::class, 'index'])->name('home')->middleware('aut
 // ── ADMIN ─────────────────────────────────────────────────────
 Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->group(function () {
 
-    // ✅ Route de vérification de référence
-    Route::post('/verifier-reference', function (Request $request) {
-        $reference = trim($request->input('reference'));
-        $existe = \App\Models\User::whereRaw('BINARY reference = ?', [$reference])->exists();
-        return response()->json([
-            'existe' => $existe,
-            'reference' => $reference
-        ]);
-    });
+   Route::post('/verifier-reference', function (Request $request) {
+
+    $reference = trim($request->input('reference'));
+
+    $existe = \App\Models\User::where('reference', $reference)->exists();
+
+    return response()->json([
+        'existe' => $existe,
+        'reference' => $reference
+    ]);
+});
 
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('check.role:admin')
