@@ -12,12 +12,20 @@ class BonPaiement extends Model
         'versement_logistique','versement_morcellement',
         'total_dossier_cumul','total_technique_cumul',
         'total_logistique_cumul','total_morcellement_cumul',
-        'afficher_reste','notes',
+        'afficher_reste','notes','user_reference', // ✅ Ajout
+        'user_id',        // ✅ Ajout
     ];
     protected $casts = [
         'date_bon'       => 'date',
         'afficher_reste' => 'boolean',
     ];
+
+    // ✅ AJOUTER CETTE RELATION
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
 
     public function dossier()
     {
@@ -49,4 +57,9 @@ class BonPaiement extends Model
         $num     = $dernier ? $dernier->id + 1 : 1;
         return 'EDG-BON-' . str_pad($num, 5, '0', STR_PAD_LEFT);
     }
+    
+    public function visite()
+{
+    return $this->hasOne(Visite::class, 'bon_id');
+}
 }

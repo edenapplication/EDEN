@@ -14,7 +14,12 @@
             {{ $dossier->client?->name }} — {{ $dossier->grandSite?->nom ?? $dossier->nom_dossier }}
         </div>
     </div>
-    <a href="{{ route('bons.creer', $dossier->id) }}" class="btn btn-primary">+ Nouveau bon</a>
+    <div class="d-flex gap-2">
+        {{-- ✅ MODIFICATION : bouton avec onclick --}}
+        <a href="#" class="btn btn-primary" onclick="demanderReference({{ $dossier->id }})">
+            + Nouveau bon
+        </a>
+    </div>
 </div>
 
 @if(session('success'))
@@ -68,6 +73,11 @@
                 <span style="font-size:12px;color:#64748b;font-weight:400;margin-left:8px;">
                     📅 {{ $bon->date_bon->format('d/m/Y') }}
                 </span>
+                @if(isset($bon->user_reference) && $bon->user_reference)
+                    <span style="font-size:10px;color:#1d4ed8;font-weight:600;margin-left:8px;background:#eff6ff;padding:2px 8px;border-radius:4px;">
+                        🔑 {{ $bon->user_reference }}
+                    </span>
+                @endif
             </div>
             <div style="margin-top:8px;">
                 @if($bon->versement_dossier > 0)
@@ -77,7 +87,7 @@
                 @endif
                 @if($bon->versement_technique > 0)
                     <span class="versement-chip" style="background:#ffedd5;color:#ea580c;">
-                        🛠️Dossiet Tech : {{ number_format($bon->versement_technique,0,',',' ') }} FCFA
+                        🛠️Dossier Tech : {{ number_format($bon->versement_technique,0,',',' ') }} FCFA
                     </span>
                 @endif
                 @if($bon->versement_logistique > 0)
@@ -94,6 +104,11 @@
                     = {{ number_format($bon->total_versement,0,',',' ') }} FCFA
                 </span>
             </div>
+            @if(isset($bon->user) && $bon->user)
+                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
+                    👤 Signé par : {{ $bon->user->name }}
+                </div>
+            @endif
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('bons.show', $bon->id) }}" class="btn btn-primary btn-sm" style="font-size:11px;">👁 Voir</a>
@@ -110,8 +125,52 @@
 <div style="text-align:center;padding:40px;color:#94a3b8;">
     <div style="font-size:40px;">🧾</div>
     <div style="font-weight:700;margin-top:10px;">Aucun bon de paiement</div>
-    <a href="{{ route('bons.creer', $dossier->id) }}" class="btn btn-primary mt-3">+ Créer le premier bon</a>
+    <a href="#" class="btn btn-primary mt-3" onclick="demanderReference({{ $dossier->id }})">+ Créer le premier bon</a>
 </div>
 @endforelse
 
+@endsection
+
+@section('scripts')
+<script>
+function demanderReference(dossierId) {
+    const reference = prompt('🔑 Entrez votre numéro de référence (signature) :');
+    
+    if (reference === null) {
+        return false;
+    }
+    
+    const ref = reference.trim();
+    
+    if (ref === '') {
+        alert('⚠️ La référence ne peut pas être vide.');
+        return false;
+    }
+    
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    
+    // ✅ Vérifier si la référence existe
+    fetch('/admin/verifier-reference', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({ reference: ref })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.existe) {
+            // ✅ Référence valide → rediriger vers la création
+            window.location.href = '/admin/bons/' + dossierId + '/creer?reference=' + encodeURIComponent(ref);
+        } else {
+            alert('❌ La référence "' + ref + '" n\'existe pas. Veuillez contacter l\'administrateur.');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('⚠️ Erreur de vérification. Réessayez.');
+    });
+}
+</script>
 @endsection

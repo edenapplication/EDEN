@@ -11,7 +11,7 @@ class Visite extends Model
         'grand_site_id', 'site_id',
         'date_visite', 'heure_arrivee', 'heure_depart',
         'type_personne', 'note',
-        'paiement_lie', 'paiement_id',
+        'paiement_lie', 'paiement_id','bon_id',
     ];
 
     protected $casts = ['paiement_lie' => 'boolean', 'date_visite' => 'date',];
@@ -22,5 +22,9 @@ class Visite extends Model
     public function grandSite()     { return $this->belongsTo(GrandSite::class); }
     public function site()          { return $this->belongsTo(Site::class); }
     public function paiement()      { return $this->belongsTo(PaiementDossier::class, 'paiement_id'); }
+    public function bon()
+{
+    return $this->belongsTo(BonPaiement::class, 'bon_id');
+}
     
 }

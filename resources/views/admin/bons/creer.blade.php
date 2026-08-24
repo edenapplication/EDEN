@@ -1,6 +1,14 @@
 @extends('admin.layout')
 @section('content')
+<!-- Champ caché pour la référence -->
+<input type="hidden" name="reference" value="{{ session('reference_utilisateur') ?? request()->query('reference') }}">
 
+<!-- Affichage de la référence utilisée -->
+<div class="alert alert-info" style="font-size:12px;">
+    <strong>🔑 Référence utilisée :</strong> {{ session('reference_utilisateur') ?? request()->query('reference') }}
+    <br>
+    <strong>👤 Utilisateur :</strong> {{ $user->name ?? 'Non trouvé' }}
+</div>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <a href="{{ route('bons.index', $dossier->id) }}" class="btn btn-outline-secondary btn-sm mb-2">← Bons</a>

@@ -146,4 +146,85 @@ class DossierClientController extends Controller
         $writer->save('php://output');
         exit;
     }
+
+    public function majEtape(Request $request, $dossierId)
+{
+    try {
+        $request->validate([
+            'etape'  => 'required|in:implantation_prevue,deja_implante,dossier_technique,morcellement',
+            'date'   => 'required|date',
+            'active' => 'boolean',
+        ]);
+
+        $dossier = DossierClient::findOrFail($dossierId);
+
+        // Ordre des étapes — on ne peut qu'avancer (ou décocher)
+        $etapes = [
+            'implantation_prevue' => 1,
+            'deja_implante'       => 2,
+            'dossier_technique'   => 3,
+            'morcellement'        => 4,
+        ];
+
+        $champs = [
+            'implantation_prevue' => 'date_implantation_prevue',
+            'deja_implante'       => 'date_deja_implante',
+            'dossier_technique'   => 'date_dossier_technique',
+            'morcellement'        => 'date_morcellement',
+        ];
+
+        $etapeSelectionnee = $request->etape;
+        $active            = $request->boolean('active', true);
+
+        $data = [];
+
+        if ($active) {
+            // Cocher cette étape et toutes les précédentes
+            foreach ($etapes as $etapeNom => $ordre) {
+                if ($ordre <= $etapes[$etapeSelectionnee]) {
+                    // Si pas encore de date pour cette étape, mettre la date fournie
+                    // ou aujourd'hui pour les étapes précédentes
+                    if (empty($dossier->{$champs[$etapeNom]})) {
+                        $data[$champs[$etapeNom]] = ($etapeNom === $etapeSelectionnee)
+                            ? $request->date
+                            : now()->format('Y-m-d');
+                    }
+                }
+            }
+            $data['etape_actuelle'] = $etapeSelectionnee;
+        } else {
+            // Décocher — effacer cette étape et toutes les suivantes
+            foreach ($etapes as $etapeNom => $ordre) {
+                if ($ordre >= $etapes[$etapeSelectionnee]) {
+                    $data[$champs[$etapeNom]] = null;
+                }
+            }
+            // Revenir à l'étape précédente
+            $etapePrecedente = null;
+            foreach ($etapes as $etapeNom => $ordre) {
+                if ($ordre < $etapes[$etapeSelectionnee] && !empty($dossier->{$champs[$etapeNom]})) {
+                    $etapePrecedente = $etapeNom;
+                }
+            }
+            $data['etape_actuelle'] = $etapePrecedente;
+        }
+
+        $dossier->update($data);
+
+        return response()->json([
+            'success'       => true,
+            'etape_actuelle'=> $dossier->fresh()->etape_actuelle,
+            'dates'         => [
+                'implantation_prevue' => $dossier->fresh()->date_implantation_prevue?->format('d/m/Y'),
+                'deja_implante'       => $dossier->fresh()->date_deja_implante?->format('d/m/Y'),
+                'dossier_technique'   => $dossier->fresh()->date_dossier_technique?->format('d/m/Y'),
+                'morcellement'        => $dossier->fresh()->date_morcellement?->format('d/m/Y'),
+            ],
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
 }

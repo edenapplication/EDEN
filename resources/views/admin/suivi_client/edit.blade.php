@@ -4,7 +4,7 @@
 <h2>✏️ Modifier client / dossier</h2>
 <a href="{{ route('suivi-client.show', $client->id) }}" class="btn btn-outline-secondary btn-sm mb-3">← Retour</a>
 
-<form method="POST" action="{{ route('suivi-client.update', $client->id) }}">
+<form method="POST" action="{{ route('suivi-client.update', $client->id) }}" enctype="multipart/form-data" id="mainForm">
     @csrf
     @method('PUT')
 

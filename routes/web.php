@@ -10,7 +10,7 @@ use App\Http\Controllers\LotController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\CommercialController;
 use App\Http\Controllers\PaiementDossierController;
-use App\Http\Controllers\DossierTechniqueController;
+use App\Http\Controllers\DossierTechniqueController; // ✅ ICI
 use App\Http\Controllers\SuiviClientController;
 use App\Http\Controllers\AgentCommercialController;
 use App\Http\Controllers\RapportController;
@@ -20,6 +20,9 @@ use App\Http\Controllers\ZoneGroupeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\PaiementTechniqueController;
 use App\Http\Controllers\PaiementMorcellementController;
+use App\Http\Controllers\DossierClientController;
+use App\Http\Controllers\AffectationController;
+use App\Http\Controllers\BonPaiementController;
 
 use App\Http\Controllers\RH\DashboardRHController;
 use App\Http\Controllers\RH\EmployeController;
@@ -31,8 +34,9 @@ use App\Http\Controllers\RH\RetardController;
 use App\Http\Controllers\RH\DirectionController;
 
 use App\Http\Controllers\Feb\DestinataireController;
-use App\Http\Controllers\Feb\BonPaiementController;
+use App\Models\User;
 use Illuminate\Http\Request;
+
 
 Route::post('/deploy', function () {
     exec('cd /var/www/html && git pull origin main');
@@ -51,6 +55,16 @@ Route::get('/', [HomeController::class, 'index'])->name('home')->middleware('aut
 
 // ── ADMIN ─────────────────────────────────────────────────────
 Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->group(function () {
+
+    // ✅ Route de vérification de référence
+    Route::post('/verifier-reference', function (Request $request) {
+        $reference = trim($request->input('reference'));
+        $existe = \App\Models\User::whereRaw('BINARY reference = ?', [$reference])->exists();
+        return response()->json([
+            'existe' => $existe,
+            'reference' => $reference
+        ]);
+    });
 
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('check.role:admin')
@@ -109,40 +123,47 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
     Route::get('/dossier-zone/{zone}',         [DossierTechniqueController::class, 'showZone'])->name('dossier.zone.show');
     Route::post('/dossier-zone/toggle/{zone}', [DossierTechniqueController::class, 'toggleZone'])->name('dossier.zone.toggle');
     Route::delete('/suivi-client/dossiers/{dossier}',[SuiviClientController::class, 'destroyDossier'])->name('suivi-client.dossiers.destroy');
+    
+    // ✅ Routes pour les étapes
+    Route::post('/dossiers/{dossier}/maj-etape', [DossierClientController::class, 'majEtape'])
+        ->name('dossiers.maj-etape');
+
+    // ✅ Routes pour les CNI
+    Route::get('/dossiers/{dossier}/cni', [DossierClientController::class, 'getCni'])
+        ->name('dossiers.cni');
+    Route::delete('/dossiers/{dossier}/cni', [DossierClientController::class, 'deleteCniImage'])
+        ->name('dossiers.cni.delete');
+
+    // ✅ Route pour supprimer un dossier (via AJAX)
+    Route::delete('/dossiers/{dossier}/supprimer', [DossierClientController::class, 'supprimerDossier'])
+        ->name('dossiers.supprimer');
 
     // PAIEMENTS — commercial + admin
     Route::middleware('check.role:admin,commercial')->group(function () {
 
-    // Paiement dossier
-    Route::delete('/admin/paiements-techniques/{id}', [PaiementTechniqueController::class, 'destroy'])->name('paiements-techniques.destroy');
+        Route::delete('/admin/paiements-techniques/{id}', [PaiementTechniqueController::class, 'destroy'])->name('paiements-techniques.destroy');
+        Route::delete('/admin/paiements-morcellements/{id}', [PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellements.destroy');
+        Route::delete('/admin/paiements-dossiers/{id}', [PaiementDossierController::class, 'destroy'])->name('paiements-dossiers.destroy');
 
-Route::delete('/admin/paiements-morcellements/{id}', [PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellements.destroy');
+        // Paiement dossier
+        Route::post('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'store']);
+        Route::get('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'index']);
 
-Route::delete('/admin/paiements-dossiers/{id}', [PaiementDossierController::class, 'destroy'])->name('paiements-dossiers.destroy');
-    // Paiement dossier
-Route::post('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'store']);
-Route::get('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'index']);
+        // Bons de paiement
+        Route::get('bons/{dossier}',          [BonPaiementController::class, 'index'])  ->name('bons.index');
+        Route::post('bons/{dossier}',         [BonPaiementController::class, 'store'])  ->name('bons.store');
+        Route::get('bons/{dossier}/creer',    [BonPaiementController::class, 'creer'])  ->name('bons.creer');
+        Route::get('bons/detail/{bon}',       [BonPaiementController::class, 'show'])   ->name('bons.show');
+        Route::get('bons/detail/{bon}/pdf',   [BonPaiementController::class, 'pdf'])    ->name('bons.pdf');
+        Route::delete('bons/detail/{bon}',    [BonPaiementController::class, 'destroy'])->name('bons.destroy');
+        Route::post('bons/detail/{bon}/toggle-reste', [BonPaiementController::class, 'toggleReste'])->name('bons.toggle-reste');
 
-Route::post('/admin/verifier-reference', function (Request $request) {
-    $reference = $request->input('reference');
-    $existe = \App\Models\User::where('reference', $reference)->exists();
-    return response()->json(['existe' => $existe]);
-})->middleware(['auth']);
-// Dans le groupe admin/*, middleware admin
-Route::get('bons/{dossier}',          [App\Http\Controllers\BonPaiementController::class, 'index'])  ->name('bons.index');
-Route::post('bons/{dossier}',         [App\Http\Controllers\BonPaiementController::class, 'store'])  ->name('bons.store');
-Route::get('bons/{dossier}/creer',    [App\Http\Controllers\BonPaiementController::class, 'creer'])  ->name('bons.creer');
-Route::get('bons/detail/{bon}',       [App\Http\Controllers\BonPaiementController::class, 'show'])   ->name('bons.show');
-Route::get('bons/detail/{bon}/pdf',   [App\Http\Controllers\BonPaiementController::class, 'pdf'])    ->name('bons.pdf');
-Route::delete('bons/detail/{bon}',    [App\Http\Controllers\BonPaiementController::class, 'destroy'])->name('bons.destroy');
-Route::post('bons/detail/{bon}/toggle-reste', [App\Http\Controllers\BonPaiementController::class, 'toggleReste'])->name('bons.toggle-reste');
+        // Paiement technique
+        Route::post('/paiements-technique/{dossierId}', [PaiementTechniqueController::class, 'store']);
 
-    // Paiement technique
-    Route::post('/paiements-technique/{dossierId}', [PaiementTechniqueController::class, 'store']);
-
-    // Paiement morcellement
-    Route::post('/paiements-morcellement/{dossierId}', [PaiementMorcellementController::class, 'store']);
-});
+        // Paiement morcellement
+        Route::post('/paiements-morcellement/{dossierId}', [PaiementMorcellementController::class, 'store']);
+    });
 
     // COMMERCIAUX — admin seulement
     Route::middleware('check.role:admin')->group(function () {
@@ -169,17 +190,17 @@ Route::post('bons/detail/{bon}/toggle-reste', [App\Http\Controllers\BonPaiementC
     });
 
     Route::middleware('check.role:admin')->group(function () {
-    Route::post('/clients/{clientId}/modifier-nom',
-        [App\Http\Controllers\SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
+        Route::post('/clients/{clientId}/modifier-nom',
+            [SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
 
-    // Mise à jour prix dossier
-    Route::post('/dossiers/{dossierId}/maj-prix',
-        [App\Http\Controllers\DossierClientController::class, 'majPrix'])->name('dossiers.maj-prix');
+        // Mise à jour prix dossier
+        Route::post('/dossiers/{dossierId}/maj-prix',
+            [DossierClientController::class, 'majPrix'])->name('dossiers.maj-prix');
 
-    // Export Excel
-    Route::get('/dossiers/export-excel',
-        [App\Http\Controllers\DossierClientController::class, 'exportExcel'])->name('dossiers.export-excel');
-});
+        // Export Excel
+        Route::get('/dossiers/export-excel',
+            [DossierClientController::class, 'exportExcel'])->name('dossiers.export-excel');
+    });
 
     // RAPPORT — admin
     Route::middleware('check.role:admin')->group(function () {
@@ -268,8 +289,7 @@ Route::prefix('rh')->middleware(['auth', 'check.role:admin,rh'])->group(function
     Route::get('/retards',             [RetardController::class, 'index'])->name('rh.retards.index');
     Route::post('/retards',            [RetardController::class, 'store'])->name('rh.retards.store');
     Route::get('/retards/pdf-liste',   [RetardController::class, 'pdfListe'])->name('rh.retards.pdf-liste');
-    // Dans le groupe rh, AVANT Route::put('/retards/{id}', ...)
-Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->name('rh.retards.import-excel');
+    Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->name('rh.retards.import-excel');
     Route::put('/retards/{id}',        [RetardController::class, 'update'])->name('rh.retards.update');
     Route::delete('/retards/{id}',     [RetardController::class, 'destroy'])->name('rh.retards.destroy');
     Route::get('/retards/par-direction',[RetardController::class, 'parDirection'])->name('rh.retards.par-direction');
@@ -285,12 +305,12 @@ Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->
     Route::delete('/postes/{id}',     [DirectionController::class, 'destroyPoste'])->name('rh.postes.destroy');
 
     // ===== CONGÉS =====
-Route::get('rh/conges',               [App\Http\Controllers\RH\CongeController::class, 'index'])  ->name('rh.conges.index');
-Route::post('rh/conges',              [App\Http\Controllers\RH\CongeController::class, 'store'])  ->name('rh.conges.store');
-Route::put('rh/conges/{id}',          [App\Http\Controllers\RH\CongeController::class, 'update']) ->name('rh.conges.update');
-Route::delete('rh/conges/{id}',       [App\Http\Controllers\RH\CongeController::class, 'destroy'])->name('rh.conges.destroy');
-Route::get('rh/conges/{id}/pdf',      [App\Http\Controllers\RH\CongeController::class, 'pdf'])    ->name('rh.conges.pdf');
-Route::get('rh/conges/planning-pdf',  [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('rh.conges.planning-pdf');
+    Route::get('rh/conges',               [App\Http\Controllers\RH\CongeController::class, 'index'])  ->name('rh.conges.index');
+    Route::post('rh/conges',              [App\Http\Controllers\RH\CongeController::class, 'store'])  ->name('rh.conges.store');
+    Route::put('rh/conges/{id}',          [App\Http\Controllers\RH\CongeController::class, 'update']) ->name('rh.conges.update');
+    Route::delete('rh/conges/{id}',       [App\Http\Controllers\RH\CongeController::class, 'destroy'])->name('rh.conges.destroy');
+    Route::get('rh/conges/{id}/pdf',      [App\Http\Controllers\RH\CongeController::class, 'pdf'])    ->name('rh.conges.pdf');
+    Route::get('rh/conges/planning-pdf',  [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('rh.conges.planning-pdf');
 
 });
 
@@ -310,11 +330,12 @@ Route::prefix('feb')->name('feb.')->group(function () {
         Route::get('/',      [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('index');
         Route::get('fiches', [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('fiches.index');
 
-         // Routes pour les destinataires
-    Route::get('destinataires', [DestinataireController::class, 'index'])->name('destinataires.index');
-    Route::get('destinataires/search', [DestinataireController::class, 'search'])->name('destinataires.search');
-    Route::post('destinataires', [DestinataireController::class, 'store'])->name('destinataires.store');
-    Route::delete('destinataires/{id}', [DestinataireController::class, 'destroy'])->name('destinataires.destroy');
+        // Routes pour les destinataires
+        Route::get('destinataires', [DestinataireController::class, 'index'])->name('destinataires.index');
+        Route::get('destinataires/search', [DestinataireController::class, 'search'])->name('destinataires.search');
+        Route::post('destinataires', [DestinataireController::class, 'store'])->name('destinataires.store');
+        Route::delete('destinataires/{id}', [DestinataireController::class, 'destroy'])->name('destinataires.destroy');
+        
         // ✅ IMPORTANT : routes fixes AVANT les routes avec paramètres {fiche}
         Route::get('fiches/creer',            [App\Http\Controllers\Feb\FicheController::class, 'creer'])           ->name('fiches.creer');
         Route::post('fiches/creer-soumettre', [App\Http\Controllers\Feb\FicheController::class, 'creerEtSoumettre'])->name('fiches.creer-soumettre');
@@ -348,4 +369,38 @@ Route::prefix('admin/feb')->name('admin.feb.')->middleware(['auth','check.role:a
     Route::get('fiches/{fiche}',          [App\Http\Controllers\Feb\AdminFicheController::class, 'show'])     ->name('fiches.show');
     Route::get('fiches/{fiche}/pdf',      [App\Http\Controllers\Feb\AdminFicheController::class, 'pdf'])      ->name('fiches.pdf');
     Route::post('fiches/{fiche}/marquer', [App\Http\Controllers\Feb\AdminFicheController::class, 'marquerVue'])->name('fiches.marquer');
+});
+
+
+// ===== GESTION BLOCS & LOTS (admin) =====
+Route::prefix('admin/affectations')->name('affectations.')->middleware(['auth','check.role:admin'])->group(function() {
+
+    // Dashboard affectation
+    Route::get('/',                    [App\Http\Controllers\AffectationController::class, 'index'])         ->name('index');
+
+    // Blocs
+    Route::get('blocs',                [App\Http\Controllers\AffectationController::class, 'blocs'])         ->name('blocs');
+    Route::post('blocs',               [App\Http\Controllers\AffectationController::class, 'storeBloc'])     ->name('blocs.store');
+    Route::put('blocs/{id}',           [App\Http\Controllers\AffectationController::class, 'updateBloc'])    ->name('blocs.update');
+    Route::delete('blocs/{id}',        [App\Http\Controllers\AffectationController::class, 'destroyBloc'])   ->name('blocs.destroy');
+
+    // Lots
+    Route::get('lots',                 [App\Http\Controllers\AffectationController::class, 'lots'])          ->name('lots');
+    Route::post('lots',                [App\Http\Controllers\AffectationController::class, 'storeLots'])     ->name('lots.store');
+    Route::put('lots/{id}',            [App\Http\Controllers\AffectationController::class, 'updateLot'])     ->name('lots.update');
+    Route::delete('lots/{id}',         [App\Http\Controllers\AffectationController::class, 'destroyLot'])    ->name('lots.destroy');
+    
+    // ✅ AJOUTER CETTE ROUTE
+    Route::post('lots/superficie-multiple', [App\Http\Controllers\AffectationController::class, 'updateSuperficieMultiple'])
+        ->name('lots.superficie-multiple');
+
+    // Affectation à un dossier
+    Route::post('affecter/{dossier}',  [App\Http\Controllers\AffectationController::class, 'affecter'])      ->name('affecter');
+    Route::delete('{affectation}',     [App\Http\Controllers\AffectationController::class, 'annuler'])        ->name('annuler');
+
+    // API JSON pour les sélecteurs dynamiques
+    Route::get('api/sites/{grandSite}',    [App\Http\Controllers\AffectationController::class, 'apiSites'])  ->name('api.sites');
+    Route::get('api/tfs/{site}',           [App\Http\Controllers\AffectationController::class, 'apiTfs'])    ->name('api.tfs');
+    Route::get('api/blocs/{tf}',           [App\Http\Controllers\AffectationController::class, 'apiBlocs'])  ->name('api.blocs');
+    Route::get('api/lots/{bloc}',          [App\Http\Controllers\AffectationController::class, 'apiLots'])   ->name('api.lots');
 });

@@ -539,6 +539,15 @@
         </div>
         @endif
 
+        @if($role === 'admin')
+<div style="padding:4px 0;">
+    <a href="{{ route('affectations.index') }}" onclick="fermerSidebar()"
+       class="{{ request()->is('admin/affectations*') ? 'active' : '' }}">
+        <span>🗺️</span> Blocs & Lots
+    </a>
+</div>
+@endif
+
         <div class="nav-section">
 
             {{-- ✅ GESTION FONCIÈRE — admin + commercial (lecture) --}}

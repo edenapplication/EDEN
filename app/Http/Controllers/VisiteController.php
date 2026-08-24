@@ -13,7 +13,7 @@ class VisiteController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Visite::with(['visiteur', 'client', 'grandSite', 'site', 'paiement']);
+        $query = Visite::with(['visiteur', 'client', 'grandSite', 'site', 'paiement','bon']);
 
         if ($request->filled('nom'))
             $query->whereHas('visiteur', fn($q) =>
@@ -66,6 +66,7 @@ class VisiteController extends Controller
             'site'          => 'Site',
             'note'          => 'Note',
             'nb_visites'    => 'Nb visites',
+            'bon'           => 'Bon N°',
         ];
         $colonnesChoisies = $request->colonnes ?? array_keys($colonnesDisponibles);
 

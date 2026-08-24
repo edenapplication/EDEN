@@ -12,4 +12,9 @@ class Client extends Model
     // Compatibilité ancienne relation
     public function dossierClient() { return $this->hasOne(DossierClient::class); }
     public function paiements()     { return $this->hasManyThrough(PaiementDossier::class, DossierClient::class); }
+
+    public function visites()
+    {
+        return $this->hasMany(Visite::class, 'client_id');
+    }
 }

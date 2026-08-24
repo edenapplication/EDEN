@@ -10,12 +10,12 @@ use App\Models\Conducteur;
 use App\Models\Facilitateur;
 use App\Models\AgentCommercial;
 use App\Models\GrandSite;
-
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class SuiviClientController extends Controller
 {
-
-public function create(Request $request)
+    public function create(Request $request)
     {
         $options  = $this->options();
         $clientId = $request->client_id;
@@ -40,48 +40,46 @@ public function create(Request $request)
         ];
     }
 
-  public function index(Request $request)
-{
-    $query = Client::with([
-        'dossiers.grandSite',
-        'dossiers.paiementsTechniques',
-        'dossiers.paiementsMorcellements',
-        'dossiers.paiementsLogistiques',
-    ])->orderByDesc('created_at');
+    public function index(Request $request)
+    {
+        $query = Client::with([
+            'dossiers.grandSite',
+            'dossiers.paiementsTechniques',
+            'dossiers.paiementsMorcellements',
+            'dossiers.paiementsLogistiques',
+        ])->orderByDesc('created_at');
 
-    // Recherche
-    if ($request->filled('q')) {
-        $q = trim($request->q);
-        $query->where(function($qry) use ($q) {
-            $qry->where('name', 'LIKE', "%{$q}%")
-                ->orWhere('phone', 'LIKE', "%{$q}%")
-                ->orWhereHas('dossiers', function($dq) use ($q) {
-                    $dq->where('nom_dossier', 'LIKE', "%{$q}%");
-                });
-        });
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+            $query->where(function($qry) use ($q) {
+                $qry->where('name', 'LIKE', "%{$q}%")
+                    ->orWhere('phone', 'LIKE', "%{$q}%")
+                    ->orWhereHas('dossiers', function($dq) use ($q) {
+                        $dq->where('nom_dossier', 'LIKE', "%{$q}%");
+                    });
+            });
+        }
+
+        if ($request->filled('du'))
+            $query->whereDate('created_at', '>=', $request->du);
+
+        if ($request->filled('au'))
+            $query->whereDate('created_at', '<=', $request->au);
+
+        if ($request->filled('grand_site_id')) {
+            $query->whereHas('dossiers', fn($q) => 
+                $q->where('grand_site_id', $request->grand_site_id));
+        }
+
+        $clients = $query->get();
+        $grandSites = GrandSite::orderBy('nom')->get();
+
+        return view('admin.suivi_client.index', compact('clients', 'grandSites'));
     }
-
-    if ($request->filled('du'))
-        $query->whereDate('created_at', '>=', $request->du);
-
-    if ($request->filled('au'))
-        $query->whereDate('created_at', '<=', $request->au);
-
-    if ($request->filled('grand_site_id')) {
-        $query->whereHas('dossiers', fn($q) => 
-            $q->where('grand_site_id', $request->grand_site_id));
-    }
-
-    // ✅ Sans pagination : tout afficher
-    $clients = $query->get();
-
-    $grandSites = \App\Models\GrandSite::orderBy('nom')->get();
-
-    return view('admin.suivi_client.index', compact('clients', 'grandSites'));
-}
 
     public function store(Request $request)
-    {
+{
+    try {
         $request->validate([
             'name'               => 'required|string|max:255',
             'phone'              => 'required|string',
@@ -93,11 +91,12 @@ public function create(Request $request)
             'grand_site_id'      => 'nullable|exists:grand_sites,id',
             'direction'          => 'nullable|string',
             'superficie_voulue'  => 'nullable|numeric',
-            'prix_superficie'    => 'nullable|numeric',
-            'prix_logistique'    => 'nullable|numeric', // ✅ AJOUTER
-        'prix_technique'     => 'nullable|numeric', // ✅ AJOUTER
-        'prix_morcellement'  => 'nullable|numeric', // ✅ AJOUTER
-
+            'prix_superficie'    => 'required|numeric|min:0',  // ✅ Obligatoire
+            'prix_technique'     => 'required|numeric|min:0',  // ✅ Obligatoire
+            'prix_logistique'    => 'required|numeric|min:0',  // ✅ Obligatoire
+            'prix_morcellement'  => 'nullable|numeric|min:0',
+            'cni_images'         => 'nullable|array',
+            'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
         ]);
 
         $client = Client::firstOrCreate(
@@ -123,6 +122,20 @@ public function create(Request $request)
             $facilitateurId = $f->id;
         }
 
+        // ✅ Gestion des fichiers CNI
+        $cniImages = [];
+        if ($request->hasFile('cni_images')) {
+            foreach ($request->file('cni_images') as $file) {
+                // Vérifier que le fichier est valide
+                if ($file && $file->isValid()) {
+                    $path = $file->store('cni', 'public');
+                    if ($path) {
+                        $cniImages[] = $path;
+                    }
+                }
+            }
+        }
+
         DossierClient::create([
             'client_id'          => $client->id,
             'nom_dossier'        => $request->nom_dossier,
@@ -134,34 +147,51 @@ public function create(Request $request)
             'direction'          => $request->direction,
             'superficie_voulue'  => $request->superficie_voulue,
             'prix_superficie'    => $request->prix_superficie,
-             'prix_logistique'    => $request->prix_logistique ?? 0, // ✅ DÉJÀ PRÉSENT
-        'prix_technique'     => $request->prix_technique ?? 0, // ✅ AJOUTER
-        'prix_morcellement'  => $request->prix_morcellement ?? 0, // ✅ AJOUTER
+            'prix_technique'     => $request->prix_technique,
+            'prix_logistique'    => $request->prix_logistique,
+            'prix_morcellement'  => $request->prix_morcellement ?? 0,
+            'cni_images'         => $cniImages,
         ]);
 
         return redirect()->route('suivi-client.show', $client->id)
-                         ->with('success', 'Client et dossier créés');
+                         ->with('success', 'Client et dossier créés avec succès');
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return back()->withInput()->with('error', 'Erreur de validation : ' . implode(', ', $e->errors()));
+    } catch (\Exception $e) {
+        Log::error('Erreur création dossier: ' . $e->getMessage());
+        return back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
     }
-
-   public function show($id)
-{
-    $client = Client::with([
-        'dossiers.commercial',
-        'dossiers.conducteur',
-        'dossiers.facilitateur',
-        'dossiers.agentCommercial',
-        'dossiers.grandSite',
-        'dossiers.paiements',
-        'dossiers.paiementsTechniques',
-        'dossiers.paiementsMorcellements',
-        'dossiers.paiementsLogistiques', // ✅
-        'dossiers.bons',
-        'lots.tf.site.grandSite',
-        'lots.dossier',
-    ])->findOrFail($id);
-
-    return view('admin.suivi_client.show', compact('client'));
 }
+
+    public function show($id)
+    {
+        $client = Client::with([
+            'dossiers.commercial',
+            'dossiers.conducteur',
+            'dossiers.facilitateur',
+            'dossiers.agentCommercial',
+            'dossiers.grandSite',
+            'dossiers.paiements',
+            'dossiers.paiementsTechniques',
+            'dossiers.paiementsMorcellements',
+            'dossiers.paiementsLogistiques',
+            'dossiers.bons',
+            'dossiers.affectations.grandSite',
+            'dossiers.affectations.bloc',
+            'dossiers.affectations.lot',
+            'lots.tf.site.grandSite',
+            'lots.dossier',
+            'visites.visiteur',
+            'visites.grandSite',
+            'visites.site',
+        ])->findOrFail($id);
+
+        $dossier = $client->dossiers->first();
+        $affectations = $dossier ? $dossier->affectations : collect();
+
+        return view('admin.suivi_client.show', compact('client', 'affectations', 'dossier'));
+    }
 
     public function edit(Request $request, $id)
     {
@@ -177,58 +207,106 @@ public function create(Request $request)
 
     public function update(Request $request, $id)
     {
-        $client = Client::findOrFail($id);
+        try {
+            $client = Client::findOrFail($id);
 
-        // ✅ Mettre à jour le nom ET le téléphone
-        $updateData = [];
-        if ($request->filled('phone')) $updateData['phone'] = $request->phone;
-        if ($request->filled('name'))  $updateData['name']  = $request->name;
-        if (!empty($updateData)) $client->update($updateData);
-
-        $agentId = $request->agent_commercial_id;
-        if (!$agentId && $request->agent_nom) {
-            $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
-            $agentId = $a->id;
-        }
-
-        $conducteurId = $request->conducteur_id;
-        if (!$conducteurId && $request->conducteur_nom) {
-            $c = Conducteur::create(['nom' => $request->conducteur_nom, 'numero' => $request->conducteur_numero]);
-            $conducteurId = $c->id;
-        }
-
-        $facilitateurId = $request->facilitateur_id;
-        if (!$facilitateurId && $request->facilitateur_nom) {
-            $f = Facilitateur::create(['nom' => $request->facilitateur_nom, 'numero' => $request->facilitateur_numero]);
-            $facilitateurId = $f->id;
-        }
-
-        $dossierId = $request->dossier_id ?? $client->dossiers->first()?->id;
-        if ($dossierId) {
-            $dossier = DossierClient::where('id', $dossierId)
-                ->where('client_id', $client->id)
-                ->firstOrFail();
-            $dossier->update([
-                'nom_dossier'        => $request->nom_dossier,
-                'commercial_id'      => $request->commercial_id,
-                'conducteur_id'      => $conducteurId,
-                'facilitateur_id'    => $facilitateurId,
-                'agent_commercial_id'=> $agentId,
-                'grand_site_id'      => $request->grand_site_id,
-                'direction'          => $request->direction,
-                'superficie_voulue'  => $request->superficie_voulue,
-                'prix_superficie'    => $request->prix_superficie,
-                 'prix_logistique'    => $request->prix_logistique ?? 0, // ✅ DÉJÀ PRÉSENT
-            'prix_technique'     => $request->prix_technique ?? 0, // ✅ AJOUTER
-            'prix_morcellement'  => $request->prix_morcellement ?? 0, // ✅ AJOUTER
+            $request->validate([
+                'name'               => 'nullable|string|max:255',
+                'phone'              => 'nullable|string',
+                'nom_dossier'        => 'required|string|max:255',
+                'commercial_id'      => 'nullable|exists:commerciaux,id',
+                'conducteur_id'      => 'nullable|exists:conducteurs,id',
+                'facilitateur_id'    => 'nullable|exists:facilitateurs,id',
+                'agent_commercial_id'=> 'nullable|exists:agents_commerciaux,id',
+                'grand_site_id'      => 'nullable|exists:grand_sites,id',
+                'direction'          => 'nullable|string',
+                'superficie_voulue'  => 'nullable|numeric',
+                 'prix_superficie'    => 'required|numeric|min:0',
+            'prix_technique'     => 'required|numeric|min:0',
+            'prix_logistique'    => 'required|numeric|min:0',
+            'prix_morcellement'  => 'nullable|numeric|min:0',
+                'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             ]);
-        }
 
-        return redirect()->route('suivi-client.show', $client->id)
-                         ->with('success', 'Mis à jour avec succès');
+            $updateData = [];
+            if ($request->filled('phone')) $updateData['phone'] = $request->phone;
+            if ($request->filled('name'))  $updateData['name']  = $request->name;
+            if (!empty($updateData)) $client->update($updateData);
+
+            $agentId = $request->agent_commercial_id;
+            if (!$agentId && $request->agent_nom) {
+                $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
+                $agentId = $a->id;
+            }
+
+            $conducteurId = $request->conducteur_id;
+            if (!$conducteurId && $request->conducteur_nom) {
+                $c = Conducteur::create(['nom' => $request->conducteur_nom, 'numero' => $request->conducteur_numero]);
+                $conducteurId = $c->id;
+            }
+
+            $facilitateurId = $request->facilitateur_id;
+            if (!$facilitateurId && $request->facilitateur_nom) {
+                $f = Facilitateur::create(['nom' => $request->facilitateur_nom, 'numero' => $request->facilitateur_numero]);
+                $facilitateurId = $f->id;
+            }
+
+            $dossierId = $request->dossier_id ?? $client->dossiers->first()?->id;
+            if ($dossierId) {
+                $dossier = DossierClient::where('id', $dossierId)
+                    ->where('client_id', $client->id)
+                    ->firstOrFail();
+
+                // ✅ Gestion des fichiers CNI
+                $cniImages = $dossier->cni_images ?? [];
+                
+                if ($request->hasFile('cni_images')) {
+                    // Supprimer les anciennes CNI
+                    if (!empty($cniImages)) {
+                        foreach ($cniImages as $oldImage) {
+                            $oldPath = storage_path('app/public/' . $oldImage);
+                            if (file_exists($oldPath)) {
+                                unlink($oldPath);
+                            }
+                        }
+                    }
+                    
+                    // Upload des nouvelles CNI
+                    $cniImages = [];
+                    foreach ($request->file('cni_images') as $file) {
+                        $path = $file->store('cni', 'public');
+                        if ($path) {
+                            $cniImages[] = $path;
+                        }
+                    }
+                }
+
+                $dossier->update([
+                    'nom_dossier'        => $request->nom_dossier,
+                    'commercial_id'      => $request->commercial_id,
+                    'conducteur_id'      => $conducteurId,
+                    'facilitateur_id'    => $facilitateurId,
+                    'agent_commercial_id'=> $agentId,
+                    'grand_site_id'      => $request->grand_site_id,
+                    'direction'          => $request->direction,
+                    'superficie_voulue'  => $request->superficie_voulue,
+                    'prix_superficie'    => $request->prix_superficie,
+            'prix_technique'     => $request->prix_technique,
+            'prix_logistique'    => $request->prix_logistique,
+            'prix_morcellement'  => $request->prix_morcellement ?? 0,
+                    'cni_images'         => $cniImages,
+                ]);
+            }
+
+            return redirect()->route('suivi-client.show', $client->id)
+                             ->with('success', 'Mis à jour avec succès');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur mise à jour dossier: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
+        }
     }
 
-    // ✅ Modifier uniquement le nom (appel AJAX)
     public function modifierNom(Request $request, $clientId)
     {
         $request->validate(['nom' => 'required|string|max:150']);
@@ -246,25 +324,107 @@ public function create(Request $request)
     }
 
     public function destroyDossier(DossierClient $dossier)
-{
-    $client = $dossier->client;
+    {
+        $client = $dossier->client;
+        
+        // Supprimer les fichiers CNI
+        if ($dossier->cni_images) {
+            foreach ($dossier->cni_images as $image) {
+                $path = storage_path('app/public/' . $image);
+                if (file_exists($path)) {
+                    unlink($path);
+                }
+            }
+        }
+        
+        $dossier->paiements()->delete();
+        $dossier->paiementsTechniques()->delete();
+        $dossier->paiementsMorcellements()->delete();
+        $dossier->delete();
 
-    // Supprimer les paiements liés
-    $dossier->paiements()->delete();
-    $dossier->paiementsTechniques()->delete();
-    $dossier->paiementsMorcellements()->delete();
-
-    // Supprimer le dossier
-    $dossier->delete();
-
-    return redirect()
-        ->route('suivi-client.show', $client->id)
-        ->with('success', 'Dossier supprimé avec succès.');
-}
+        return redirect()
+            ->route('suivi-client.show', $client->id)
+            ->with('success', 'Dossier supprimé avec succès.');
+    }
 
     public function dossiers($id)
     {
         $client = Client::with('dossiers')->findOrFail($id);
         return response()->json($client->dossiers);
+    }
+
+    // ============================================================
+    // ✅ MÉTHODE POUR LES ÉTAPES
+    // ============================================================
+    public function majEtape(Request $request, DossierClient $dossier)
+    {
+        try {
+            $etape = $request->input('etape');
+            $date = $request->input('date');
+            $active = $request->input('active');
+
+            // ✅ Validation manuelle
+            if (!$etape || !in_array($etape, ['implantation_prevue', 'deja_implante', 'dossier_technique', 'morcellement'])) {
+                return response()->json(['success' => false, 'message' => 'Étape invalide'], 400);
+            }
+
+            $etapesConfig = DossierClient::etapesConfig();
+            $champDate = $etapesConfig[$etape]['champ'];
+
+            // ✅ Si active = true ET date vide, on refuse
+            if ($active && !$date) {
+                return response()->json(['success' => false, 'message' => 'Une date est requise pour activer une étape'], 400);
+            }
+
+            // Mettre à jour la date
+            if ($active && $date) {
+                $dossier->$champDate = $date;
+            } else {
+                $dossier->$champDate = null;
+            }
+
+            // Mettre à jour l'étape actuelle
+            $etapesOrdre = DossierClient::etapesOrdre();
+            $ordreEtape = $etapesOrdre[$etape];
+
+            if ($active && $date) {
+                $dossier->etape_actuelle = $etape;
+            } else {
+                // Recule à l'étape précédente
+                $nouvelleEtape = null;
+                foreach ($etapesOrdre as $cle => $ordre) {
+                    if ($ordre < $ordreEtape) {
+                        $champ = $etapesConfig[$cle]['champ'];
+                        if ($dossier->$champ) {
+                            $nouvelleEtape = $cle;
+                        }
+                    }
+                }
+                $dossier->etape_actuelle = $nouvelleEtape;
+            }
+
+            $dossier->save();
+
+            // Dates formatées
+            $dates = [];
+            foreach ($etapesConfig as $cle => $cfg) {
+                $champ = $cfg['champ'];
+                $dates[$cle] = $dossier->$champ ? $dossier->$champ->format('d/m/Y') : null;
+            }
+
+            return response()->json([
+                'success' => true,
+                'etape_actuelle' => $dossier->etape_actuelle,
+                'dates' => $dates,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur majEtape: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

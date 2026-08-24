@@ -40,6 +40,9 @@
         <div style="font-size:13px;color:#64748b;">
             📅 {{ $bon->date_bon->format('d/m/Y') }}
             &nbsp;·&nbsp; Créé le {{ $bon->created_at->format('d/m/Y à H:i') }}
+            @if(isset($bon->user_reference) && $bon->user_reference)
+                &nbsp;·&nbsp; 🔑 <span style="color:#1d4ed8;font-weight:700;">{{ $bon->user_reference }}</span>
+            @endif
         </div>
     </div>
     <div class="d-flex gap-2">
@@ -244,8 +247,10 @@
         <div class="info-bloc mt-3">
             <h6>🔗 Actions rapides</h6>
             <div class="d-grid gap-2">
-                <a href="{{ route('bons.creer', $dossier->id) }}"
-                   class="btn btn-primary btn-sm">+ Nouveau bon pour ce dossier</a>
+                {{-- ✅ MODIFICATION : bouton avec onclick --}}
+                <a href="#" class="btn btn-primary btn-sm" onclick="demanderReference({{ $dossier->id }})">
+                    + Nouveau bon pour ce dossier
+                </a>
                 <a href="{{ route('bons.index', $dossier->id) }}"
                    class="btn btn-outline-secondary btn-sm">📋 Tous les bons</a>
                 <a href="{{ route('suivi-client.show', $dossier->client_id) }}"
@@ -287,6 +292,45 @@ function toggleReste(bonId) {
         }
     })
     .catch(e => alert('Erreur : ' + e.message));
+}
+
+// ✅ FONCTION POUR DEMANDER LA RÉFÉRENCE
+function demanderReference(dossierId) {
+    const reference = prompt('🔑 Entrez votre numéro de référence (signature) :');
+    
+    if (reference === null) {
+        return false;
+    }
+    
+    const ref = reference.trim();
+    
+    if (ref === '') {
+        alert('⚠️ La référence ne peut pas être vide.');
+        return false;
+    }
+    
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    
+    fetch('/admin/verifier-reference', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({ reference: ref })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.existe) {
+            window.location.href = '/admin/bons/' + dossierId + '/creer?reference=' + encodeURIComponent(ref);
+        } else {
+            alert('❌ La référence "' + ref + '" n\'existe pas. Veuillez contacter l\'administrateur.');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('⚠️ Erreur de vérification. Réessayez.');
+    });
 }
 </script>
 @endsection

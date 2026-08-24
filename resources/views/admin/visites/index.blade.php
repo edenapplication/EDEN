@@ -203,80 +203,101 @@
             @if(in_array('site',          $colonnesChoisies)) <th>Site</th> @endif
             @if(in_array('nb_visites',    $colonnesChoisies)) <th>Nb visites</th> @endif
             @if(in_array('note',          $colonnesChoisies)) <th>Note</th> @endif
+             @if(in_array('bon',           $colonnesChoisies)) <th>Bon N°</th> @endif
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
     @forelse($visites as $i => $v)
-        <tr>
-            <td>{{ ($visites->currentPage() - 1) * $visites->perPage() + $i + 1 }}</td>
+<tr>
+    <td>{{ ($visites->currentPage() - 1) * $visites->perPage() + $i + 1 }}</td>
 
-            @if(in_array('date_visite',   $colonnesChoisies))
-                <td>{{ \Carbon\Carbon::parse($v->date_visite)->format('d/m/Y') }}</td>
+    @if(in_array('date_visite', $colonnesChoisies))
+        <td>{{ \Carbon\Carbon::parse($v->date_visite)->format('d/m/Y') }}</td>
+    @endif
+
+    @if(in_array('nom', $colonnesChoisies))
+        <td>
+            <strong>{{ $v->visiteur?->nom ?? '-' }}</strong>
+            @if($v->paiement_lie)
+                <span class="badge-type bt-paiement ms-1">💳 paiement</span>
             @endif
+        </td>
+    @endif
 
-            @if(in_array('nom', $colonnesChoisies))
-                <td>
-                    <strong>{{ $v->visiteur?->nom ?? '-' }}</strong>
-                    @if($v->paiement_lie)
-                        <span class="badge-type bt-paiement ms-1">💳 paiement</span>
-                    @endif
-                </td>
+    @if(in_array('numero', $colonnesChoisies))
+        <td>{{ $v->visiteur?->numero ?? '-' }}</td>
+    @endif
+
+    @if(in_array('type_personne', $colonnesChoisies))
+        <td>
+            <span class="badge-type bt-{{ $v->type_personne }}">{{ ucfirst($v->type_personne) }}</span>
+        </td>
+    @endif
+
+    @if(in_array('heure_arrivee', $colonnesChoisies))
+        <td>{{ $v->heure_arrivee ? substr($v->heure_arrivee, 0, 5) : '-' }}</td>
+    @endif
+
+    @if(in_array('heure_depart', $colonnesChoisies))
+        <td>
+            @if($v->heure_depart)
+                {{ substr($v->heure_depart, 0, 5) }}
+            @elseif(!$v->paiement_lie)
+                <button onclick="enregistrerDepart({{ $v->id }})"
+                        style="background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;border-radius:6px;border:none;cursor:pointer;">
+                    ⏱ Départ
+                </button>
+            @else
+                <span style="color:#94a3b8;font-size:10px;">—</span>
             @endif
+        </td>
+    @endif
 
-            @if(in_array('numero',        $colonnesChoisies)) <td>{{ $v->visiteur?->numero ?? '-' }}</td> @endif
+    @if(in_array('grand_site', $colonnesChoisies))
+        <td>{{ $v->grandSite?->nom ?? '-' }}</td>
+    @endif
 
-            @if(in_array('type_personne', $colonnesChoisies))
-                <td>
-                    <span class="badge-type bt-{{ $v->type_personne }}">{{ ucfirst($v->type_personne) }}</span>
-                </td>
+    @if(in_array('site', $colonnesChoisies))
+        <td>{{ $v->site?->name ?? '-' }}</td>
+    @endif
+
+    @if(in_array('nb_visites', $colonnesChoisies))
+        <td>
+            <span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">
+                {{ $comptageVisites[$v->visiteur_id] ?? 1 }}
+            </span>
+        </td>
+    @endif
+
+    @if(in_array('note', $colonnesChoisies))
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;" title="{{ $v->note }}">
+            {{ $v->note ?? '-' }}
+        </td>
+    @endif
+
+    @if(in_array('bon', $colonnesChoisies)) <!-- ✅ ICI - Ajouter la colonne Bon N° -->
+        <td>
+            @if($v->bon_id && $v->bon)
+                <a href="{{ route('bons.show', $v->bon_id) }}" 
+                   style="color:#1d4ed8;text-decoration:underline;font-size:11px;">
+                    {{ $v->bon->numero_bon }}
+                </a>
+            @else
+                <span style="color:#94a3b8;">—</span>
             @endif
+        </td>
+    @endif
 
-            @if(in_array('heure_arrivee', $colonnesChoisies))
-                <td>{{ $v->heure_arrivee ? substr($v->heure_arrivee, 0, 5) : '-' }}</td>
-            @endif
-
-            @if(in_array('heure_depart',  $colonnesChoisies))
-                <td>
-                    @if($v->heure_depart)
-                        {{ substr($v->heure_depart, 0, 5) }}
-                    @elseif(!$v->paiement_lie)
-                        <button onclick="enregistrerDepart({{ $v->id }})"
-                                style="background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;border-radius:6px;border:none;cursor:pointer;">
-                            ⏱ Départ
-                        </button>
-                    @else
-                        <span style="color:#94a3b8;font-size:10px;">—</span>
-                    @endif
-                </td>
-            @endif
-
-            @if(in_array('grand_site',  $colonnesChoisies)) <td>{{ $v->grandSite?->nom ?? '-' }}</td> @endif
-            @if(in_array('site',        $colonnesChoisies)) <td>{{ $v->site?->name    ?? '-' }}</td> @endif
-
-            @if(in_array('nb_visites',  $colonnesChoisies))
-                <td>
-                    <span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">
-                        {{ $comptageVisites[$v->visiteur_id] ?? 1 }}
-                    </span>
-                </td>
-            @endif
-
-            @if(in_array('note',        $colonnesChoisies))
-                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;" title="{{ $v->note }}">
-                    {{ $v->note ?? '-' }}
-                </td>
-            @endif
-
-            <td>
-                <button onclick="supprimerVisite({{ $v->id }})"
-                        style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;"
-                        title="Supprimer">🗑</button>
-            </td>
-        </tr>
-    @empty
-        <tr><td colspan="14" class="text-center text-muted py-4">Aucune visite enregistrée</td></tr>
-    @endforelse
+    <td>
+        <button onclick="supprimerVisite({{ $v->id }})"
+                style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;"
+                title="Supprimer">🗑</button>
+    </td>
+</tr>
+@empty
+    <tr><td colspan="15" class="text-center text-muted py-4">Aucune visite enregistrée</td></tr>
+@endforelse
     </tbody>
 </table>
 </div>
