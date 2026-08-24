@@ -1,6 +1,10 @@
 @extends('admin.layout')
 @section('content')
 
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+
 <style>
 .kpi-card { background:white; border-radius:12px; padding:14px; box-shadow:0 2px 10px rgba(0,0,0,0.06); text-align:center; height:100%; }
 .kpi-val  { font-size:22px; font-weight:800; }
@@ -35,25 +39,64 @@
 #tf-tooltip .tt-prog-f { height:100%; border-radius:3px; background:linear-gradient(90deg,#1d4ed8,#16a34a); }
 #tf-tooltip .tt-actions { display:flex; gap:6px; margin-top:10px; }
 #tf-tooltip .tt-btn    { flex:1; padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; text-align:center; text-decoration:none; cursor:pointer; border:none; }
+
+#tfModal input { border-radius:10px; padding:10px; }
+#tfModal label { margin-bottom:5px; display:block; color:#333; }
+#tfModal h4 { font-weight:700; }
+#modalOverlay {
+    display:none; position:fixed; top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4); z-index:9998;
+}
+#tfModal { animation: fadeInScale 0.2s ease; }
+@keyframes fadeInScale {
+    from { transform:translate(-50%,-60%) scale(0.9); opacity:0; }
+    to   { transform:translate(-50%,-50%) scale(1);   opacity:1; }
+}
+
+/* ✅ Bouton TF dans la zone SVG — 70% de la zone, gros et cliquable */
+.tf-zone-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70%;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #1e3a5f, #2d6cdf);
+    color: white;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(30,58,95,0.3);
+    transition: opacity 0.2s;
+    border: none;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+.tf-zone-btn:hover { opacity: 0.85; color: white; }
 </style>
 
 {{-- TOOLTIP (fixe, invisible par défaut) --}}
 <div id="tf-tooltip">
     <div class="tt-title" id="tt-title">-</div>
     <div class="tt-row"><span class="tt-lbl">Lots</span>        <span class="tt-val" id="tt-lots">-</span></div>
-    {{-- Dans le #tf-tooltip, après la ligne tt-zones, ajouter : --}}
-<div class="tt-row">
-    <span class="tt-lbl">🔤 Blocs</span>
-    <span class="tt-val" style="color:#374151;" id="tt-blocs">-</span>
-</div>
-<div class="tt-row">
-    <span class="tt-lbl" style="color:#1d4ed8;">Lots EDEN</span>
-    <span class="tt-val" style="color:#1d4ed8;" id="tt-eden">-</span>
-</div>
-<div class="tt-row">
-    <span class="tt-lbl" style="color:#92400e;">Lots Famille</span>
-    <span class="tt-val" style="color:#92400e;" id="tt-famille">-</span>
-</div>
+    <div class="tt-row">
+        <span class="tt-lbl">🔤 Blocs</span>
+        <span class="tt-val" style="color:#374151;" id="tt-blocs">-</span>
+    </div>
+    <div class="tt-row">
+        <span class="tt-lbl" style="color:#1d4ed8;">Lots EDEN</span>
+        <span class="tt-val" style="color:#1d4ed8;" id="tt-eden">-</span>
+    </div>
+    <div class="tt-row">
+        <span class="tt-lbl" style="color:#92400e;">Lots Famille</span>
+        <span class="tt-val" style="color:#92400e;" id="tt-famille">-</span>
+    </div>
     <div class="tt-row"><span class="tt-lbl">Zones groupées</span><span class="tt-val" id="tt-zones">-</span></div>
     <div class="tt-row">
         <span class="tt-lbl">⏳ Implant. prévue</span>
@@ -92,6 +135,8 @@
         <a href="{{ route('sites.edit', $site->id) }}" class="btn btn-warning btn-sm">✏️ Modifier ce site</a>
     </div>
 </div>
+
+<input type="hidden" id="site_id" value="{{ $site->id }}">
 
 {{-- KPIs GLOBAUX --}}
 <div class="section-lbl">📊 Vue globale du site</div>
@@ -190,7 +235,7 @@
 @if($site->svg_path && file_exists(storage_path('app/public/maps/' . basename($site->svg_path))))
 <div class="section-lbl">🗺️ Carte du site <small style="color:#94a3b8;font-weight:400;">(survolez un TF pour ses statistiques — cliquez pour y accéder)</small></div>
 <div class="card p-3 mb-4">
-    <div id="map-container" style="border:1px solid #ddd;overflow:auto;position:relative;border-radius:8px;">
+    <div id="map-container" style="border:1px solid #ddd; overflow:auto; position:relative; border-radius:8px;">
         {!! file_get_contents(storage_path('app/public/maps/' . basename($site->svg_path))) !!}
     </div>
 </div>
@@ -209,7 +254,6 @@
                             {{ $item['lots'] }} lot(s) · {{ $item['zones'] }} zone(s)
                         </div>
                     </div>
-                    {{-- ✅ Boutons restaurés --}}
                     <div class="d-flex gap-1">
                         <a href="{{ route('tf.show', $item['tf']->id) }}"
                            class="btn btn-primary btn-sm" style="font-size:11px;" title="Ouvrir le TF">👁 Voir</a>
@@ -257,8 +301,46 @@
     @endforelse
 </div>
 
+{{-- MODAL CRÉER TF --}}
+<div id="modalOverlay" onclick="closeTfModal()"></div>
+<div id="tfModal" style="
+    display:none; position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%); background:white;
+    padding:25px; border-radius:16px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
+    z-index:9999; width:400px; max-width:90%;
+">
+    <h4 id="modalTitle">Créer un TF</h4>
+    <div class="mb-3">
+        <label for="tfTitle">Nom du TF</label>
+        <input type="text" id="tfTitle" class="form-control" placeholder="Ex: TF 102">
+    </div>
+    <div class="mb-3">
+        <label for="tfFile">Fichier (optionnel)</label>
+        <input type="file" id="tfFile" class="form-control">
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button onclick="closeTfModal()" class="btn btn-light">Annuler</button>
+        <button onclick="saveTf()" class="btn btn-primary" id="saveBtn">Créer</button>
+    </div>
+</div>
+
+{{-- MODAL ACTION TF --}}
+<div id="tfActionModal" style="
+    display:none; position:fixed; top:30%; left:50%;
+    transform:translate(-50%,-50%); background:white;
+    padding:20px; border-radius:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    z-index:9999; width:300px; text-align:center;
+">
+    <h4>Que veux-tu faire ?</h4>
+    <button class="btn btn-primary w-100 mt-2" onclick="goToTf()">👁 Voir le TF</button>
+    <button class="btn btn-warning w-100 mt-2" onclick="editTf()">✏️ Modifier</button>
+    <button class="btn btn-light w-100 mt-2" onclick="closeTfActionModal()">Annuler</button>
+</div>
+
 {{-- MODAL MODIFIER TF --}}
-<div id="modalOverlay" onclick="closeEditTfModal()"
+<div id="modalOverlayEdit" onclick="closeEditTfModal()"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9998;"></div>
 <div id="editTfModal"
      style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:24px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,0.2);z-index:9999;width:400px;">
@@ -280,7 +362,15 @@
     </div>
 </div>
 
+{{-- LÉGENDE --}}
+<div style="position:fixed; bottom:20px; right:20px; background:white;
+            padding:10px; border:1px solid #ccc; max-width:200px; border-radius:8px;">
+    <strong>Légende TF</strong>
+    <div id="legend-items"></div>
+</div>
+
 @endsection
+
 @section('scripts')
 <script>
 // ============================================================
@@ -288,8 +378,8 @@
 // ============================================================
 const CSRF    = '{{ csrf_token() }}';
 const siteId  = {{ $site->id }};
-const tfsData = @json($statsTf);   // contient tf + stats
-const tfsRaw  = @json($tfs);       // contient svg_zone_id
+const tfsData = @json($statsTf);
+const tfsRaw  = @json($tfs);
 
 // Construire un index rapide : svg_zone_id → stats complètes
 const tfStatsByZone = {};
@@ -299,138 +389,24 @@ tfsData.forEach(item => {
     }
 });
 
+let selectedTf  = null;
+let isEditMode  = false;
+let currentZone = null;
+
+function getRandomColor() {
+    const colors = ["#FF6B6B","#4D96FF","#6BCB77","#FFD93D","#845EC2","#FF9671","#00C9A7","#C34A36","#3D5A80","#98C1D9"];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
 // ============================================================
-// CARTE SVG — survol + clic
+// POSITIONNER LE TOOLTIP
 // ============================================================
-document.addEventListener('DOMContentLoaded', function() {
-    const svg     = document.querySelector('#map-container svg');
-    const tooltip = document.getElementById('tf-tooltip');
-    if (!svg) return;
-
-    const colors  = ['#FF6B6B','#4D96FF','#6BCB77','#FFD93D','#845EC2','#FF9671','#00C9A7','#C34A36','#3D5A80'];
-    let tooltipTimer = null;
-
-    tfsRaw.forEach((tf, i) => {
-        if (!tf.svg_zone_id) return;
-        const el = svg.getElementById(tf.svg_zone_id);
-        if (!el) return;
-
-        const color   = colors[i % colors.length];
-        const stats   = tfStatsByZone[tf.svg_zone_id.toLowerCase()];
-        const pct     = stats ? stats.actif_pct : 0;
-
-        el.style.fill        = color + '33';
-        el.style.stroke      = color;
-        el.style.strokeWidth = '2.5px';
-        el.style.cursor      = 'pointer';
-        el.style.transition  = 'fill 0.15s, stroke-width 0.15s';
-
-        // ✅ Texte du TF centré dans la zone
-        try {
-            const bbox = el.getBBox();
-            const cx   = bbox.x + bbox.width  / 2;
-            const cy   = bbox.y + bbox.height / 2;
-            const fs   = Math.max(9, Math.min(13, bbox.width / 8));
-
-            // foreignObject pour le bouton lien
-            const fo  = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-            const bW  = bbox.width  * 0.75;
-            const bH  = Math.min(bbox.height * 0.55, 36);
-            fo.setAttribute('x',      cx - bW / 2);
-            fo.setAttribute('y',      cy - bH / 2);
-            fo.setAttribute('width',  bW);
-            fo.setAttribute('height', bH);
-            fo.style.pointerEvents = 'none';
-
-            const btn       = document.createElement('a');
-            btn.href        = `/admin/tf/${tf.id}`;
-            btn.style.cssText = `
-                display:flex;align-items:center;justify-content:center;
-                width:100%;height:100%;
-                background:${color};color:white;border-radius:7px;
-                font-size:${fs}px;font-weight:800;text-decoration:none;
-                padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-                box-shadow:0 2px 6px rgba(0,0,0,0.2);
-                pointer-events:auto;
-            `;
-            btn.title     = tf.title;
-            btn.innerText = tf.title;
-            fo.appendChild(btn);
-            svg.appendChild(fo);
-        } catch(e) {}
-
-        // ✅ SURVOL → afficher tooltip avec stats
-        el.addEventListener('mouseenter', function(e) {
-            el.style.strokeWidth = '4px';
-            el.style.fill        = color + '66';
-
-            if (!stats) return;
-
-            document.getElementById('tt-title').innerText      = stats.tf.title;
-            document.getElementById('tt-lots').innerText       = stats.lots;
-            document.getElementById('tt-zones').innerText      = stats.zones;
-            document.getElementById('tt-blocs').innerText   = stats.blocs   ?? '-';
-document.getElementById('tt-eden').innerText     = stats.eden    ?? '-';
-document.getElementById('tt-famille').innerText  = stats.famille ?? '-';
-            document.getElementById('tt-ip').innerText         = stats.implantation_prevue;
-            document.getElementById('tt-di').innerText         = stats.deja_implante;
-            document.getElementById('tt-dt').innerText         = stats.dossier_technique;
-            document.getElementById('tt-mo').innerText         = stats.morcellement;
-            document.getElementById('tt-pct').innerText        = pct + '%';
-            document.getElementById('tt-prog-fill').style.width= pct + '%';
-            document.getElementById('tt-btn-voir').href        = `/admin/tf/${stats.tf.id}`;
-            document.getElementById('tt-btn-modifier').onclick = function(ev) {
-                ev.preventDefault();
-                tooltip.style.display = 'none';
-                openEditTfModal(stats.tf.id, stats.tf.title, stats.tf.svg_zone_id);
-            };
-
-            positionnerTooltip(e);
-            clearTimeout(tooltipTimer);
-            tooltip.style.display = 'block';
-        });
-
-        el.addEventListener('mousemove', function(e) {
-            positionnerTooltip(e);
-        });
-
-        el.addEventListener('mouseleave', function() {
-            el.style.strokeWidth = '2.5px';
-            el.style.fill        = color + '33';
-            tooltipTimer = setTimeout(() => { tooltip.style.display = 'none'; }, 200);
-        });
-
-        // ✅ Clic → aller au TF
-        el.addEventListener('click', function(e) {
-            if (e.target.tagName === 'A') return; // clic sur le bouton foreignObject
-            window.location.href = `/admin/tf/${tf.id}`;
-        });
-    });
-
-    // Masquer tooltip si on déplace sur le tooltip lui-même
-    tooltip.addEventListener('mouseenter', () => clearTimeout(tooltipTimer));
-    tooltip.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-
-    // Légende
-    const legendEl = document.getElementById('legend-items');
-    if (legendEl) {
-        tfsRaw.forEach((tf, i) => {
-            const color = colors[i % colors.length];
-            const div   = document.createElement('div');
-            div.style.cssText = 'display:flex;align-items:center;margin-bottom:5px;gap:6px;font-size:12px;';
-            div.innerHTML = `<div style="width:14px;height:14px;background:${color};border-radius:3px;flex-shrink:0;"></div><span>${tf.title}</span>`;
-            legendEl.appendChild(div);
-        });
-    }
-});
-
-// Positionner le tooltip près du curseur sans sortir de l'écran
 function positionnerTooltip(e) {
     const tooltip = document.getElementById('tf-tooltip');
     const margin  = 14;
     let   left    = e.clientX + margin;
     let   top     = e.clientY + margin;
-    const tw = 280, th = 220;
+    const tw = 280, th = 260;
     if (left + tw > window.innerWidth)  left = e.clientX - tw - margin;
     if (top  + th > window.innerHeight) top  = e.clientY - th - margin;
     tooltip.style.left = Math.max(4, left) + 'px';
@@ -438,42 +414,111 @@ function positionnerTooltip(e) {
 }
 
 // ============================================================
+// MODAL CRÉER TF (via bouton)
+// ============================================================
+function openCreateTfModal() {
+    document.getElementById('tfTitle').value = '';
+    document.getElementById('tfFile').value = '';
+    document.getElementById('modalTitle').innerText = 'Créer un TF';
+    document.getElementById('saveBtn').innerText = 'Créer';
+    document.getElementById('modalOverlay').style.display = 'block';
+    document.getElementById('tfModal').style.display = 'block';
+}
+
+function closeTfModal() {
+    document.getElementById('tfModal').style.display = 'none';
+    document.getElementById('modalOverlay').style.display = 'none';
+    currentZone = null;
+}
+
+function saveTf() {
+    const title = document.getElementById('tfTitle').value.trim();
+    const file = document.getElementById('tfFile').files[0];
+    
+    if (!title) {
+        alert('Veuillez saisir un nom pour le TF.');
+        return;
+    }
+
+    const zoneId = currentZone ? currentZone.zoneId : '';
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('site_id', siteId);
+    if (zoneId) formData.append('svg_zone_id', zoneId);
+    if (file) formData.append('file', file);
+
+    // ✅ Correction : utiliser les bonnes URLs
+    const url = isEditMode ? `/admin/tf/update/${selectedTf?.id}` : '/admin/tf/store';
+    if (isEditMode) formData.append('_method', 'PUT');
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': CSRF,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Erreur ${response.status}: ${text.substring(0, 200)}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Erreur lors de la création');
+        }
+    })
+    .catch(e => {
+        console.error('Erreur:', e);
+        alert('Erreur réseau : ' + e.message);
+    });
+}
+
+// ============================================================
 // MODAL MODIFIER TF
 // ============================================================
-let editTfId      = null;
-let editTfZoneId  = null;
+let editTfId = null;
+let editTfZoneId = null;
 
 function openEditTfModal(id, title, zoneId) {
-    editTfId     = id;
+    editTfId = id;
     editTfZoneId = zoneId;
     document.getElementById('edit_tf_title').value = title;
-    document.getElementById('edit_tf_file').value  = '';
-    document.getElementById('modalOverlay').style.display  = 'block';
-    document.getElementById('editTfModal').style.display   = 'block';
+    document.getElementById('edit_tf_file').value = '';
+    document.getElementById('modalOverlayEdit').style.display = 'block';
+    document.getElementById('editTfModal').style.display = 'block';
 }
 
 function closeEditTfModal() {
-    document.getElementById('modalOverlay').style.display  = 'none';
-    document.getElementById('editTfModal').style.display   = 'none';
+    document.getElementById('modalOverlayEdit').style.display = 'none';
+    document.getElementById('editTfModal').style.display = 'none';
     editTfId = null;
 }
 
 function saveEditTf() {
     const title = document.getElementById('edit_tf_title').value.trim();
-    const file  = document.getElementById('edit_tf_file').files[0];
+    const file = document.getElementById('edit_tf_file').files[0];
+    
     if (!title || !editTfId) return;
 
     const formData = new FormData();
-    formData.append('title',       title);
-    formData.append('svg_zone_id', editTfZoneId || '');
-    formData.append('site_id',     siteId);
-    formData.append('_method',     'PUT');
+    formData.append('title', title);
+    formData.append('site_id', siteId);
+    formData.append('_method', 'PUT');
+    if (editTfZoneId) formData.append('svg_zone_id', editTfZoneId);
     if (file) formData.append('file', file);
 
     fetch(`/admin/tf/update/${editTfId}`, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'X-CSRF-TOKEN': CSRF },
-        body:    formData,
+        body: formData,
     })
     .then(r => r.json())
     .then(data => {
@@ -483,15 +528,182 @@ function saveEditTf() {
     .catch(e => alert('Erreur réseau : ' + e.message));
 }
 
+function openTfModal(zoneId, siteId) {
+    isEditMode  = false;
+    currentZone = { zoneId, siteId };
+    document.getElementById("tfTitle").value        = "";
+    document.getElementById("tfFile").value         = "";
+    document.getElementById("modalTitle").innerText = "Créer un TF";
+    document.getElementById("saveBtn").innerText    = "Créer";
+    document.getElementById("modalOverlay").style.display = "block";
+    document.getElementById("tfModal").style.display      = "block";
+}
+
+function openTfActionModal()  { 
+    document.getElementById("tfActionModal").style.display = "block"; 
+}
+
+function closeTfActionModal() { 
+    document.getElementById("tfActionModal").style.display = "none"; 
+}
+
+function goToTf() { 
+    if (selectedTf) {
+        window.location.href = "/admin/tf/" + selectedTf.id; 
+    }
+}
+
+function editTf() {
+    if (!selectedTf) return;
+    isEditMode  = true;
+    currentZone = { zoneId: selectedTf.svg_zone_id, siteId: selectedTf.site_id };
+    document.getElementById("tfTitle").value        = selectedTf.title;
+    document.getElementById("modalTitle").innerText = "Modifier le TF";
+    document.getElementById("saveBtn").innerText    = "Mettre à jour";
+    document.getElementById("modalOverlay").style.display = "block";
+    document.getElementById("tfModal").style.display      = "block";
+    closeTfActionModal();
+}
+
 // ============================================================
-// Légende fixe (optionnelle — si présente dans le layout)
+// CARTE SVG — survol + clic
 // ============================================================
+document.addEventListener("DOMContentLoaded", function () {
+    const siteId = document.getElementById("site_id").value;
+    const tfs    = @json(\App\Models\Tf::where('site_id', $site->id)->get());
+    const svg    = document.querySelector("#map-container svg");
+    const tooltip = document.getElementById('tf-tooltip');
+    if (!svg) return;
+
+    svg.querySelectorAll("text").forEach(t => t.remove());
+
+    let usedColors = {};
+    let tooltipTimer = null;
+
+    svg.querySelectorAll("path").forEach(el => {
+        const tf = tfs.find(t => t.svg_zone_id === el.id);
+
+        el.style.cursor      = "pointer";
+        el.style.transition  = "0.2s";
+        el.style.fill        = "transparent";
+        el.style.strokeWidth = "2px";
+
+        if (tf) {
+            const color = tf.color || getRandomColor();
+            usedColors[tf.title] = color;
+            el.style.stroke = color;
+            el.style.fill   = color + "33";
+
+            const bbox = el.getBBox();
+            const cx   = bbox.x + bbox.width  / 2;
+            const cy   = bbox.y + bbox.height / 2;
+
+            // Bouton SVG étranger
+            const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+            const btnW = bbox.width * 0.70;
+            const btnH = Math.min(bbox.height * 0.55, 38);
+
+            fo.setAttribute("x",      cx - btnW / 2);
+            fo.setAttribute("y",      cy - btnH / 2);
+            fo.setAttribute("width",  btnW);
+            fo.setAttribute("height", btnH);
+            fo.style.pointerEvents = "none";
+
+            const btn = document.createElement("a");
+            btn.href      = `/admin/tf/${tf.id}`;
+            btn.className = "tf-zone-btn";
+            btn.style.width    = "100%";
+            btn.style.maxWidth = "100%";
+            btn.style.fontSize = Math.max(9, Math.min(13, btnW / 8)) + "px";
+            btn.title     = tf.title;
+            btn.innerText = tf.title;
+            btn.style.pointerEvents = "auto";
+
+            fo.appendChild(btn);
+            svg.appendChild(fo);
+
+            // ✅ SURVOL → afficher tooltip avec stats
+            el.addEventListener("mouseenter", function(e) {
+                el.style.strokeWidth = '4px';
+                el.style.fill        = color + '55';
+
+                const stats = tfStatsByZone[tf.svg_zone_id.toLowerCase()];
+                if (!stats) return;
+
+                document.getElementById('tt-title').innerText      = stats.tf.title || tf.title;
+                document.getElementById('tt-lots').innerText       = stats.lots || '-';
+                document.getElementById('tt-zones').innerText      = stats.zones || '-';
+                document.getElementById('tt-blocs').innerText      = stats.blocs   ?? '-';
+                document.getElementById('tt-eden').innerText       = stats.eden    ?? '-';
+                document.getElementById('tt-famille').innerText    = stats.famille ?? '-';
+                document.getElementById('tt-ip').innerText         = stats.implantation_prevue || '-';
+                document.getElementById('tt-di').innerText         = stats.deja_implante || '-';
+                document.getElementById('tt-dt').innerText         = stats.dossier_technique || '-';
+                document.getElementById('tt-mo').innerText         = stats.morcellement || '-';
+                document.getElementById('tt-pct').innerText        = stats.actif_pct + '%' || '0%';
+                document.getElementById('tt-prog-fill').style.width= stats.actif_pct + '%' || '0%';
+                document.getElementById('tt-btn-voir').href        = `/admin/tf/${tf.id}`;
+                document.getElementById('tt-btn-modifier').onclick = function(ev) {
+                    ev.preventDefault();
+                    tooltip.style.display = 'none';
+                    openEditTfModal(tf.id, tf.title, tf.svg_zone_id);
+                };
+
+                positionnerTooltip(e);
+                clearTimeout(tooltipTimer);
+                tooltip.style.display = 'block';
+            });
+
+            el.addEventListener("mousemove", function(e) {
+                positionnerTooltip(e);
+            });
+
+            el.addEventListener("mouseleave", function() {
+                el.style.strokeWidth = '2px';
+                el.style.fill        = color + '33';
+                tooltipTimer = setTimeout(() => { tooltip.style.display = 'none'; }, 200);
+            });
+
+            // Clic sur le path → action modal
+            el.addEventListener("click", function (e) {
+                if (e.target.tagName === 'A') return;
+                selectedTf = tf;
+                openTfActionModal();
+            });
+
+        } else {
+            // Zone sans TF
+            el.style.stroke          = "#999";
+            el.style.strokeDasharray = "2,2";
+            
+            el.addEventListener("mouseenter", function() {
+                this.style.fill = "rgba(0,150,255,0.25)";
+                this.style.stroke = "#1d4ed8";
+                this.style.strokeWidth = "3px";
+            });
+            el.addEventListener("mouseleave", function() {
+                this.style.fill = "transparent";
+                this.style.stroke = "#999";
+                this.style.strokeWidth = "2px";
+            });
+            
+            el.addEventListener("click", function () { 
+                currentZone = { zoneId: el.id, siteId: siteId };
+                openTfModal(el.id, siteId); 
+            });
+        }
+    });
+
+    // Masquer tooltip si on déplace sur le tooltip lui-même
+    tooltip.addEventListener('mouseenter', () => clearTimeout(tooltipTimer));
+    tooltip.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+    Object.entries(usedColors).forEach(([name, color]) => {
+        const div = document.createElement("div");
+        div.style.cssText = "display:flex;align-items:center;margin-bottom:5px;";
+        div.innerHTML = `<div style="width:12px;height:12px;background:${color};margin-right:5px;border-radius:2px;"></div><small>${name}</small>`;
+        document.getElementById("legend-items").appendChild(div);
+    });
+});
 </script>
-
-{{-- Légende flottante --}}
-<div id="legend-items-wrap" style="position:fixed;bottom:20px;right:20px;background:white;padding:12px 16px;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:100;font-size:12px;min-width:140px;">
-    <div style="font-weight:700;color:#1e3a5f;margin-bottom:8px;">📌 TF du site</div>
-    <div id="legend-items"></div>
-</div>
-
 @endsection
