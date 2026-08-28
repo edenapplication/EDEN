@@ -39,6 +39,76 @@
 .pay-total-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
 .pay-historique { margin-top:10px; max-height:160px; overflow-y:auto; }
 
+/* ═══ BADGE NOUVEAU ═══ */
+.badge-new {
+    background: #10b981;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    animation: pulse-new 2s ease-in-out infinite;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.badge-old {
+    background: #e2e8f0;
+    color: #64748b;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+@keyframes pulse-new {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.btn-toggle-new {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-toggle-new:hover { background: #f1f5f9; }
+.btn-toggle-new.is-new {
+    background: #10b981;
+    color: #fff;
+    border-color: #10b981;
+}
+.btn-toggle-new.is-new:hover { background: #059669; }
+
+/* Toast notification */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1f2937;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 9999;
+    max-width: 400px;
+    animation: slideInToast 0.3s ease;
+}
+
+@keyframes slideInToast {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 @media (max-width: 992px) {
     .paiement-blocs { grid-template-columns:1fr; }
 }
@@ -48,9 +118,32 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <a href="{{ route('suivi-client.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
-        <h2 class="d-inline ms-2">👤 {{ $client->name }}</h2>
+        <h2 class="d-inline ms-2">
+            👤 {{ $client->name }}
+            
+            {{-- ═══ BADGE NOUVEAU ═══ --}}
+            @if($client->is_new)
+                <span class="badge-new" id="badge-detail-{{ $client->id }}">
+                    🆕 Nouveau
+                </span>
+            @else
+                <span class="badge-old" id="badge-detail-{{ $client->id }}">
+                    Ancien
+                </span>
+            @endif
+        </h2>
     </div>
     <div class="d-flex gap-2">
+        {{-- ═══ BOUTON TOGGLE NEW ═══ --}}
+        <button class="btn-toggle-new {{ $client->is_new ? 'is-new' : '' }}"
+                onclick="toggleNew({{ $client->id }})"
+                id="btn-new-detail-{{ $client->id }}">
+            @if($client->is_new)
+                ✅ Nouveau
+            @else
+                🔄 Marquer nouveau
+            @endif
+        </button>
         <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}"
            class="btn btn-primary btn-sm">📂 Nouveau dossier</a>
         <a href="{{ route('suivi-client.edit', $client->id) }}" class="btn btn-warning btn-sm">✏️ Modifier</a>
@@ -66,6 +159,17 @@
             <div class="info-row"><span>Téléphone</span><span>{{ $client->phone ?? '-' }}</span></div>
             <div class="info-row"><span>Lots attribués</span><span>{{ $client->lots->count() }}</span></div>
             <div class="info-row"><span>Dossiers</span><span>{{ $client->dossiers->count() }}</span></div>
+            <div class="info-row">
+                <span>Statut</span>
+                <span>
+                    @if($client->is_new)
+                        <span style="color:#10b981;font-weight:700;">🆕 Nouveau client</span>
+                    @else
+                        <span style="color:#64748b;">Client existant</span>
+                    @endif
+                </span>
+            </div>
+            <div class="info-row"><span>Date création</span><span>{{ $client->created_at?->format('d/m/Y H:i') ?? '-' }}</span></div>
         </div>
 
         {{-- ✅ LOTS AFFECTÉS (GROUPÉS PAR BLOC) --}}
@@ -763,14 +867,73 @@ const CSRF = '{{ csrf_token() }}';
 let currentDossierId = null;
 let currentType       = 'dossier';
 
-const TYPE_CONFIG = {
-    dossier:      { url: '/admin/paiements-dossier',      titre: '📁 Paiement Parcelle — ',      btnColor: 'btn-success' },
-    technique:    { url: '/admin/paiements-technique',    titre: '🛠️ Paiement Dossier Technique — ',    btnColor: 'btn-success' },
-    morcellement: { url: '/admin/paiements-morcellement', titre: '✂️ Paiement Morcellement — ',  btnColor: 'btn-success' },
-};
-// ============================================================
+// ════════════════════════════════════════════════════════════════
+// ✅ TOGGLE NEW STATUS
+// ════════════════════════════════════════════════════════════════
+function toggleNew(clientId) {
+    const btn = document.getElementById('btn-new-detail-' + clientId);
+    const badge = document.getElementById('badge-detail-' + clientId);
+
+    if (!btn) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳ ...';
+
+    fetch(`/admin/suivi-client/toggle-new/${clientId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': CSRF,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.is_new) {
+                btn.className = 'btn-toggle-new is-new';
+                btn.innerHTML = '✅ Nouveau';
+                badge.className = 'badge-new';
+                badge.textContent = '🆕 Nouveau';
+                showToast('✅ Client marqué comme nouveau');
+            } else {
+                btn.className = 'btn-toggle-new';
+                btn.innerHTML = '🔄 Marquer nouveau';
+                badge.className = 'badge-old';
+                badge.textContent = 'Ancien';
+                showToast('✅ Statut "nouveau" retiré');
+            }
+        } else {
+            showToast('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        showToast('❌ Erreur réseau');
+        console.error('Erreur:', error);
+    })
+    .finally(() => {
+        btn.disabled = false;
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ TOAST NOTIFICATION
+// ════════════════════════════════════════════════════════════════
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ════════════════════════════════════════════════════════════════
 // GESTION DES ÉTAPES - VERSION 4 (AVEC MODAL + TOAST)
-// ============================================================
+// ════════════════════════════════════════════════════════════════
 const ETAPES_CONFIG = {
     implantation_prevue : { color:'#7c3aed', bg:'#f5f3ff', border:'#c4b5fd', label:'Implantation prévue', icon:'📍' },
     deja_implante       : { color:'#16a34a', bg:'#f0fdf4', border:'#86efac', label:'Déjà implanté',       icon:'✅' },
@@ -823,7 +986,6 @@ function supprimerEtape() {
     
     if (window.EdenLoader) window.EdenLoader.show();
     
-    // ✅ Envoyer date = null et active = false
     fetch(`/admin/dossiers/${modalDossierId}/maj-etape`, {
         method: 'POST',
         headers: { 
@@ -832,8 +994,8 @@ function supprimerEtape() {
         },
         body: JSON.stringify({ 
             etape: modalEtapeKey, 
-            date: null,      // ✅ null au lieu de date vide
-            active: false    // ✅ false pour désactiver
+            date: null,
+            active: false
         }),
     })
     .then(r => r.json())
@@ -903,7 +1065,6 @@ function mettreAJourVisuEtapesSimple(dossierId, data) {
         const card = document.querySelector(`.etape-card-${cle}`);
         
         if (card) {
-            // Reconstruire le contenu
             card.innerHTML = '';
             
             const iconSpan = document.createElement('span');
@@ -937,7 +1098,6 @@ function mettreAJourVisuEtapesSimple(dossierId, data) {
                 card.appendChild(text);
             }
             
-            // Réattacher l'événement onclick
             card.onclick = function() {
                 ouvrirModalEtape(dossierId, cle, cfg['label'], estFait, data.dates[cle] ? data.dates[cle].split('/').reverse().join('-') : '');
             };
@@ -945,11 +1105,10 @@ function mettreAJourVisuEtapesSimple(dossierId, data) {
     });
 }
 
-// ============================================================
+// ════════════════════════════════════════════════════════════════
 // NOTIFICATION TOAST
-// ============================================================
+// ════════════════════════════════════════════════════════════════
 function afficherNotification(message, couleur = '#16a34a') {
-    // Supprimer les notifications existantes
     const anciennes = document.querySelectorAll('.toast-notification');
     anciennes.forEach(el => el.remove());
     
@@ -974,13 +1133,11 @@ function afficherNotification(message, couleur = '#16a34a') {
     toast.textContent = message;
     document.body.appendChild(toast);
     
-    // Animation d'entrée
     setTimeout(() => {
         toast.style.transform = 'translateX(0)';
         toast.style.opacity = '1';
     }, 50);
     
-    // Disparition automatique après 3 secondes
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(50px)';
@@ -990,9 +1147,9 @@ function afficherNotification(message, couleur = '#16a34a') {
     }, 3000);
 }
 
-// ============================================================
+// ════════════════════════════════════════════════════════════════
 // DEMANDER RÉFÉRENCE
-// ============================================================
+// ════════════════════════════════════════════════════════════════
 function demanderReferenceCreate(dossierId) {
     const reference = prompt('🔑 Entrez votre numéro de référence (signature) :');
     
@@ -1002,10 +1159,6 @@ function demanderReferenceCreate(dossierId) {
     
     const ref = reference.trim();
     
-    console.log('🔍 Référence saisie:', ref);
-    console.log('🔍 Longueur:', ref.length);
-    console.log('🔍 Caractères:', ref.split('').map(c => c.charCodeAt(0)));
-
     if (ref === '') {
         alert('⚠️ La référence ne peut pas être vide.');
         return false;
@@ -1339,7 +1492,6 @@ function previewCni(input) {
 // VOIR LES CNI DU DOSSIER
 // ============================================================
 function voirCni(dossierId) {
-    // Récupérer les CNI depuis le serveur
     fetch(`/admin/dossiers/${dossierId}/cni`)
         .then(response => response.json())
         .then(data => {
@@ -1348,7 +1500,6 @@ function voirCni(dossierId) {
                 return;
             }
             
-            // Créer la modal
             const overlay = document.createElement('div');
             overlay.style.cssText = `
                 position:fixed; inset:0; background:rgba(0,0,0,0.6); 
@@ -1394,14 +1545,12 @@ function voirCni(dossierId) {
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
             
-            // Fermer en cliquant à l'extérieur
             overlay.addEventListener('click', function(e) {
                 if (e.target === overlay) {
                     overlay.remove();
                 }
             });
             
-            // Fermer avec la touche Echap
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     const overlayEl = document.querySelector('[style*="position:fixed; inset:0; background:rgba(0,0,0,0.6);"]');

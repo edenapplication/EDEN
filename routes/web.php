@@ -68,6 +68,15 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
     ]);
 });
 
+ Route::post('/suivi-client/toggle-new/{client}', [SuiviClientController::class, 'toggleNew'])
+        ->name('suivi-client.toggle-new');
+
+ Route::post('/suivi-client/actions-group', [SuiviClientController::class, 'actionsGroup'])
+        ->name('suivi-client.actions-group');
+        
+ Route::get('/suivi-client/export-pdf', [SuiviClientController::class, 'exportPdf'])
+        ->name('suivi-client.export-pdf');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('check.role:admin')
         ->name('admin.dashboard');
