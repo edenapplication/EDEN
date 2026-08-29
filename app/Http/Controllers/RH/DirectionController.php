@@ -11,7 +11,11 @@ class DirectionController extends Controller
 {
     public function index()
     {
-        $directions = Direction::with(['services', 'postes'])->orderBy('nom')->get();
+        // ✅ Charger les horaires avec les services
+        $directions = Direction::with(['services' => function($query) {
+            $query->with('horaires');
+        }, 'postes'])->orderBy('nom')->get();
+        
         return view('rh.directions.index', compact('directions'));
     }
 

@@ -48,10 +48,14 @@
             <input type="text" name="lieu_naissance" class="form-control" value="{{ old('lieu_naissance', $employe->lieu_naissance) }}">
         </div>
         <div class="col-md-3">
+            <label class="form-label fw-semibold">Nationalité</label>
+            <input type="text" name="nationalite" class="form-control" value="{{ old('nationalite', $employe->nationalite) }}" placeholder="Ex: Camerounaise">
+        </div>
+        <div class="col-md-3">
             <label class="form-label fw-semibold">N° CNI</label>
             <input type="text" name="numero_cni" class="form-control" value="{{ old('numero_cni', $employe->numero_cni) }}">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label fw-semibold">NIU</label>
             <input type="text" name="niu" class="form-control" value="{{ old('niu', $employe->niu) }}">
         </div>
@@ -91,6 +95,10 @@
             <input type="text" name="telephone" class="form-control" value="{{ old('telephone', $employe->telephone) }}">
         </div>
         <div class="col-md-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ old('email', $employe->email) }}" placeholder="exemple@domaine.com">
+        </div>
+        <div class="col-md-3">
             <label class="form-label fw-semibold">Adresse</label>
             <input type="text" name="adresse" class="form-control" value="{{ old('adresse', $employe->adresse) }}">
         </div>
@@ -127,11 +135,22 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Agence / Site</label>
+            <select name="agence_site_id" class="form-control">
+                <option value="">-- Choisir --</option>
+                @foreach($options['agences'] ?? [] as $a)
+                    <option value="{{ $a->id }}" {{ $employe->agence_site_id==$a->id?'selected':'' }}>
+                        {{ $a->nom }} @if($a->ville) - {{ $a->ville }} @endif
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
             <label class="form-label fw-semibold">Intitulé du poste</label>
             <input type="text" name="intitule_poste" class="form-control" value="{{ old('intitule_poste', $employe->intitule_poste) }}">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label fw-semibold">Type contrat <span class="text-danger">*</span></label>
             <select name="type_contrat" class="form-control" required>
                 @foreach($options['contrats'] as $c)
@@ -139,7 +158,7 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label fw-semibold">Catégorie</label>
             <select name="categorie" class="form-control">
                 <option value="">--</option>
@@ -149,9 +168,30 @@
             </select>
         </div>
         <div class="col-md-3">
+            <label class="form-label fw-semibold">Niveau / Échelon</label>
+            <select name="niveau_chelon_id" class="form-control">
+                <option value="">-- Choisir --</option>
+                @foreach($options['niveaux_chelons'] ?? [] as $n)
+                    <option value="{{ $n->id }}" {{ $employe->niveau_chelon_id==$n->id?'selected':'' }}>
+                        {{ $n->code }} - {{ $n->nom }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
             <label class="form-label fw-semibold">Date d'intégration <span class="text-danger">*</span></label>
             <input type="date" name="date_integration" class="form-control"
                    value="{{ old('date_integration', $employe->date_integration?->format('Y-m-d')) }}" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Date de prise de fonction</label>
+            <input type="date" name="date_prise_fonction" class="form-control"
+                   value="{{ old('date_prise_fonction', $employe->date_prise_fonction?->format('Y-m-d')) }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Fin période d'essai</label>
+            <input type="date" name="date_fin_periode_essai" class="form-control"
+                   value="{{ old('date_fin_periode_essai', $employe->date_fin_periode_essai?->format('Y-m-d')) }}">
         </div>
         <div class="col-md-3">
             <label class="form-label fw-semibold">Vague de paiement</label>
@@ -159,6 +199,26 @@
                 <option value="">-- Choisir --</option>
                 @foreach($options['vagues'] as $v)
                     <option value="{{ $v }}" {{ $employe->vague_paiement===$v?'selected':'' }}>{{ $v }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Mode de paiement</label>
+            <select name="mode_paiement" class="form-control">
+                <option value="">-- Choisir --</option>
+                @foreach($options['modes_paiement'] ?? ['VIREMENT', 'CHEQUE', 'ESPECES'] as $m)
+                    <option value="{{ $m }}" {{ $employe->mode_paiement===$m?'selected':'' }}>{{ $m }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Responsable hiérarchique</label>
+            <select name="responsable_hierarchique_id" class="form-control">
+                <option value="">-- Aucun --</option>
+                @foreach($options['responsables'] ?? [] as $r)
+                    <option value="{{ $r->id }}" {{ $employe->responsable_hierarchique_id==$r->id?'selected':'' }}>
+                        {{ $r->nom }} {{ $r->prenom }} ({{ $r->matricule }})
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -179,6 +239,37 @@
         <div class="col-md-2">
             <label class="form-label fw-semibold">Solde congés</label>
             <input type="number" name="solde_conges" class="form-control" value="{{ old('solde_conges', $employe->solde_conges) }}" min="0">
+        </div>
+    </div>
+</div>
+
+{{-- INFORMATIONS CNPS --}}
+<div class="form-section">
+    <h5>🏛️ CNPS & Cotisations</h5>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">N° CNPS</label>
+            <input type="text" name="numero_cnps" class="form-control" value="{{ old('numero_cnps', $employe->numero_cnps) }}" placeholder="Ex: 123456789">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Date d'affiliation</label>
+            <input type="date" name="date_affiliation_cnps" class="form-control" 
+                   value="{{ old('date_affiliation_cnps', $employe->date_affiliation_cnps?->format('Y-m-d')) }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Centre CNPS</label>
+            <input type="text" name="centre_cnps" class="form-control" value="{{ old('centre_cnps', $employe->centre_cnps) }}" placeholder="Ex: Yaoundé">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Situation affiliation</label>
+            <select name="situation_affiliation_cnps" class="form-control">
+                <option value="">-- Choisir --</option>
+                @foreach($options['situations_cnps'] ?? ['affilie', 'non_affilie', 'en_cours', 'radie'] as $s)
+                    <option value="{{ $s }}" {{ $employe->situation_affiliation_cnps===$s?'selected':'' }}>
+                        {{ ucfirst(str_replace('_', ' ', $s)) }}
+                    </option>
+                @endforeach
+            </select>
         </div>
     </div>
 </div>

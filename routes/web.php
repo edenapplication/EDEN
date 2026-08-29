@@ -73,7 +73,7 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
 
  Route::post('/suivi-client/actions-group', [SuiviClientController::class, 'actionsGroup'])
         ->name('suivi-client.actions-group');
-        
+
  Route::get('/suivi-client/export-pdf', [SuiviClientController::class, 'exportPdf'])
         ->name('suivi-client.export-pdf');
 
@@ -321,6 +321,132 @@ Route::prefix('rh')->middleware(['auth', 'check.role:admin,rh'])->group(function
     Route::delete('rh/conges/{id}',       [App\Http\Controllers\RH\CongeController::class, 'destroy'])->name('rh.conges.destroy');
     Route::get('rh/conges/{id}/pdf',      [App\Http\Controllers\RH\CongeController::class, 'pdf'])    ->name('rh.conges.pdf');
     Route::get('rh/conges/planning-pdf',  [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('rh.conges.planning-pdf');
+
+    // ===== CONTRATS =====
+Route::resource('contrats', App\Http\Controllers\RH\ContratController::class, [
+    'names' => [
+        'index' => 'rh.contrats.index',
+        'create' => 'rh.contrats.create',
+        'store' => 'rh.contrats.store',
+        'show' => 'rh.contrats.show',
+        'edit' => 'rh.contrats.edit',
+        'update' => 'rh.contrats.update',
+        'destroy' => 'rh.contrats.destroy',
+    ]
+])->parameters(['contrats' => 'contrat']);
+
+// Routes supplémentaires pour les contrats
+Route::get('contrats/{id}/pdf', [App\Http\Controllers\RH\ContratController::class, 'pdf'])->name('rh.contrats.pdf');
+Route::post('contrats/{id}/valider', [App\Http\Controllers\RH\ContratController::class, 'valider'])->name('rh.contrats.valider');
+Route::post('contrats/{id}/renouveler', [App\Http\Controllers\RH\ContratController::class, 'renouveler'])->name('rh.contrats.renouveler');
+Route::post('contrats/{id}/resilier', [App\Http\Controllers\RH\ContratController::class, 'resilier'])->name('rh.contrats.resilier');
+
+// ===== CNPS =====
+Route::prefix('cnps')->name('rh.cnps.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RH\CnpsController::class, 'index'])->name('index');
+    
+    // Déclarations
+    Route::get('declarations', [App\Http\Controllers\RH\CnpsController::class, 'declarations'])->name('declarations');
+    Route::get('declarations/create', [App\Http\Controllers\RH\CnpsController::class, 'createDeclaration'])->name('declarations.create');
+    Route::post('declarations', [App\Http\Controllers\RH\CnpsController::class, 'storeDeclaration'])->name('declarations.store');
+    Route::get('declarations/{id}', [App\Http\Controllers\RH\CnpsController::class, 'showDeclaration'])->name('declarations.show');
+    Route::post('declarations/{id}/employes', [App\Http\Controllers\RH\CnpsController::class, 'ajouterEmployes'])->name('declarations.ajouter-employes');
+    Route::delete('declarations/{declarationId}/lignes/{ligneId}', [App\Http\Controllers\RH\CnpsController::class, 'supprimerLigne'])->name('declarations.supprimer-ligne');
+    Route::get('declarations/{id}/dipe', [App\Http\Controllers\RH\CnpsController::class, 'generateDIPE'])->name('declarations.dipe');
+    Route::post('declarations/{id}/statut', [App\Http\Controllers\RH\CnpsController::class, 'changerStatut'])->name('declarations.statut');
+    
+    // Affiliations
+    Route::get('affiliations', [App\Http\Controllers\RH\CnpsController::class, 'affiliations'])->name('affiliations');
+    Route::post('affiliations', [App\Http\Controllers\RH\CnpsController::class, 'storeAffiliation'])->name('affiliations.store');
+    Route::delete('affiliations/{id}', [App\Http\Controllers\RH\CnpsController::class, 'destroyAffiliation'])->name('affiliations.destroy');
+});
+
+// ===== DÉPARTS =====
+Route::prefix('departs')->name('rh.departs.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RH\DepartController::class, 'index'])->name('index');
+    Route::get('/create', [App\Http\Controllers\RH\DepartController::class, 'create'])->name('create');
+    Route::post('/', [App\Http\Controllers\RH\DepartController::class, 'store'])->name('store');
+    Route::get('/{id}', [App\Http\Controllers\RH\DepartController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [App\Http\Controllers\RH\DepartController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [App\Http\Controllers\RH\DepartController::class, 'update'])->name('update');
+    Route::delete('/{id}', [App\Http\Controllers\RH\DepartController::class, 'destroy'])->name('destroy');
+    
+    // Actions
+    Route::post('/{id}/valider', [App\Http\Controllers\RH\DepartController::class, 'valider'])->name('valider');
+    Route::post('/{id}/annuler', [App\Http\Controllers\RH\DepartController::class, 'annuler'])->name('annuler');
+    Route::post('/{id}/generer-solde', [App\Http\Controllers\RH\DepartController::class, 'genererSolde'])->name('generer-solde');
+    Route::post('/{id}/generer-certificat', [App\Http\Controllers\RH\DepartController::class, 'genererCertificat'])->name('generer-certificat');
+    
+    // PDF
+    Route::get('/solde/{id}/pdf', [App\Http\Controllers\RH\DepartController::class, 'pdfSolde'])->name('pdf-solde');
+    Route::get('/certificat/{id}/pdf', [App\Http\Controllers\RH\DepartController::class, 'pdfCertificat'])->name('pdf-certificat');
+});
+
+// ===== ALERTES =====
+Route::prefix('alertes')->name('rh.alertes.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RH\AlerteController::class, 'index'])->name('index');
+    Route::post('/{id}/marquer-lu', [App\Http\Controllers\RH\AlerteController::class, 'marquerLu'])->name('marquer-lu');
+    Route::post('/{id}/marquer-traite', [App\Http\Controllers\RH\AlerteController::class, 'marquerTraite'])->name('marquer-traite');
+    Route::post('/{id}/marquer-ignore', [App\Http\Controllers\RH\AlerteController::class, 'marquerIgnore'])->name('marquer-ignore');
+    Route::post('/tout-marquer-lu', [App\Http\Controllers\RH\AlerteController::class, 'toutMarquerLu'])->name('tout-marquer-lu');
+    Route::delete('/{id}', [App\Http\Controllers\RH\AlerteController::class, 'destroy'])->name('destroy');
+    Route::get('/count-non-lu', [App\Http\Controllers\RH\AlerteController::class, 'countNonLu'])->name('count-non-lu');
+});
+
+Route::get('/alertes/count-non-lu', [App\Http\Controllers\RH\AlerteController::class, 'countNonLu'])
+    ->name('rh.alertes.count-non-lu');
+
+     Route::post('/horaires', [App\Http\Controllers\RH\HoraireController::class, 'store'])->name('rh.horaires.store');
+    
+     // ===== RECRUTEMENT =====
+Route::prefix('recrutement')->name('rh.recrutement.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RH\RecrutementController::class, 'index'])->name('index');
+    Route::get('/create', [App\Http\Controllers\RH\RecrutementController::class, 'create'])->name('create');
+    Route::post('/', [App\Http\Controllers\RH\RecrutementController::class, 'store'])->name('store');
+    Route::get('/export-pdf', [App\Http\Controllers\RH\RecrutementController::class, 'pdfListe'])->name('export-pdf');
+
+    Route::get('/{id}', [App\Http\Controllers\RH\RecrutementController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [App\Http\Controllers\RH\RecrutementController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [App\Http\Controllers\RH\RecrutementController::class, 'update'])->name('update');
+    Route::delete('/{id}', [App\Http\Controllers\RH\RecrutementController::class, 'destroy'])->name('destroy');
+    
+    // Actions
+    Route::post('/{id}/statut', [App\Http\Controllers\RH\RecrutementController::class, 'changerStatut'])->name('statut');
+    Route::post('/{id}/entretien', [App\Http\Controllers\RH\RecrutementController::class, 'storeEntretien'])->name('entretien.store');
+    Route::post('/{id}/test', [App\Http\Controllers\RH\RecrutementController::class, 'storeTest'])->name('test.store');
+    Route::get('/{id}/download/{type}', [App\Http\Controllers\RH\RecrutementController::class, 'downloadDocument'])->name('download');
+});
+
+// ===== SANTÉ & SÉCURITÉ =====
+Route::prefix('sante')->name('rh.sante.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RH\SanteController::class, 'index'])->name('index');
+    
+    // Visites médicales
+    Route::get('/visites', [App\Http\Controllers\RH\SanteController::class, 'visites'])->name('visites');
+    Route::get('/visites/create', [App\Http\Controllers\RH\SanteController::class, 'createVisite'])->name('visites.create');
+    Route::post('/visites', [App\Http\Controllers\RH\SanteController::class, 'storeVisite'])->name('visites.store');
+        Route::get('/visites/pdf', [App\Http\Controllers\RH\SanteController::class, 'pdfVisites'])->name('visites.pdf');
+
+    Route::get('/visites/{id}', [App\Http\Controllers\RH\SanteController::class, 'showVisite'])->name('visites.show');
+    Route::get('/visites/{id}/edit', [App\Http\Controllers\RH\SanteController::class, 'editVisite'])->name('visites.edit');
+    Route::put('/visites/{id}', [App\Http\Controllers\RH\SanteController::class, 'updateVisite'])->name('visites.update');
+    Route::delete('/visites/{id}', [App\Http\Controllers\RH\SanteController::class, 'destroyVisite'])->name('visites.destroy');
+    
+    // Accidents
+    Route::get('/accidents', [App\Http\Controllers\RH\SanteController::class, 'accidents'])->name('accidents');
+    Route::get('/accidents/create', [App\Http\Controllers\RH\SanteController::class, 'createAccident'])->name('accidents.create');
+    Route::post('/accidents', [App\Http\Controllers\RH\SanteController::class, 'storeAccident'])->name('accidents.store');
+    Route::get('/accidents/{id}', [App\Http\Controllers\RH\SanteController::class, 'showAccident'])->name('accidents.show');
+    Route::get('/accidents/{id}/edit', [App\Http\Controllers\RH\SanteController::class, 'editAccident'])->name('accidents.edit');
+    Route::put('/accidents/{id}', [App\Http\Controllers\RH\SanteController::class, 'updateAccident'])->name('accidents.update');
+    Route::delete('/accidents/{id}', [App\Http\Controllers\RH\SanteController::class, 'destroyAccident'])->name('accidents.destroy');
+    
+    // Trousses de secours
+    Route::get('/trousses', [App\Http\Controllers\RH\SanteController::class, 'trousses'])->name('trousses');
+    Route::post('/trousses', [App\Http\Controllers\RH\SanteController::class, 'storeTrousse'])->name('trousses.store');
+    Route::put('/trousses/{id}', [App\Http\Controllers\RH\SanteController::class, 'updateTrousse'])->name('trousses.update');
+    Route::delete('/trousses/{id}', [App\Http\Controllers\RH\SanteController::class, 'destroyTrousse'])->name('trousses.destroy');
+});
 
 });
 

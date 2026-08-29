@@ -19,20 +19,36 @@
 .bc-cdd  { background:#fef3c7; color:#92400e; }
 .bc-pre  { background:#e0e7ff; color:#3730a3; }
 .bc-stage{ background:#f3f4f6; color:#374151; }
+
+.badge-cnps { font-size:9px; padding:1px 6px; border-radius:10px; font-weight:600; }
+.bc-affilie { background:#dcfce7; color:#15803d; }
+.bc-non_affilie { background:#fee2e2; color:#b91c1c; }
+.bc-en_cours { background:#fef3c7; color:#92400e; }
+.bc-radie { background:#f1f5f9; color:#475569; }
+
 .filter-bar { background:white; border-radius:12px; padding:14px 18px; box-shadow:0 2px 10px rgba(0,0,0,0.06); margin-bottom:16px; }
 .kpi-box { background:white; border-radius:10px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .kpi-val { font-size:22px; font-weight:800; }
 .kpi-lbl { font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-top:2px; }
 .kpi-sub { font-size:11px; color:#94a3b8; margin-top:3px; }
 .filtre-badge { display:inline-block; background:#fef9c3; color:#92400e; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:600; margin-left:6px; }
+
+.emp-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; color:white; flex-shrink:0; }
+.emp-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 style="color:#1e3a5f;font-weight:800;">👥 Employés</h2>
     <div class="d-flex gap-2">
-        <a href="{{ route('rh.employes.export', array_merge(request()->all(), ['type'=>'csv'])) }}" class="btn btn-success btn-sm">📊 CSV</a>
-        <a href="{{ route('rh.employes.export', array_merge(request()->all(), ['type'=>'pdf'])) }}" class="btn btn-danger btn-sm">📄 PDF</a>
-        <a href="{{ route('rh.employes.create') }}" class="btn btn-primary">+ Nouvel employé</a>
+        <a href="{{ route('rh.employes.export', array_merge(request()->all(), ['type'=>'csv'])) }}" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> CSV
+        </a>
+        <a href="{{ route('rh.employes.export', array_merge(request()->all(), ['type'=>'pdf'])) }}" class="btn btn-danger btn-sm">
+            <i class="bi bi-file-pdf"></i> PDF
+        </a>
+        <a href="{{ route('rh.employes.create') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Nouvel employé
+        </a>
     </div>
 </div>
 
@@ -130,8 +146,8 @@
             </select>
         </div>
         <div class="col-md-2 d-flex gap-1">
-            <button type="submit" class="btn btn-primary btn-sm">🔍</button>
-            <a href="{{ route('rh.employes.index') }}" class="btn btn-outline-secondary btn-sm">✖</a>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+            <a href="{{ route('rh.employes.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
         </div>
     </div>
 </form>
@@ -139,7 +155,7 @@
 {{-- INDICATEUR FILTRE ACTIF --}}
 @if($filtreActif)
     <div style="background:#fef9c3;border-radius:8px;padding:8px 14px;font-size:12px;color:#92400e;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-        🔍 <strong>Filtre actif</strong> — {{ $statsFiltre['total'] }} résultat(s) sur {{ $stats['total'] }} employés actifs
+        <i class="bi bi-funnel"></i> <strong>Filtre actif</strong> — {{ $statsFiltre['total'] }} résultat(s) sur {{ $stats['total'] }} employés actifs
         <a href="{{ route('rh.employes.index') }}" style="margin-left:auto;color:#92400e;font-weight:600;">✖ Effacer</a>
     </div>
 @endif
@@ -147,7 +163,7 @@
 {{-- INDICATEUR MODE ARCHIVÉS --}}
 @if($showInactif)
     <div style="background:#fee2e2;border-radius:8px;padding:8px 14px;font-size:12px;color:#b91c1c;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-        🚫 <strong>Mode archivés</strong> — Affichage des employés archivés uniquement
+        <i class="bi bi-archive"></i> <strong>Mode archivés</strong> — Affichage des employés archivés uniquement
         <a href="{{ route('rh.employes.index') }}" style="margin-left:auto;color:#b91c1c;font-weight:600;">← Retour aux actifs</a>
     </div>
 @endif
@@ -157,40 +173,39 @@
 <table class="emp-table">
     <thead>
         <tr>
+            <th style="width:40px;">Photo</th>
             <th>Matricule</th>
-            <th>Photo</th>
             <th>Nom & Prénom</th>
-            <th>Sexe</th>
+            <th>Email</th>
             <th>Direction</th>
-            <th>Service</th>
-            <th>Poste</th>
+            <th>Agence/Site</th>
             <th>Contrat</th>
-            <th>Catégorie</th>
-            <th>Vague</th>
-            <th>Salaire base</th>
+            <th>Niveau</th>
+            <th>N° CNPS</th>
+            <th>Salaire</th>
             <th>Intégration</th>
             @if($showInactif)<th>Date sortie</th>@endif
-            <th>Actions</th>
+            <th style="width:100px;">Actions</th>
         </tr>
     </thead>
     <tbody>
     @forelse($employes as $e)
         <tr class="{{ !$e->actif ? 'archive-row' : '' }}">
             <td>
-                <strong style="color:{{ $e->actif ? '#1d4ed8' : '#dc2626' }};">{{ $e->matricule }}</strong>
-                @if(!$e->actif)
-                    <span style="background:#fee2e2;color:#b91c1c;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:3px;">archivé</span>
-                @endif
-            </td>
-            <td>
                 @if($e->photo_path)
                     <img src="{{ asset('storage/' . $e->photo_path) }}"
                          style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid {{ $e->actif ? '#1d4ed8' : '#dc2626' }};"
                          alt="Photo">
                 @else
-                    <div style="width:32px;height:32px;border-radius:50%;background:{{ $e->actif ? 'linear-gradient(135deg,#1d4ed8,#7c3aed)' : '#fca5a5'}};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:white;">
+                    <div class="emp-avatar" style="background:linear-gradient(135deg,{{ $e->sexe === 'M' ? '#1d4ed8' : '#db2777' }},#7c3aed);">
                         {{ strtoupper(substr($e->prenom,0,1)) }}{{ strtoupper(substr($e->nom,0,1)) }}
                     </div>
+                @endif
+            </td>
+            <td>
+                <span style="font-weight:600;color:{{ $e->actif ? '#1d4ed8' : '#dc2626' }};">{{ $e->matricule }}</span>
+                @if(!$e->actif)
+                    <span style="background:#fee2e2;color:#b91c1c;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:3px;">archivé</span>
                 @endif
             </td>
             <td>
@@ -199,36 +214,47 @@
                     {{ $e->nom }} {{ $e->prenom }}
                 </a>
             </td>
-            <td>
-                <span style="background:{{ $e->sexe==='M'?'#dbeafe':'#fce7f3'}};color:{{ $e->sexe==='M'?'#1d4ed8':'#be185d'}};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">
-                    {{ $e->sexe === 'M' ? '👨 M' : '👩 F' }}
-                </span>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="{{ $e->email }}">
+                {{ $e->email ?? '-' }}
             </td>
             <td>{{ $e->direction?->nom ?? '-' }}</td>
-            <td>{{ $e->service?->nom ?? '-' }}</td>
-            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;" title="{{ $e->intitule_poste }}">
-                {{ $e->intitule_poste ?? '-' }}
-            </td>
+            <td>{{ $e->agenceSite?->nom ?? '-' }}</td>
             <td>
                 @php $cl = ['CDI'=>'bc-cdi','CDD'=>'bc-cdd','PRE-EMPLOI'=>'bc-pre','STAGE'=>'bc-stage'][$e->type_contrat] ?? ''; @endphp
                 <span class="badge-contrat {{ $cl }}">{{ $e->type_contrat }}</span>
             </td>
-            <td>{{ $e->categorie ?? '-' }}</td>
-            <td>{{ $e->vague_paiement ?? '-' }}</td>
-            <td style="font-weight:600;">{{ number_format($e->salaire_base, 0, ',', ' ') }} FCFA</td>
+            <td>{{ $e->niveauCheleon?->nom ?? '-' }}</td>
+            <td>
+                @if($e->numero_cnps)
+                    <span style="font-weight:600;color:#1d4ed8;">{{ $e->numero_cnps }}</span>
+                    <br>
+                    <span class="badge-cnps {{ $e->situation_affiliation_cnps ?? 'non_affilie' }}">
+                        {{ $e->situation_affiliation_cnps ? ucfirst(str_replace('_', ' ', $e->situation_affiliation_cnps)) : '-' }}
+                    </span>
+                @else
+                    <span style="color:#94a3b8;">-</span>
+                @endif
+            </td>
+            <td style="font-weight:600;">{{ number_format($e->salaire_base, 0, ',', ' ') }}</td>
             <td>{{ $e->date_integration?->format('d/m/Y') }}</td>
             @if($showInactif)
                 <td style="color:#dc2626;font-size:11px;">{{ $e->date_sortie?->format('d/m/Y') ?? '-' }}</td>
             @endif
             <td>
                 <div class="d-flex gap-1">
-                    <a href="{{ route('rh.employes.show', $e->id) }}" class="btn btn-sm btn-primary" style="font-size:10px;" title="Voir">👁</a>
-                    <a href="{{ route('rh.employes.edit', $e->id) }}" class="btn btn-sm btn-warning" style="font-size:10px;" title="Modifier">✏️</a>
+                    <a href="{{ route('rh.employes.show', $e->id) }}" class="btn btn-sm btn-outline-primary" title="Voir" style="font-size:10px;padding:2px 6px;">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{{ route('rh.employes.edit', $e->id) }}" class="btn btn-sm btn-outline-warning" title="Modifier" style="font-size:10px;padding:2px 6px;">
+                        <i class="bi bi-pencil"></i>
+                    </a>
                     @if($e->actif)
                         <form action="{{ route('rh.employes.destroy', $e->id) }}" method="POST" style="display:inline"
                               onsubmit="return confirm('Archiver cet employé ?')">
                             @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger" style="font-size:10px;" title="Archiver">🗑</button>
+                            <button class="btn btn-sm btn-outline-danger" title="Archiver" style="font-size:10px;padding:2px 6px;">
+                                <i class="bi bi-archive"></i>
+                            </button>
                         </form>
                     @else
                         {{-- Réactiver un archivé --}}
@@ -241,7 +267,9 @@
                             <input type="hidden" name="date_integration" value="{{ $e->date_integration?->format('Y-m-d') }}">
                             <input type="hidden" name="type_contrat"     value="{{ $e->type_contrat }}">
                             <input type="hidden" name="salaire_base"     value="{{ $e->salaire_base }}">
-                            <button class="btn btn-sm btn-outline-success" style="font-size:10px;" title="Réactiver">♻️</button>
+                            <button class="btn btn-sm btn-outline-success" title="Réactiver" style="font-size:10px;padding:2px 6px;">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
                         </form>
                     @endif
                 </div>
@@ -258,7 +286,7 @@
 </table>
 </div>
 
-{{-- ✅ Pagination propre sans bug --}}
+{{-- ✅ Pagination --}}
 <div class="mt-4 d-flex justify-content-between align-items-center">
     <div style="font-size:12px;color:#64748b;">
         Affichage de {{ $employes->firstItem() ?? 0 }} à {{ $employes->lastItem() ?? 0 }}

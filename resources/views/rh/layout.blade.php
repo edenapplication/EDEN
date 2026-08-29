@@ -12,11 +12,13 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
+        /* ===== STYLES GLOBAUX ===== */
         * { box-sizing:border-box; }
-        body { background:#f4f6f9; font-family:"Segoe UI",sans-serif; margin:0; }
+        body { background:#f1f5f9; font-family:"Segoe UI", system-ui, -apple-system, sans-serif; margin:0; }
 
-        /* SPLASH */
+        /* ===== SPLASH SCREEN ===== */
         #splash {
             position:fixed; inset:0;
             background:linear-gradient(135deg,#7c3aed 0%,#1d4ed8 55%,#dc2626 100%);
@@ -36,95 +38,157 @@
         #splash .splash-loader-bar { height:100%; background:white; border-radius:2px; animation:splashLoad 0.9s ease forwards; }
         @keyframes splashLoad { from{width:0%} to{width:100%} }
 
-        /* SIDEBAR */
+        /* ===== SIDEBAR ===== */
         .sidebar {
-            width:230px; height:100vh; position:fixed; top:0; left:0;
+            width:250px; height:100vh; position:fixed; top:0; left:0;
             background:#0f172a; display:flex; flex-direction:column;
-            overflow-y:auto; z-index:200;
+            overflow-y:auto; z-index:200; transition:transform 0.3s ease;
             scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.1) transparent;
         }
         .sidebar::-webkit-scrollbar { width:4px; }
         .sidebar::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
 
         .logo-box {
-            padding:18px 16px 14px; border-bottom:1px solid rgba(255,255,255,0.08);
+            padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,0.06);
             display:flex; flex-direction:column; align-items:center; gap:8px;
         }
         .logo-circle {
-            width:60px; height:60px;
+            width:64px; height:64px;
             background:linear-gradient(135deg,#7c3aed,#1d4ed8,#dc2626);
-            border-radius:12px; display:flex; align-items:center;
-            justify-content:center; font-size:22px; font-weight:900; color:white;
+            border-radius:14px; display:flex; align-items:center;
+            justify-content:center; font-size:24px; font-weight:900; color:white;
+            box-shadow:0 4px 12px rgba(124,58,237,0.4);
         }
-        .logo-name { font-size:14px; font-weight:800; color:white; }
-        .logo-sub  { font-size:10px; color:#475569; }
+        .logo-name { font-size:15px; font-weight:800; color:white; letter-spacing:0.5px; }
+        .logo-sub  { font-size:10px; color:#64748b; }
 
         .nav-group-btn {
             display:flex; align-items:center; justify-content:space-between;
-            width:100%; padding:9px 16px; background:none; border:none;
+            width:100%; padding:10px 20px; background:none; border:none;
             color:#94a3b8; font-size:11px; font-weight:700;
-            text-transform:uppercase; letter-spacing:1px; cursor:pointer; transition:0.15s;
+            text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; transition:0.15s;
         }
-        .nav-group-btn:hover { color:#cbd5e1; }
-        .nav-group-btn .chevron { font-size:10px; transition:transform 0.2s; }
+        .nav-group-btn:hover { color:#e2e8f0; background:rgba(255,255,255,0.04); }
+        .nav-group-btn .chevron { font-size:10px; transition:transform 0.3s; }
         .nav-group-btn.open .chevron { transform:rotate(90deg); }
         .nav-group-items { display:none; padding-bottom:4px; }
         .nav-group-items.open { display:block; }
 
         .sidebar a {
-            display:flex; align-items:center; gap:8px;
-            color:#cbd5e1; padding:8px 20px; text-decoration:none;
+            display:flex; align-items:center; gap:10px;
+            color:#cbd5e1; padding:8px 20px 8px 40px; text-decoration:none;
             font-size:13px; transition:0.15s; border-left:3px solid transparent;
+            position:relative;
         }
         .sidebar a:hover { background:rgba(255,255,255,0.06); color:white; border-left-color:#7c3aed; }
         .sidebar a.active { background:rgba(255,255,255,0.08); color:white; border-left-color:#60a5fa; }
+        .sidebar a .badge-sidebar {
+            position:absolute; right:16px;
+            background:#dc2626; color:white; font-size:9px;
+            padding:1px 8px; border-radius:10px; font-weight:600;
+        }
 
-        /* TOPBAR */
+        /* ===== TOPBAR ===== */
         .topbar {
-            position:fixed; top:0; left:230px; right:0; height:60px; z-index:100;
+            position:fixed; top:0; left:250px; right:0; height:64px; z-index:100;
             background:linear-gradient(135deg,#7c3aed 0%,#1d4ed8 55%,#dc2626 100%);
             color:white; display:flex; align-items:center;
             justify-content:space-between; padding:0 28px;
-            box-shadow:0 2px 12px rgba(124,58,237,0.35);
+            box-shadow:0 2px 16px rgba(124,58,237,0.35);
         }
-        .topbar-right { display:flex; align-items:center; gap:10px; }
+        .topbar .page-title { font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px; }
+        .topbar-right { display:flex; align-items:center; gap:12px; }
         .topbar-user {
-            display:flex; align-items:center; gap:8px; font-size:13px;
-            background:rgba(255,255,255,0.18); padding:6px 14px; border-radius:20px;
+            display:flex; align-items:center; gap:10px; font-size:13px;
+            background:rgba(255,255,255,0.15); padding:6px 16px; border-radius:24px;
+            backdrop-filter:blur(4px);
+        }
+        .topbar-user .avatar {
+            width:32px; height:32px; border-radius:50%;
+            background:rgba(255,255,255,0.2); display:flex;
+            align-items:center; justify-content:center; font-weight:700; font-size:14px;
         }
         .topbar-link {
-            background:rgba(255,255,255,0.15); color:white;
-            border:1px solid rgba(255,255,255,0.25); border-radius:8px;
-            padding:5px 12px; font-size:11px; font-weight:600;
+            background:rgba(255,255,255,0.12); color:white;
+            border:1px solid rgba(255,255,255,0.2); border-radius:8px;
+            padding:6px 14px; font-size:12px; font-weight:600;
             text-decoration:none; transition:0.2s;
         }
         .topbar-link:hover { background:rgba(255,255,255,0.25); color:white; }
 
-        .content { margin-left:230px; padding:24px; padding-top:84px; }
+        /* ===== CONTENT ===== */
+        .content { margin-left:250px; padding:24px; padding-top:84px; }
+        .content .card { border-radius:14px; border:none; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+        .content .card-header { border-radius:14px 14px 0 0; background:white; border-bottom:1px solid #f1f5f9; }
 
-        /* PWA */
-        #pwa-update-banner {
-            position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-            background:#7c3aed; color:white; border-radius:12px;
-            padding:12px 20px; z-index:999999;
-            align-items:center; gap:12px;
-            box-shadow:0 8px 24px rgba(0,0,0,0.25);
-            font-size:13px; font-weight:600; max-width:90vw; display:none;
+        /* ===== STATS CARDS ===== */
+        .stat-card {
+            background:white; border-radius:14px; padding:20px;
+            box-shadow:0 2px 12px rgba(0,0,0,0.06);
+            transition:transform 0.2s, box-shadow 0.2s;
+            position:relative; overflow:hidden;
+        }
+        .stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.1); }
+        .stat-card .icon { font-size:28px; opacity:0.12; position:absolute; right:16px; top:16px; }
+        .stat-card .value { font-size:28px; font-weight:800; }
+        .stat-card .label { font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase; margin-top:2px; }
+        .stat-card .trend { font-size:11px; font-weight:600; padding:2px 10px; border-radius:10px; display:inline-block; margin-top:4px; }
+        .trend-up { background:#dcfce7; color:#15803d; }
+        .trend-down { background:#fee2e2; color:#b91c1c; }
+
+        /* ===== TABLE ===== */
+        .table-modern {
+            font-size:12px; margin-bottom:0;
+        }
+        .table-modern thead th {
+            background:#f8fafc; color:#1e293b; font-weight:700;
+            padding:12px 12px; border-bottom:2px solid #e2e8f0;
+            text-transform:uppercase; font-size:10px; letter-spacing:0.3px;
+        }
+        .table-modern tbody td {
+            padding:10px 12px; border-bottom:1px solid #f1f5f9;
+            vertical-align:middle;
+        }
+        .table-modern tbody tr:hover { background:#f8fafc; }
+
+        /* ===== BADGES ===== */
+        .badge-status {
+            padding:3px 12px; border-radius:10px; font-size:10px; font-weight:600; display:inline-block;
+        }
+        .badge-status.approuve { background:#dcfce7; color:#15803d; }
+        .badge-status.refuse { background:#fee2e2; color:#b91c1c; }
+        .badge-status.en_attente { background:#fef3c7; color:#92400e; }
+        .badge-status.actif { background:#dcfce7; color:#15803d; }
+        .badge-status.inactif { background:#fee2e2; color:#b91c1c; }
+        .badge-status.paye { background:#dcfce7; color:#15803d; }
+        .badge-status.brouillon { background:#f1f5f9; color:#475569; }
+        .badge-status.valide { background:#dbeafe; color:#1d4ed8; }
+
+        /* ===== FILTRES ===== */
+        .filter-bar {
+            background:white; border-radius:14px; padding:16px 20px;
+            box-shadow:0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom:20px;
         }
 
-        /* MOBILE */
+        /* ===== MODALS ===== */
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9998; }
+        .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:28px; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3); z-index:9999; width:520px; max-height:90vh; overflow-y:auto; }
+
+        /* ===== MOBILE ===== */
         @media (max-width:768px) {
-            .sidebar { transform:translateX(-100%); transition:transform 0.3s ease; z-index:300; }
+            .sidebar { transform:translateX(-100%); }
             .sidebar.open { transform:translateX(0); }
-            .topbar { left:0; padding:0 16px; }
+            .topbar { left:0; padding:0 16px; height:60px; }
+            .topbar .page-title { font-size:13px; }
             .content { margin-left:0; padding:16px; padding-top:76px; }
+            .topbar-user .user-name { display:none; }
             #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:299; }
             #sidebar-overlay.open { display:block; }
             #menu-toggle {
                 background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
-                color:white; border-radius:8px; padding:5px 10px; font-size:16px; cursor:pointer; margin-right:8px;
+                color:white; border-radius:8px; padding:5px 12px; font-size:18px; cursor:pointer;
             }
-            .topbar-user .role-badge { display:none; }
         }
     </style>
 </head>
@@ -145,401 +209,250 @@
 
 <body>
 
-{{-- ============ PAGE DE CHARGEMENT ============ --}}
-<div id="eden-loader" style="
-    display:none;
-    position:fixed;
-    inset:0;
-    z-index:999999;
-    background:rgba(15,23,42,0.82);
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    gap:20px;
-">
-    {{-- Carte centrale --}}
-    <div style="
-        background:white;
-        border-radius:20px;
-        padding:36px 44px;
-        text-align:center;
-        box-shadow:0 20px 60px rgba(0,0,0,0.35);
-        min-width:260px;
-        position:relative;
-        overflow:hidden;
-    ">
-        {{-- Barre de couleur en haut --}}
-        <div style="
-            position:absolute;top:0;left:0;right:0;height:5px;
-            background:linear-gradient(90deg,#1d4ed8 0%,#7c3aed 50%,#dc2626 100%);
-        "></div>
-
-        {{-- Logo / Initiale --}}
-        <div style="
-            width:64px;height:64px;
-            background:linear-gradient(135deg,#1d4ed8,#7c3aed);
-            border-radius:16px;
-            display:flex;align-items:center;justify-content:center;
-            margin:0 auto 16px auto;
-            font-size:26px;font-weight:900;color:white;
-            letter-spacing:-1px;
-        ">E</div>
-
-        {{-- Nom société --}}
-        <div style="
-            font-size:13px;font-weight:800;
-            background:linear-gradient(90deg,#1d4ed8,#dc2626);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-            background-clip:text;
-            letter-spacing:1px;margin-bottom:20px;
-        ">EDEN GROUP</div>
-
-        {{-- Spinner SVG animé --}}
-        <div style="margin:0 auto 18px auto;width:52px;height:52px;">
-            <svg viewBox="0 0 52 52" style="width:52px;height:52px;animation:edenSpin 1s linear infinite;">
-                <circle cx="26" cy="26" r="22"
-                    fill="none"
-                    stroke="#e2e8f0"
-                    stroke-width="4"/>
-                <circle cx="26" cy="26" r="22"
-                    fill="none"
-                    stroke="url(#edenGrad)"
-                    stroke-width="4"
-                    stroke-linecap="round"
-                    stroke-dasharray="100 38"
-                    stroke-dashoffset="0"/>
-                <defs>
-                    <linearGradient id="edenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%"   stop-color="#1d4ed8"/>
-                        <stop offset="50%"  stop-color="#7c3aed"/>
-                        <stop offset="100%" stop-color="#dc2626"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-        </div>
-
-        {{-- Texte chargement animé --}}
-        <div id="eden-loader-msg" style="
-            font-size:13px;font-weight:600;color:#475569;
-        ">Chargement en cours<span id="eden-dots"></span></div>
-
-        {{-- Barre de progression --}}
-        <div style="
-            height:3px;background:#f1f5f9;border-radius:2px;
-            margin-top:16px;overflow:hidden;
-        ">
-            <div id="eden-prog-bar" style="
-                height:100%;width:0%;border-radius:2px;
-                background:linear-gradient(90deg,#1d4ed8,#7c3aed,#dc2626);
-                transition:width 0.3s ease;
-            "></div>
-        </div>
-    </div>
-</div>
-
-<style>
-@keyframes edenSpin {
-    0%   { transform: rotate(0deg);   }
-    100% { transform: rotate(360deg); }
-}
-#eden-loader.actif {
-    display: flex !important;
-}
-</style>
-
-<script>
-(function() {
-    const loader  = document.getElementById('eden-loader');
-    const dots    = document.getElementById('eden-dots');
-    const progBar = document.getElementById('eden-prog-bar');
-
-    // ============================================================
-    // ANIMATION DES POINTS
-    // ============================================================
-    let dotsCount = 0;
-    let dotsTimer = null;
-    function animerPoints() {
-        dotsTimer = setInterval(() => {
-            dotsCount = (dotsCount + 1) % 4;
-            dots.innerText = '.'.repeat(dotsCount);
-        }, 400);
-    }
-
-    // ============================================================
-    // BARRE DE PROGRESSION SIMULÉE
-    // ============================================================
-    let progValue  = 0;
-    let progTimer  = null;
-    function demarrerProgression() {
-        progValue = 0;
-        progBar.style.width = '0%';
-        progTimer = setInterval(() => {
-            // Avancer rapidement jusqu'à 85%, puis ralentir
-            if (progValue < 30)       progValue += 4;
-            else if (progValue < 60)  progValue += 2.5;
-            else if (progValue < 80)  progValue += 1;
-            else if (progValue < 88)  progValue += 0.3;
-            // Bloquer à 88% jusqu'à vraie fin
-            if (progValue >= 88) {
-                progValue = 88;
-                clearInterval(progTimer);
-            }
-            progBar.style.width = progValue + '%';
-        }, 100);
-    }
-    function terminerProgression(callback) {
-        clearInterval(progTimer);
-        progValue = 100;
-        progBar.style.width = '100%';
-        setTimeout(() => {
-            if (callback) callback();
-        }, 300);
-    }
-
-    // ============================================================
-    // AFFICHER / MASQUER
-    // ============================================================
-    function afficher() {
-        loader.classList.add('actif');
-        demarrerProgression();
-        animerPoints();
-    }
-
-    function masquer() {
-        terminerProgression(() => {
-            loader.classList.remove('actif');
-            clearInterval(dotsTimer);
-            dotsCount = 0;
-            if (dots) dots.innerText = '';
-        });
-    }
-
-    // ============================================================
-    // DÉCLENCHEURS
-    // ============================================================
-
-    // 1. Tous les liens qui causent une navigation (sauf ancres, modals, js)
-    document.addEventListener('click', function(e) {
-        const a = e.target.closest('a');
-        if (!a) return;
-        const href = a.getAttribute('href');
-        if (!href) return;
-        // Ignorer : ancres, javascript:, target _blank, téléchargements
-        if (href.startsWith('#'))         return;
-        if (href.startsWith('javascript'))return;
-        if (a.target === '_blank')        return;
-        if (a.download)                   return;
-        // Ignorer : boutons qui ouvrent des modals (onclick sans navigation)
-        if (a.dataset.bsToggle)           return;
-        afficher();
-    });
-
-    // 2. Tous les formulaires soumis (sauf fetch/ajax)
-    document.addEventListener('submit', function(e) {
-        const form = e.target;
-        // Ignorer les formulaires sans action réelle
-        if (form.dataset.ajax === 'true') return;
-        afficher();
-    });
-
-    // 3. Boutons submit classiques (dans forms)
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('button[type="submit"]');
-        if (!btn) return;
-        const form = btn.closest('form');
-        if (form && form.dataset.ajax !== 'true') {
-            afficher();
-        }
-    });
-
-    // 4. Masquer dès que la page est chargée (retour arrière, etc.)
-    window.addEventListener('pageshow', function(e) {
-        masquer();
-    });
-
-    // 5. Masquer si la page est déjà chargée
-    if (document.readyState === 'complete') {
-        masquer();
-    } else {
-        window.addEventListener('load', masquer);
-    }
-
-    // ============================================================
-    // API GLOBALE — pour appeler manuellement depuis n'importe où
-    // ============================================================
-    window.EdenLoader = {
-        show: afficher,
-        hide: masquer,
-    };
-})();
-</script>
-
 @php $role = auth()->user()?->role; @endphp
 <div id="sidebar-overlay" onclick="fermerSidebar()"></div>
 
 {{-- ============================================================
-     SIDEBAR RH — visibilité stricte par rôle
-     admin = accès total
-     rh    = accès total module RH
+     SIDEBAR
      ============================================================ --}}
 <div class="sidebar" id="sidebar">
-    <div>
-
-        <div class="logo-box">
-            <div class="logo-circle">RH</div>
-            <div class="logo-name">EDEN GROUP</div>
-            <div class="logo-sub">
-                @if($role === 'admin') Administration @else Ressources Humaines @endif
-            </div>
+    <div class="logo-box">
+        <div class="logo-circle">RH</div>
+        <div class="logo-name">EDEN GROUP</div>
+        <div class="logo-sub">
+            @if($role === 'admin') Administration @else Ressources Humaines @endif
         </div>
+    </div>
 
-        {{-- Dashboard RH --}}
-        <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-            <a href="{{ route('rh.dashboard') }}" onclick="fermerSidebar()"
-               class="{{ request()->routeIs('rh.dashboard') ? 'active' : '' }}">
-                <span>📊</span> Dashboard RH
-            </a>
-        </div>
+    {{-- Dashboard --}}
+    <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <a href="{{ route('rh.dashboard') }}" onclick="fermerSidebar()"
+           class="{{ request()->routeIs('rh.dashboard') ? 'active' : '' }}">
+            <span>📊</span> Dashboard RH
+        </a>
+    </div>
 
-        <div style="padding:6px 0;">
+    {{-- ALERTES --}}
+<a href="{{ route('rh.alertes.index') }}" onclick="fermerSidebar()"
+   class="{{ request()->routeIs('rh.alertes.*') ? 'active' : '' }}">
+    <span>🔔</span> Notifications
+    @php
+        $nonLu = \App\Models\RH\Alerte::nonLu()->count();
+    @endphp
+    @if($nonLu > 0)
+        <span class="badge-sidebar">{{ $nonLu }}</span>
+    @endif
+</a>
 
-            {{-- ✅ PARAMÈTRES — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-param', this)">
-                <span>⚙️ Paramètres</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-param">
-                <a href="{{ route('rh.directions.index') }}" onclick="fermerSidebar()">
-                    <span>🏢</span> Directions & Services
-                </a>
-            </div>
-            @endif
+    <div style="padding:6px 0;">
 
-            {{-- ✅ EMPLOYÉS — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-emp', this)">
-                <span>👥 Employés</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-emp">
-                <a href="{{ route('rh.employes.index') }}" onclick="fermerSidebar()">
-                    <span>📋</span> Liste
-                </a>
-                {{-- Créer un employé — admin + rh --}}
-                <a href="{{ route('rh.employes.create') }}" onclick="fermerSidebar()">
-                    <span>➕</span> Nouveau
-                </a>
-            </div>
-            @endif
-
-            {{-- ✅ PAIE — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-paie', this)">
-                <span>💰 Paie</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-paie">
-                <a href="{{ route('rh.paie.index') }}" onclick="fermerSidebar()">
-                    <span>📄</span> Bulletins
-                </a>
-                <a href="{{ route('rh.paie.create') }}" onclick="fermerSidebar()">
-                    <span>➕</span> Nouveau bulletin
-                </a>
-                <a href="{{ route('rh.paie.recapitulatif') }}" onclick="fermerSidebar()">
-                    <span>📊</span> Récapitulatif
-                </a>
-            </div>
-            @endif
-
-            {{-- ✅ ABSENCES — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-abs', this)">
-                <span>🗓️ Absences</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-abs">
-                <a href="{{ route('rh.absences.index') }}" onclick="fermerSidebar()">
-                    <span>📋</span> Suivi absences
-                </a>
-            </div>
-
-            {{-- Nouveau groupe congés, après les retards : --}}
-<button class="nav-group-btn" onclick="toggleGroup('g-conge', this)">
-    <span>🏖️ Congés</span><span class="chevron">›</span>
+        {{-- RECRUTEMENT --}}
+<button class="nav-group-btn" onclick="toggleGroup('g-recrutement', this)">
+    <span>🎯 Recrutement</span><span class="chevron">›</span>
 </button>
-<div class="nav-group-items" id="g-conge">
-    <a href="{{ route('rh.conges.index') }}" onclick="fermerSidebar()">
-        <span>📋</span> Planning congés
+<div class="nav-group-items" id="g-recrutement">
+    <a href="{{ route('rh.recrutement.index') }}" onclick="fermerSidebar()">
+        <span>📋</span> Candidats
+    </a>
+    <a href="{{ route('rh.recrutement.create') }}" onclick="fermerSidebar()">
+        <span>➕</span> Nouveau candidat
+    </a>
+    <a href="{{ route('rh.recrutement.index', ['statut' => 'recu']) }}" onclick="fermerSidebar()">
+        <span>📥</span> Nouvelles candidatures
+    </a>
+    <a href="{{ route('rh.recrutement.index', ['statut' => 'embauche']) }}" onclick="fermerSidebar()">
+        <span>✅</span> Embauchés
     </a>
 </div>
-            @endif
 
-            {{-- ✅ PRÊTS — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-pret', this)">
-                <span>🏦 Prêts & Acomptes</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-pret">
-                <a href="{{ route('rh.prets.index') }}" onclick="fermerSidebar()">
-                    <span>📋</span> Liste
-                </a>
-            </div>
-            @endif
-
-            {{-- ✅ SANCTIONS — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-sanc', this)">
-                <span>⚠️ Sanctions</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-sanc">
-                <a href="{{ route('rh.sanctions.index') }}" onclick="fermerSidebar()">
-                    <span>📋</span> Liste
-                </a>
-            </div>
-            @endif
-
-            {{-- ✅ RETARDS — admin + rh --}}
-            @if(in_array($role, ['admin','rh']))
-            <button class="nav-group-btn" onclick="toggleGroup('g-ret', this)">
-                <span>⏱️ Retards</span><span class="chevron">›</span>
-            </button>
-            <div class="nav-group-items" id="g-ret">
-                <a href="{{ route('rh.retards.index') }}" onclick="fermerSidebar()">
-                    <span>📋</span> Liste
-                </a>
-            </div>
-            @endif
-
-            {{-- ✅ RETOUR MODULE ADMIN — admin seulement --}}
-            @if($role === 'admin')
-            <div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;">
-                <a href="{{ route('admin.dashboard') }}" onclick="fermerSidebar()">
-                    <span>⚙️</span> Module Admin
-                </a>
-            </div>
-            @endif
-
+        {{-- PARAMÈTRES --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-param', this)">
+            <span>⚙️ Paramètres</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-param">
+            <a href="{{ route('rh.directions.index') }}" onclick="fermerSidebar()">🏢 Directions & Services</a>
         </div>
+        @endif
+
+        {{-- EMPLOYÉS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-emp', this)">
+            <span>👥 Employés</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-emp">
+            <a href="{{ route('rh.employes.index') }}" onclick="fermerSidebar()">📋 Liste</a>
+            <a href="{{ route('rh.employes.create') }}" onclick="fermerSidebar()">➕ Nouveau</a>
+            <a href="{{ route('rh.employes.index', ['statut' => 'inactif']) }}" onclick="fermerSidebar()">📦 Archivés</a>
+        </div>
+        @endif
+
+        {{-- CONTRATS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-contrat', this)">
+            <span>📄 Contrats</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-contrat">
+            <a href="{{ route('rh.contrats.index') }}" onclick="fermerSidebar()">📋 Liste</a>
+            <a href="{{ route('rh.contrats.create') }}" onclick="fermerSidebar()">➕ Nouveau contrat</a>
+            <a href="{{ route('rh.contrats.index', ['statut' => 'actif']) }}" onclick="fermerSidebar()">✅ Contrats actifs</a>
+        </div>
+        @endif
+
+        {{-- PAIE --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-paie', this)">
+            <span>💰 Paie</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-paie">
+            <a href="{{ route('rh.paie.index') }}" onclick="fermerSidebar()">📄 Bulletins</a>
+            <a href="{{ route('rh.paie.create') }}" onclick="fermerSidebar()">➕ Nouveau bulletin</a>
+            <a href="{{ route('rh.paie.recapitulatif') }}" onclick="fermerSidebar()">📊 Récapitulatif</a>
+        </div>
+        @endif
+
+        {{-- CNPS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-cnps', this)">
+            <span>🏛️ CNPS</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-cnps">
+            <a href="{{ route('rh.cnps.index') }}" onclick="fermerSidebar()">📊 Dashboard CNPS</a>
+            <a href="{{ route('rh.cnps.declarations') }}" onclick="fermerSidebar()">📋 Déclarations</a>
+            <a href="{{ route('rh.cnps.declarations.create') }}" onclick="fermerSidebar()">➕ Nouvelle déclaration</a>
+            <a href="{{ route('rh.cnps.affiliations') }}" onclick="fermerSidebar()">📇 Affiliations</a>
+            <a href="{{ route('rh.cnps.declarations', ['statut' => 'a_declarer']) }}" onclick="fermerSidebar()">⏳ À déclarer</a>
+        </div>
+        @endif
+
+        {{-- SANTÉ & SÉCURITÉ --}}
+<button class="nav-group-btn" onclick="toggleGroup('g-sante', this)">
+    <span>🏥 Santé & Sécurité</span><span class="chevron">›</span>
+</button>
+<div class="nav-group-items" id="g-sante">
+    <a href="{{ route('rh.sante.index') }}" onclick="fermerSidebar()">
+        <span>📊</span> Dashboard Santé
+    </a>
+    <a href="{{ route('rh.sante.visites') }}" onclick="fermerSidebar()">
+        <span>🩺</span> Visites médicales
+    </a>
+    <a href="{{ route('rh.sante.visites.create') }}" onclick="fermerSidebar()">
+        <span>➕</span> Nouvelle visite
+    </a>
+    <a href="{{ route('rh.sante.accidents') }}" onclick="fermerSidebar()">
+        <span>⚠️</span> Accidents
+    </a>
+    <a href="{{ route('rh.sante.trousses') }}" onclick="fermerSidebar()">
+        <span>🧰</span> Trousse de secours
+    </a>
+</div>
+
+        {{-- ABSENCES --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-abs', this)">
+            <span>🗓️ Absences</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-abs">
+            <a href="{{ route('rh.absences.index') }}" onclick="fermerSidebar()">📋 Suivi absences</a>
+        </div>
+        @endif
+
+        {{-- CONGÉS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-conge', this)">
+            <span>🏖️ Congés</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-conge">
+            <a href="{{ route('rh.conges.index') }}" onclick="fermerSidebar()">📋 Planning congés</a>
+        </div>
+        @endif
+
+        {{-- RETARDS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-ret', this)">
+            <span>⏱️ Retards</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-ret">
+            <a href="{{ route('rh.retards.index') }}" onclick="fermerSidebar()">📋 Liste</a>
+        </div>
+        @endif
+
+        {{-- PRÊTS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-pret', this)">
+            <span>🏦 Prêts</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-pret">
+            <a href="{{ route('rh.prets.index') }}" onclick="fermerSidebar()">📋 Liste</a>
+        </div>
+        @endif
+
+        {{-- SANCTIONS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-sanc', this)">
+            <span>⚠️ Sanctions</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-sanc">
+            <a href="{{ route('rh.sanctions.index') }}" onclick="fermerSidebar()">📋 Liste</a>
+        </div>
+        @endif
+
+        {{-- DÉPARTS --}}
+        @if(in_array($role, ['admin','rh']))
+        <button class="nav-group-btn" onclick="toggleGroup('g-depart', this)">
+            <span>🚪 Départs</span><span class="chevron">›</span>
+        </button>
+        <div class="nav-group-items" id="g-depart">
+            <a href="{{ route('rh.departs.index') }}" onclick="fermerSidebar()">📋 Liste</a>
+            <a href="{{ route('rh.departs.create') }}" onclick="fermerSidebar()">➕ Nouveau départ</a>
+            <a href="{{ route('rh.departs.index', ['statut' => 'en_attente']) }}" onclick="fermerSidebar()">⏳ En attente</a>
+        </div>
+        @endif
+
+        {{-- RETOUR MODULE ADMIN --}}
+        @if($role === 'admin')
+        <div style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;">
+            <a href="{{ route('admin.dashboard') }}" onclick="fermerSidebar()">
+                <span>⚙️</span> Module Admin
+            </a>
+        </div>
+        @endif
+
     </div>
 </div>
 
-{{-- TOPBAR --}}
+{{-- ============================================================
+     TOPBAR
+     ============================================================ --}}
 <div class="topbar">
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:12px;">
         <button id="menu-toggle" onclick="toggleSidebar()" class="d-md-none">☰</button>
-        <div style="font-weight:700;font-size:15px;">🏢 RH — EDEN GROUP</div>
+        <span class="page-title">
+            <span>🏢</span>
+            <span>EDEN GROUP — RH</span>
+        </span>
     </div>
     <div class="topbar-right">
-
-        {{-- Accueil --}}
         <a href="{{ route('home') }}" class="topbar-link">🏠 Accueil</a>
-
-        {{-- Module Admin — admin seulement --}}
+        {{-- Après le bouton Accueil --}}
+<a href="{{ route('rh.alertes.index') }}" class="topbar-link" style="position:relative;">
+    🔔
+    @php
+        $nonLu = \App\Models\RH\Alerte::nonLu()->count();
+    @endphp
+    @if($nonLu > 0)
+        <span style="position:absolute;top:-6px;right:-6px;background:#dc2626;color:white;font-size:9px;padding:0 6px;border-radius:50%;min-width:18px;text-align:center;font-weight:700;">
+            {{ $nonLu > 99 ? '99+' : $nonLu }}
+        </span>
+    @endif
+</a>
         @if($role === 'admin')
-        <a href="{{ route('admin.dashboard') }}" class="topbar-link">⚙️ Admin</a>
+            <a href="{{ route('admin.dashboard') }}" class="topbar-link">⚙️ Admin</a>
         @endif
-
         <div class="topbar-user">
-            <span>👤</span>
-            <span style="font-size:12px;">{{ auth()->user()?->name }}</span>
-            <span class="role-badge" style="font-size:10px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;">
+            <div class="avatar">{{ strtoupper(substr(auth()->user()?->name ?? 'U', 0, 2)) }}</div>
+            <span class="user-name" style="font-size:12px;">{{ auth()->user()?->name }}</span>
+            <span style="font-size:9px;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;">
                 @if($role === 'admin') 🔴 Admin
                 @elseif($role === 'rh') 🟣 RH
                 @else 🟢 Commercial
@@ -547,8 +460,7 @@
             </span>
             <form method="POST" action="{{ route('logout') }}" style="display:inline;">
                 @csrf
-                <button type="submit"
-                        style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">
+                <button type="submit" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;transition:0.2s;">
                     Déconnexion
                 </button>
             </form>
@@ -556,34 +468,33 @@
     </div>
 </div>
 
-{{-- CONTENU --}}
+{{-- ============================================================
+     CONTENU
+     ============================================================ --}}
 <div class="content">
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" style="border-radius:12px;">
+            <i class="bi bi-check-circle-fill me-2" style="font-size:18px;"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show">
-            {{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" style="border-radius:12px;">
+            <i class="bi bi-exclamation-triangle-fill me-2" style="font-size:18px;"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
     @yield('content')
 </div>
 
-<div id="pwa-update-banner">
-    🔄 Mise à jour disponible
-    <button onclick="appliquerMAJ()"
-            style="background:white;color:#7c3aed;border:none;border-radius:8px;padding:5px 12px;font-weight:700;cursor:pointer;font-size:12px;">
-        Mettre à jour
-    </button>
-    <button onclick="document.getElementById('pwa-update-banner').style.display='none'"
-            style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:18px;padding:0;">✕</button>
-</div>
-
+{{-- ============================================================
+     SCRIPTS
+     ============================================================ --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// SPLASH
+// ===== SPLASH =====
 window.addEventListener('load', function() {
     const splash = document.getElementById('splash');
     if (!splash) return;
@@ -593,25 +504,29 @@ window.addEventListener('load', function() {
     }, 1000);
 });
 
-// SIDEBAR
+// ===== SIDEBAR =====
 function toggleGroup(id, btn) {
     const items = document.getElementById(id);
     const isOpen = items.classList.contains('open');
     document.querySelectorAll('.nav-group-items').forEach(el => el.classList.remove('open'));
-    document.querySelectorAll('.nav-group-btn').forEach(el   => el.classList.remove('open'));
+    document.querySelectorAll('.nav-group-btn').forEach(el => el.classList.remove('open'));
     if (!isOpen) { items.classList.add('open'); btn.classList.add('open'); }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const url = window.location.pathname;
     const map = {
-        'g-emp'  : '/rh/employes',
-        'g-paie' : '/rh/paie',
-        'g-abs'  : '/rh/absences',
-        'g-pret' : '/rh/prets',
-        'g-sanc' : '/rh/sanctions',
-        'g-ret'  : '/rh/retards',
-        'g-param': '/rh/directions',
+        'g-emp'   : '/rh/employes',
+        'g-contrat': '/rh/contrats',
+        'g-paie'  : '/rh/paie',
+        'g-cnps'  : '/rh/cnps',
+        'g-abs'   : '/rh/absences',
+        'g-conge' : '/rh/conges',
+        'g-ret'   : '/rh/retards',
+        'g-pret'  : '/rh/prets',
+        'g-sanc'  : '/rh/sanctions',
+        'g-depart': '/rh/departs',
+        'g-param' : '/rh/directions',
     };
     Object.entries(map).forEach(([id, prefix]) => {
         if (url.includes(prefix)) {
@@ -635,25 +550,36 @@ function fermerSidebar() {
     document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
-// PWA
+// ===== MODALS =====
+function openModal(id) {
+    const overlay = document.getElementById('overlay' + id.charAt(0).toUpperCase() + id.slice(1));
+    if (overlay) overlay.style.display = 'block';
+    document.getElementById(id).style.display = 'block';
+}
+function closeModal(id) {
+    const overlay = document.getElementById('overlay' + id.charAt(0).toUpperCase() + id.slice(1));
+    if (overlay) overlay.style.display = 'none';
+    document.getElementById(id).style.display = 'none';
+}
+function closeAll() {
+    document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.modal-box').forEach(el => el.style.display = 'none');
+}
+
+// ===== PWA UPDATE =====
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(reg => {
             reg.addEventListener('updatefound', () => {
                 const nw = reg.installing;
                 nw.addEventListener('statechange', () => {
-                    if (nw.state === 'installed' && navigator.serviceWorker.controller)
+                    if (nw.state === 'installed' && navigator.serviceWorker.controller) {
                         document.getElementById('pwa-update-banner').style.display = 'flex';
+                    }
                 });
             });
         }).catch(e => console.warn('SW:', e));
     });
-}
-function appliquerMAJ() {
-    navigator.serviceWorker.getRegistration().then(reg => {
-        if (reg?.waiting) reg.waiting.postMessage('skipWaiting');
-    });
-    window.location.reload();
 }
 </script>
 

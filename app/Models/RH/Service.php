@@ -9,4 +9,9 @@ class Service extends Model
 
     public function direction() { return $this->belongsTo(Direction::class, 'direction_id'); }
     public function employes()  { return $this->hasMany(Employe::class, 'service_id'); }
+
+     public function horaires()
+    {
+        return $this->hasMany(HoraireService::class, 'service_id');
+    }
 }

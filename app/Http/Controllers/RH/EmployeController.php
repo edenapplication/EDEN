@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\RH;
 
 use App\Http\Controllers\Controller;
@@ -7,6 +8,8 @@ use App\Models\RH\Direction;
 use App\Models\RH\Service;
 use App\Models\RH\Poste;
 use App\Models\RH\EmployeDocument;
+use App\Models\RH\AgenceSite;
+use App\Models\RH\NiveauCheleon;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
@@ -24,75 +27,81 @@ class EmployeController extends Controller
             'vagues'      => ['VAGUE 1', 'VAGUE 2'],
             'situations'  => ['Marié(e)', 'Célibataire', 'Fiancé(e)', 'Divorcé(e)', 'Veuf(ve)'],
             'niveaux'     => ['BACC+5', 'BACC+4', 'BACC+3', 'BACC+2', 'BACC', 'BEP', 'CAP', 'BEPC', 'SANS'],
+            // ===== NOUVEAUX PARAMÈTRES =====
+            'agences'     => AgenceSite::orderBy('nom')->get(),
+            'niveaux_chelons' => NiveauCheleon::orderBy('ordre')->get(),
+            'modes_paiement' => ['VIREMENT', 'CHEQUE', 'ESPECES'],
+            'responsables' => Employe::where('actif', true)->orderBy('nom')->get(),
+            'situations_cnps' => ['affilie', 'non_affilie', 'en_cours', 'radie'],
         ];
     }
 
-   public function index(Request $request)
-{
-    $query = Employe::with(['direction', 'service', 'poste']);
+    public function index(Request $request)
+    {
+        $query = Employe::with(['direction', 'service', 'poste']);
 
-    if ($request->filled('search'))
-        $query->where(fn($q) => $q
-            ->where('nom',        'LIKE', "%{$request->search}%")
-            ->orWhere('prenom',   'LIKE', "%{$request->search}%")
-            ->orWhere('matricule','LIKE', "%{$request->search}%")
-            ->orWhere('telephone','LIKE', "%{$request->search}%")
-        );
+        if ($request->filled('search'))
+            $query->where(fn($q) => $q
+                ->where('nom',        'LIKE', "%{$request->search}%")
+                ->orWhere('prenom',   'LIKE', "%{$request->search}%")
+                ->orWhere('matricule','LIKE', "%{$request->search}%")
+                ->orWhere('telephone','LIKE', "%{$request->search}%")
+            );
 
-    if ($request->filled('direction_id'))
-        $query->where('direction_id', $request->direction_id);
-    if ($request->filled('type_contrat'))
-        $query->where('type_contrat', $request->type_contrat);
-    if ($request->filled('vague'))
-        $query->where('vague_paiement', $request->vague);
+        if ($request->filled('direction_id'))
+            $query->where('direction_id', $request->direction_id);
+        if ($request->filled('type_contrat'))
+            $query->where('type_contrat', $request->type_contrat);
+        if ($request->filled('vague'))
+            $query->where('vague_paiement', $request->vague);
 
-    // Statut : actif par défaut, inactif si demandé
-    $showInactif = $request->statut === 'inactif';
-    $query->where('actif', !$showInactif);
+        // Statut : actif par défaut, inactif si demandé
+        $showInactif = $request->statut === 'inactif';
+        $query->where('actif', !$showInactif);
 
-    $employes   = $query->orderBy('nom')->paginate(20)->withQueryString();
-    $directions = Direction::orderBy('nom')->get();
+        $employes   = $query->orderBy('nom')->paginate(20)->withQueryString();
+        $directions = Direction::orderBy('nom')->get();
 
-    // ✅ Stats globales (tous employés actifs)
-    $stats = [
-        'total'  => Employe::where('actif', true)->count(),
-        'hommes' => Employe::where('actif', true)->where('sexe', 'M')->count(),
-        'femmes' => Employe::where('actif', true)->where('sexe', 'F')->count(),
-        'cdi'    => Employe::where('actif', true)->where('type_contrat', 'CDI')->count(),
-        'archives'=> Employe::where('actif', false)->count(),
-    ];
+        // Stats globales (tous employés actifs)
+        $stats = [
+            'total'  => Employe::where('actif', true)->count(),
+            'hommes' => Employe::where('actif', true)->where('sexe', 'M')->count(),
+            'femmes' => Employe::where('actif', true)->where('sexe', 'F')->count(),
+            'cdi'    => Employe::where('actif', true)->where('type_contrat', 'CDI')->count(),
+            'archives'=> Employe::where('actif', false)->count(),
+        ];
 
-    // ✅ Stats du filtre courant (résultats filtrés avant pagination)
-    $queryFiltre = Employe::query();
-    if ($request->filled('search'))
-        $queryFiltre->where(fn($q) => $q
-            ->where('nom',        'LIKE', "%{$request->search}%")
-            ->orWhere('prenom',   'LIKE', "%{$request->search}%")
-            ->orWhere('matricule','LIKE', "%{$request->search}%")
-        );
-    if ($request->filled('direction_id'))
-        $queryFiltre->where('direction_id', $request->direction_id);
-    if ($request->filled('type_contrat'))
-        $queryFiltre->where('type_contrat', $request->type_contrat);
-    if ($request->filled('vague'))
-        $queryFiltre->where('vague_paiement', $request->vague);
-    $queryFiltre->where('actif', !$showInactif);
+        // Stats du filtre courant (résultats filtrés avant pagination)
+        $queryFiltre = Employe::query();
+        if ($request->filled('search'))
+            $queryFiltre->where(fn($q) => $q
+                ->where('nom',        'LIKE', "%{$request->search}%")
+                ->orWhere('prenom',   'LIKE', "%{$request->search}%")
+                ->orWhere('matricule','LIKE', "%{$request->search}%")
+            );
+        if ($request->filled('direction_id'))
+            $queryFiltre->where('direction_id', $request->direction_id);
+        if ($request->filled('type_contrat'))
+            $queryFiltre->where('type_contrat', $request->type_contrat);
+        if ($request->filled('vague'))
+            $queryFiltre->where('vague_paiement', $request->vague);
+        $queryFiltre->where('actif', !$showInactif);
 
-    $employes_filtres = $queryFiltre->get();
-    $statsFiltre = [
-        'total'  => $employes_filtres->count(),
-        'hommes' => $employes_filtres->where('sexe', 'M')->count(),
-        'femmes' => $employes_filtres->where('sexe', 'F')->count(),
-        'cdi'    => $employes_filtres->where('type_contrat', 'CDI')->count(),
-    ];
+        $employes_filtres = $queryFiltre->get();
+        $statsFiltre = [
+            'total'  => $employes_filtres->count(),
+            'hommes' => $employes_filtres->where('sexe', 'M')->count(),
+            'femmes' => $employes_filtres->where('sexe', 'F')->count(),
+            'cdi'    => $employes_filtres->where('type_contrat', 'CDI')->count(),
+        ];
 
-    $filtreActif = $request->filled('search') || $request->filled('direction_id')
-                || $request->filled('type_contrat') || $request->filled('vague');
+        $filtreActif = $request->filled('search') || $request->filled('direction_id')
+                    || $request->filled('type_contrat') || $request->filled('vague');
 
-    return view('rh.employes.index', compact(
-        'employes', 'directions', 'stats', 'statsFiltre', 'filtreActif', 'showInactif'
-    ));
-}
+        return view('rh.employes.index', compact(
+            'employes', 'directions', 'stats', 'statsFiltre', 'filtreActif', 'showInactif'
+        ));
+    }
 
     public function create()
     {
@@ -101,34 +110,43 @@ class EmployeController extends Controller
         return view('rh.employes.create', compact('options', 'matricule'));
     }
 
-   public function store(Request $request)
-{
-    $request->validate([
-        'nom'              => 'required|string|max:100',
-        'prenom'           => 'required|string|max:100',
-        'sexe'             => 'required|in:M,F',
-        'date_integration' => 'required|date',
-        'type_contrat'     => 'required',
-        'salaire_base'     => 'required|numeric|min:0',
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            // ===== CHAMPS OBLIGATOIRES =====
+            'nom'              => 'required|string|max:100',
+            'prenom'           => 'required|string|max:100',
+            'sexe'             => 'required|in:M,F',
+            'date_integration' => 'required|date',
+            'type_contrat'     => 'required',
+            'salaire_base'     => 'required|numeric|min:0',
 
-    // ✅ Créer sans matricule d'abord pour obtenir l'ID
-    $employe = Employe::create(array_merge(
-        $request->all(),
-        ['matricule' => 'TEMP'] // temporaire
-    ));
+            // ===== NOUVEAUX CHAMPS (optionnels) =====
+            'email' => 'nullable|email|max:150',
+            'date_prise_fonction' => 'nullable|date',
+            'date_fin_periode_essai' => 'nullable|date|after:date_integration',
+            'numero_cnps' => 'nullable|string|max:50',
+            'date_affiliation_cnps' => 'nullable|date',
+        ]);
 
-    // ✅ Générer le matricule avec l'ID réel
-    $employe->matricule = Employe::genererMatricule($employe->id, $request->date_integration);
-    $employe->save();
+        // Créer sans matricule d'abord pour obtenir l'ID
+        $employe = Employe::create(array_merge(
+            $request->all(),
+            ['matricule' => 'TEMP'] // temporaire
+        ));
 
-    return redirect()->route('rh.employes.show', $employe->id)
-                     ->with('success', 'Employé créé — Matricule : ' . $employe->matricule);
-}
+        // Générer le matricule avec l'ID réel
+        $employe->matricule = Employe::genererMatricule($employe->id, $request->date_integration);
+        $employe->save();
+
+        return redirect()->route('rh.employes.show', $employe->id)
+                         ->with('success', 'Employé créé — Matricule : ' . $employe->matricule);
+    }
 
     public function show($id)
     {
         $employe = Employe::with([
+            // ===== RELATIONS EXISTANTES =====
             'direction', 'service', 'poste',
             'documents',
             'bulletins'  => fn($q) => $q->orderBy('periode', 'desc')->limit(6),
@@ -136,6 +154,12 @@ class EmployeController extends Controller
             'prets'      => fn($q) => $q->where('statut', 'en_cours'),
             'sanctions'  => fn($q) => $q->orderBy('date', 'desc')->limit(5),
             'retards'    => fn($q) => $q->orderByDesc('date')->limit(10),
+
+            // ===== NOUVELLES RELATIONS =====
+            'agenceSite',
+            'niveauCheleon',
+            'responsableHierarchique',
+            'subordonnes',
         ])->findOrFail($id);
 
         $totalAbsences   = $employe->absences->sum('nombre_jours');
@@ -147,47 +171,87 @@ class EmployeController extends Controller
 
     public function edit($id)
     {
-        $employe = Employe::findOrFail($id);
+        $employe = Employe::with([
+            'direction', 'service', 'poste',
+            'agenceSite',
+            'niveauCheleon',
+            'responsableHierarchique',
+        ])->findOrFail($id);
+        
         $options = $this->options();
         return view('rh.employes.edit', compact('employe', 'options'));
     }
 
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'nom'              => 'required|string|max:100',
+            'prenom'           => 'required|string|max:100',
+            'sexe'             => 'required|in:M,F',
+            'date_integration' => 'required|date',
+            'type_contrat'     => 'required',
+            'salaire_base'     => 'required|numeric|min:0',
+            'email' => 'nullable|email|max:150',
+            'date_prise_fonction' => 'nullable|date',
+            'date_fin_periode_essai' => 'nullable|date|after:date_integration',
+            'numero_cnps' => 'nullable|string|max:50',
+            'date_affiliation_cnps' => 'nullable|date',
+        ]);
+
         $employe = Employe::findOrFail($id);
         $employe->update($request->all());
+
         return redirect()->route('rh.employes.show', $id)->with('success', 'Mis à jour');
     }
 
     public function destroy($id)
     {
         $employe = Employe::findOrFail($id);
-        $employe->update(['actif' => false, 'date_sortie' => now()]);
+        $employe->update([
+            'actif' => false,
+            'date_sortie' => now()
+        ]);
         return back()->with('success', 'Employé archivé');
     }
 
     public function export(Request $request)
     {
-        $employes = Employe::with(['direction', 'service'])->where('actif', true)->get();
+        $employes = Employe::with(['direction', 'service', 'agenceSite'])
+                    ->where('actif', true)
+                    ->get();
+                    
         if ($request->type === 'pdf') {
             $pdf = Pdf::loadView('rh.employes.pdf', compact('employes'))->setPaper('a4', 'landscape');
             return $pdf->download('employes_' . now()->format('Y-m-d') . '.pdf');
         }
+        
         $callback = function() use ($employes) {
             $f = fopen('php://output', 'w');
             fprintf($f, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($f, ['Matricule','Nom','Prénom','Sexe','Direction','Poste','Contrat','Catégorie','Date intégration','Salaire base','Vague'], ';');
+            fputcsv($f, [
+                'Matricule','Nom','Prénom','Sexe','Direction','Poste','Contrat',
+                'Catégorie','Date intégration','Salaire base','Vague','N° CNPS','Email'
+            ], ';');
             foreach ($employes as $e) {
                 fputcsv($f, [
-                    $e->matricule, $e->nom, $e->prenom, $e->sexe,
-                    $e->direction?->nom ?? '-', $e->intitule_poste ?? '-',
-                    $e->type_contrat, $e->categorie ?? '-',
+                    $e->matricule,
+                    $e->nom,
+                    $e->prenom,
+                    $e->sexe,
+                    $e->direction?->nom ?? '-',
+                    $e->intitule_poste ?? '-',
+                    $e->type_contrat,
+                    $e->categorie ?? '-',
                     $e->date_integration?->format('d/m/Y'),
-                    $e->salaire_base, $e->vague_paiement ?? '-',
+                    $e->salaire_base,
+                    $e->vague_paiement ?? '-',
+                    $e->numero_cnps ?? '-',
+                    $e->email ?? '-',
                 ], ';');
             }
             fclose($f);
         };
+        
         return response()->stream($callback, 200, [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="employes_' . now()->format('Y-m-d') . '.csv"',
@@ -202,7 +266,7 @@ class EmployeController extends Controller
         $request->validate(['photo' => 'required|image|max:2048']);
         $employe = Employe::findOrFail($id);
 
-        // ✅ Supprimer l'ancienne photo si elle existe
+        // Supprimer l'ancienne photo si elle existe
         if ($employe->photo_path && Storage::disk('public')->exists($employe->photo_path)) {
             Storage::disk('public')->delete($employe->photo_path);
         }
@@ -218,7 +282,8 @@ class EmployeController extends Controller
     public function pdfFiche($id)
     {
         $employe = Employe::with([
-            'direction', 'service', 'poste',
+            'direction', 'service', 'poste', 'agenceSite', 'niveauCheleon',
+            'responsableHierarchique',
             'bulletins' => fn($q) => $q->orderBy('periode', 'desc')->limit(6),
             'absences'  => fn($q) => $q->orderBy('date_debut', 'desc')->limit(10),
             'prets'     => fn($q) => $q->where('statut', 'en_cours'),
