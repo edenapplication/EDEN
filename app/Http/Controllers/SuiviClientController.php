@@ -349,8 +349,11 @@ class SuiviClientController extends Controller
         }
     }
 
-    public function show($id)
-    {
+   // App\Http\Controllers\SuiviClientController.php
+
+public function show($id)
+{
+    try {
         $client = Client::with([
             'dossiers.commercial',
             'dossiers.conducteur',
@@ -372,11 +375,30 @@ class SuiviClientController extends Controller
             'visites.site',
         ])->findOrFail($id);
 
+        // ✅ Récupérer le premier dossier OU null si aucun
         $dossier = $client->dossiers->first();
+        
+        // ✅ Si pas de dossier, on passe une collection vide
         $affectations = $dossier ? $dossier->affectations : collect();
 
+        // ✅ Vérifier les CNI (si dossier existe)
+        if ($dossier && $dossier->cni_images) {
+            $cnisValides = [];
+            foreach ($dossier->cni_images as $img) {
+                if (file_exists(storage_path('app/public/' . $img))) {
+                    $cnisValides[] = $img;
+                }
+            }
+            $dossier->cni_images = $cnisValides;
+        }
+
         return view('admin.suivi_client.show', compact('client', 'affectations', 'dossier'));
+
+    } catch (\Exception $e) {
+        Log::error('Erreur show client ' . $id . ': ' . $e->getMessage());
+        return back()->with('error', 'Erreur lors du chargement du client: ' . $e->getMessage());
     }
+}
 
     public function edit(Request $request, $id)
     {

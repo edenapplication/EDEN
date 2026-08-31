@@ -144,8 +144,10 @@
                 🔄 Marquer nouveau
             @endif
         </button>
-        <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}"
-           class="btn btn-primary btn-sm">📂 Nouveau dossier</a>
+        @if($dossier)
+            <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}"
+               class="btn btn-primary btn-sm">📂 Nouveau dossier</a>
+        @endif
         <a href="{{ route('suivi-client.edit', $client->id) }}" class="btn btn-warning btn-sm">✏️ Modifier</a>
     </div>
 </div>
@@ -214,6 +216,7 @@
 @endif
 
 {{-- ✅ FORMULAIRE AFFECTATION LINÉAIRE --}}
+@if($dossier)
 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-top:14px;border:1px solid #e2e8f0;">
     <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:12px;">
         ➕ Affecter des lots à ce dossier
@@ -279,10 +282,12 @@
         </span>
     </div>
 </div>
+@endif
 
 {{-- ============================================================
      BLOC ÉTAPES DU DOSSIER - VERSION 4 (AVEC MODAL)
      ============================================================ --}}
+@if($dossier)
 @php
     $etapesConfig = \App\Models\DossierClient::etapesConfig();
     $etapesOrdre  = \App\Models\DossierClient::etapesOrdre();
@@ -333,6 +338,7 @@
         @endforeach
     </div>
 </div>
+@endif
 
     </div>
 
@@ -349,376 +355,400 @@
         </div>
         @endif
 
-        @foreach($client->dossiers as $i => $dossier)
-        <div id="dossier-{{ $dossier->id }}" class="dossier-panel" style="{{ $i > 0 ? 'display:none;' : '' }}">
+        @if($dossier)
+            @foreach($client->dossiers as $i => $dossier)
+            <div id="dossier-{{ $dossier->id }}" class="dossier-panel" style="{{ $i > 0 ? 'display:none;' : '' }}">
 
-            <div class="section-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
-                    <div class="d-flex gap-1">
-                        <a href="{{ route('bons.index', $dossier->id) }}"
-                           class="btn btn-outline-primary btn-sm" style="font-size:11px;">
-                            🧾 {{ $dossier->bons->count() }} bon(s)
-                        </a>
-                        <a href="#" 
-                           class="btn btn-primary btn-sm" style="font-size:11px;"
-                           onclick="demanderReferenceCreate({{ $dossier->id }})">
-                            + Nouveau paiement
-                        </a>
-                        <form action="{{ route('suivi-client.dossiers.destroy', $dossier->id) }}"
-                              method="POST"
-                              onsubmit="return confirm('Supprimer ce dossier ?')"
-                              style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-danger btn-sm">🗑 Supprimer</button>
-                        </form>
+                <div class="section-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
+                        <div class="d-flex gap-1">
+                            <a href="{{ route('bons.index', $dossier->id) }}"
+                               class="btn btn-outline-primary btn-sm" style="font-size:11px;">
+                                🧾 {{ $dossier->bons->count() }} bon(s)
+                            </a>
+                            <a href="#" 
+                               class="btn btn-primary btn-sm" style="font-size:11px;"
+                               onclick="demanderReferenceCreate({{ $dossier->id }})">
+                                + Nouveau paiement
+                            </a>
+                            <form action="{{ route('suivi-client.dossiers.destroy', $dossier->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Supprimer ce dossier ?')"
+                                  style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-danger btn-sm">🗑 Supprimer</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="info-row"><span>🔗 Facilitateur</span>
+                        <span>{{ $dossier->facilitateur?->nom ?? '-' }}
+                            @if($dossier->facilitateur?->numero) ({{ $dossier->facilitateur->numero }}) @endif
+                        </span>
+                    </div>
+                    <div class="info-row"><span>🧭 Direction</span>
+                        <span>{{ match($dossier->direction) { 'baffoussam'=>'Baffoussam','bagante'=>'Bagante','direction_generale'=>'Direction Générale',default=>'-' } }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>📎 CNI</span>
+                        <span>
+                            @php
+                                $cnis = $dossier->cni_images ?? [];
+                            @endphp
+                            @if(count($cnis) > 0)
+                                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                                    @foreach($cnis as $img)
+                                        <a href="{{ asset('storage/' . $img) }}" target="_blank" 
+                                           style="display:inline-block; width:30px; height:30px; border-radius:4px; overflow:hidden; border:1px solid #e2e8f0;">
+                                            <img src="{{ asset('storage/' . $img) }}" 
+                                                 alt="CNI" 
+                                                 style="width:100%; height:100%; object-fit:cover;">
+                                        </a>
+                                    @endforeach
+                                    <span style="font-size:11px; color:#64748b; margin-left:4px;">
+                                        ({{ count($cnis) }})
+                                    </span>
+                                </div>
+                            @else
+                                <span style="color:#94a3b8;">Aucune</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div class="info-row"><span>🧑‍💼 Commercial</span>
+                        <span>{{ $dossier->commercial?->name ?? '-' }}
+                            @if($dossier->commercial?->phone) ({{ $dossier->commercial->phone }}) @endif
+                        </span>
+                    </div>
+                    <div class="info-row"><span>🤝 Agent commercial</span>
+                        <span>{{ $dossier->agentCommercial?->nom ?? '-' }}
+                            @if($dossier->agentCommercial?->numero) ({{ $dossier->agentCommercial->numero }}) @endif
+                        </span>
+                    </div>
+                    <div class="info-row"><span>🚗 Chauffeur</span>
+                        <span>{{ $dossier->conducteur?->nom ?? '-' }}
+                            @if($dossier->conducteur?->numero) ({{ $dossier->conducteur->numero }}) @endif
+                        </span>
+                    </div>
+                    <div class="info-row"><span>🏢 Grand Site souhaité</span>
+                        <span>{{ $dossier->grandSite?->nom ?? '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>📐 Superficie voulue</span>
+                        <span>{{ $dossier->superficie_voulue ? number_format($dossier->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix superficie</span>
+                        <span>{{ $dossier->prix_superficie ? number_format($dossier->prix_superficie, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix technique</span>
+                        <span>{{ $dossier->prix_technique ? number_format($dossier->prix_technique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix logistique</span>
+                        <span>{{ $dossier->prix_logistique ? number_format($dossier->prix_logistique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix morcellement</span>
+                        <span>{{ $dossier->prix_morcellement ? number_format($dossier->prix_morcellement, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+
+                    {{-- ============================================================
+                         ✅ TROIS BLOCS DE PAIEMENT DISTINCTS
+                         ============================================================ --}}
+
+                    @php
+                        $totalDossier   = $dossier->paiements->sum('montant');
+                        $prixRef        = $dossier->prix_superficie    ?? 0;
+                        $resteDossier   = max(0, $prixRef - $totalDossier);
+                        $prixTech       = $dossier->prix_technique     ?? 0;
+                        $prixMorcel     = $dossier->prix_morcellement  ?? 0;
+                        $prixLogistique = $dossier->prix_logistique    ?? 0;
+                        $totalTechnique = $dossier->paiementsTechniques->sum('montant');
+                        $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
+                        $totalLogistique= $dossier->paiementsLogistiques?->sum('montant') ?? 0;
+                        $resteTech      = max(0, $prixTech - $totalTechnique);
+                        $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
+                        $resteLogistique= max(0, $prixLogistique - $totalLogistique);
+                        $affectations = $dossier->affectations ?? collect();
+                    @endphp
+
+                    {{-- Prix de référence configurables --}}
+                    <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #e2e8f0;">
+                        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px;">
+                            💰 Prix de référence du dossier
+                        </div>
+                        <div class="row g-2">
+
+                            <div class="col-md-3">
+                                <label style="font-size:11px;color:#64748b;">💰 Prix superficie (FCFA)</label>
+                                <div style="display:flex;gap:6px;">
+                                    <input type="number" id="prix-superficie-{{ $dossier->id }}"
+                                           class="form-control form-control-sm"
+                                           value="{{ $prixRef }}" placeholder="0">
+                                    <button onclick="majPrix({{ $dossier->id }})"
+                                            class="btn btn-primary btn-sm" style="font-size:11px;flex-shrink:0;">✓</button>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label style="font-size:11px;color:#ea580c;">🛠️ Prix technique (FCFA)</label>
+                                <div style="display:flex;gap:6px;">
+                                    <input type="number" id="prix-technique-{{ $dossier->id }}"
+                                           class="form-control form-control-sm"
+                                           value="{{ $prixTech }}" placeholder="0">
+                                    <button onclick="majPrix({{ $dossier->id }})"
+                                            class="btn btn-warning btn-sm" style="font-size:11px;flex-shrink:0;">✓</button>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label style="font-size:11px;color:#7c3aed;">🚗 Prix logistique (FCFA)</label>
+                                <div style="display:flex;gap:6px;">
+                                    <input type="number" id="prix-logistique-{{ $dossier->id }}"
+                                           class="form-control form-control-sm"
+                                           value="{{ $prixLogistique ?? $dossier->prix_logistique ?? 0 }}" placeholder="0">
+                                    <button onclick="majPrix({{ $dossier->id }})"
+                                            class="btn btn-sm" style="background:#7c3aed;color:white;font-size:11px;flex-shrink:0;">✓</button>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label style="font-size:11px;color:#ca8a04;">Prix morcellement (FCFA)</label>
+                                <div style="display:flex;gap:6px;">
+                                    <input type="number" id="prix-morcellement-{{ $dossier->id }}"
+                                           class="form-control form-control-sm"
+                                           value="{{ $prixMorcel }}" placeholder="0">
+                                    <button onclick="majPrix({{ $dossier->id }})"
+                                            class="btn btn-sm" style="background:#ca8a04;color:white;font-size:11px;flex-shrink:0;">✓</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {{-- 3 BLOCS PAIEMENTS --}}
+                    <div class="paiement-blocs">
+
+                        {{-- BLOC DOSSIER --}}
+                        <div class="paiement-bloc bloc-dossier">
+                            <h6 style="color:#0d6efd;">
+                                📁 Paiement Parcelle
+                            </h6>
+                            @if($prixRef > 0)
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Référence</span>
+                                <span style="font-weight:600;">{{ number_format($prixRef, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            @endif
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Payé</span>
+                                <span class="pay-amt" style="color:#16a34a;">{{ number_format($totalDossier, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Reste</span>
+                                <span style="font-weight:700;color:{{ $resteDossier > 0 ? '#dc2626' : '#16a34a' }};">
+                                    {{ number_format($resteDossier, 0, ',', ' ') }} FCFA
+                                </span>
+                            </div>
+                            @if($prixRef > 0)
+                            <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+                                @php $pct = $prixRef > 0 ? min(100, round(($totalDossier/$prixRef)*100)) : 0; @endphp
+                                <div style="width:{{ $pct }}%;height:100%;background:#0d6efd;border-radius:3px;"></div>
+                            </div>
+                            <div style="font-size:10px;text-align:right;color:#0d6efd;font-weight:700;">{{ $pct }}%</div>
+                            @endif
+                            <div class="pay-historique">
+                                @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                        
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;">
+                                    {{ $p->date_paiement }}
+                                </div>
+
+                                @if($p->note)
+                                    <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
+                                        {{ $p->note }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                <span class="pay-amt" style="color:#16a34a;font-weight:700;">
+                                    {{ number_format($p->montant,0,',',' ') }}
+                                </span>
+
+                                <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit"
+                                            onclick="return confirm('Supprimer ce paiement ?')"
+                                            style="background:none;border:none;color:#dc2626;cursor:pointer;">
+                                        🗑
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                                @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- BLOC TECHNIQUE --}}
+                        <div class="paiement-bloc bloc-technique">
+                            <h6 style="color:#ea580c;">
+                                🛠️ Paiement Technique
+                            </h6>
+                            @if($prixTech > 0)
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Référence</span>
+                                <span style="font-weight:600;">{{ number_format($prixTech, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            @endif
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Payé</span>
+                                <span class="pay-amt" style="color:#ea580c;">{{ number_format($totalTechnique, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Reste</span>
+                                <span style="font-weight:700;color:{{ $resteTech > 0 ? '#dc2626' : '#16a34a' }};">
+                                    {{ number_format($resteTech, 0, ',', ' ') }} FCFA
+                                </span>
+                            </div>
+                            @if($prixTech > 0)
+                            <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+                                @php $pctT = $prixTech > 0 ? min(100, round(($totalTechnique/$prixTech)*100)) : 0; @endphp
+                                <div style="width:{{ $pctT }}%;height:100%;background:#ea580c;border-radius:3px;"></div>
+                            </div>
+                            <div style="font-size:10px;text-align:right;color:#ea580c;font-weight:700;">{{ $pctT }}%</div>
+                            @endif
+                            <div class="pay-historique">
+                                @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                        
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;">
+                                    {{ $p->date_paiement }}
+                                </div>
+
+                                @if($p->note)
+                                    <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
+                                        {{ $p->note }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                <span class="pay-amt" style="color:#16a34a;font-weight:700;">
+                                    {{ number_format($p->montant,0,',',' ') }}
+                                </span>
+
+                                <form action="{{ route('paiements-techniques.destroy', $p->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit"
+                                            onclick="return confirm('Supprimer ce paiement ?')"
+                                            style="background:none;border:none;color:#dc2626;cursor:pointer;">
+                                        🗑
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                                @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- BLOC MORCELLEMENT --}}
+                        <div class="paiement-bloc bloc-morcel">
+                            <h6 style="color:#ca8a04;">
+                            Paiement Morcellement
+                            </h6>
+                            @if($prixMorcel > 0)
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Référence</span>
+                                <span style="font-weight:600;">{{ number_format($prixMorcel, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            @endif
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Payé</span>
+                                <span class="pay-amt" style="color:#ca8a04;">{{ number_format($totalMorcel, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Reste</span>
+                                <span style="font-weight:700;color:{{ $resteMorcel > 0 ? '#dc2626' : '#16a34a' }};">
+                                    {{ number_format($resteMorcel, 0, ',', ' ') }} FCFA
+                                </span>
+                            </div>
+                            @if($prixMorcel > 0)
+                            <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+                                @php $pctM = $prixMorcel > 0 ? min(100, round(($totalMorcel/$prixMorcel)*100)) : 0; @endphp
+                                <div style="width:{{ $pctM }}%;height:100%;background:#ca8a04;border-radius:3px;"></div>
+                            </div>
+                            <div style="font-size:10px;text-align:right;color:#ca8a04;font-weight:700;">{{ $pctM }}%</div>
+                            @endif
+                            <div class="pay-historique">
+                                @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                        
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12px;">
+                                    {{ $p->date_paiement }}
+                                </div>
+
+                                @if($p->note)
+                                    <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
+                                        {{ $p->note }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                <span class="pay-amt" style="color:#16a34a;font-weight:700;">
+                                    {{ number_format($p->montant,0,',',' ') }}
+                                </span>
+
+                                <form action="{{ route('paiements-morcellements.destroy', $p->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit"
+                                            onclick="return confirm('Supprimer ce paiement ?')"
+                                            style="background:none;border:none;color:#dc2626;cursor:pointer;">
+                                        🗑
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                                @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                                @endforelse
+                            </div>
+                        </div>
+
                     </div>
                 </div>
-
-                <div class="info-row"><span>🔗 Facilitateur</span>
-                    <span>{{ $dossier->facilitateur?->nom ?? '-' }}
-                        @if($dossier->facilitateur?->numero) ({{ $dossier->facilitateur->numero }}) @endif
-                    </span>
-                </div>
-                <div class="info-row"><span>🧭 Direction</span>
-                    <span>{{ match($dossier->direction) { 'baffoussam'=>'Baffoussam','bagante'=>'Bagante','direction_generale'=>'Direction Générale',default=>'-' } }}</span>
-                </div>
-                <div class="info-row">
-    <span>📎 CNI</span>
-    <span>
-        @php
-            $cnis = $dossier->cni_images ?? [];
-        @endphp
-        @if(count($cnis) > 0)
-            <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
-                @foreach($cnis as $img)
-                    <a href="{{ asset('storage/' . $img) }}" target="_blank" 
-                       style="display:inline-block; width:30px; height:30px; border-radius:4px; overflow:hidden; border:1px solid #e2e8f0;">
-                        <img src="{{ asset('storage/' . $img) }}" 
-                             alt="CNI" 
-                             style="width:100%; height:100%; object-fit:cover;">
-                    </a>
-                @endforeach
-                <span style="font-size:11px; color:#64748b; margin-left:4px;">
-                    ({{ count($cnis) }})
-                </span>
             </div>
+            @endforeach
         @else
-            <span style="color:#94a3b8;">Aucune</span>
-        @endif
-    </span>
-</div>
-                <div class="info-row"><span>🧑‍💼 Commercial</span>
-                    <span>{{ $dossier->commercial?->name ?? '-' }}
-                        @if($dossier->commercial?->phone) ({{ $dossier->commercial->phone }}) @endif
-                    </span>
-                </div>
-                <div class="info-row"><span>🤝 Agent commercial</span>
-                    <span>{{ $dossier->agentCommercial?->nom ?? '-' }}
-                        @if($dossier->agentCommercial?->numero) ({{ $dossier->agentCommercial->numero }}) @endif
-                    </span>
-                </div>
-                <div class="info-row"><span>🚗 Chauffeur</span>
-                    <span>{{ $dossier->conducteur?->nom ?? '-' }}
-                        @if($dossier->conducteur?->numero) ({{ $dossier->conducteur->numero }}) @endif
-                    </span>
-                </div>
-                <div class="info-row"><span>🏢 Grand Site souhaité</span>
-                    <span>{{ $dossier->grandSite?->nom ?? '-' }}</span>
-                </div>
-                <div class="info-row"><span>📐 Superficie voulue</span>
-                    <span>{{ $dossier->superficie_voulue ? number_format($dossier->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
-                </div>
-                <div class="info-row"><span>💰 Prix superficie</span>
-                    <span>{{ $dossier->prix_superficie ? number_format($dossier->prix_superficie, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                </div>
-
-                {{-- ============================================================
-                     ✅ TROIS BLOCS DE PAIEMENT DISTINCTS
-                     ============================================================ --}}
-
-@php
-    $totalDossier   = $dossier->paiements->sum('montant');
-    $prixRef        = $dossier->prix_superficie    ?? 0;
-    $resteDossier   = max(0, $prixRef - $totalDossier);
-    $prixTech       = $dossier->prix_technique     ?? 0;
-    $prixMorcel     = $dossier->prix_morcellement  ?? 0;
-    $prixLogistique = $dossier->prix_logistique    ?? 0;
-    $totalTechnique = $dossier->paiementsTechniques->sum('montant');
-    $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
-    $totalLogistique= $dossier->paiementsLogistiques?->sum('montant') ?? 0;
-    $resteTech      = max(0, $prixTech - $totalTechnique);
-    $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
-    $resteLogistique= max(0, $prixLogistique - $totalLogistique);
-    $affectations = $dossier->affectations ?? collect();
-@endphp
-
-{{-- Prix de référence configurables --}}
-<div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #e2e8f0;">
-    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px;">
-        💰 Prix de référence du dossier
-    </div>
-    <div class="row g-2">
-
-        <div class="col-md-3">
-            <label style="font-size:11px;color:#64748b;">💰 Prix superficie (FCFA)</label>
-            <div style="display:flex;gap:6px;">
-                <input type="number" id="prix-superficie-{{ $dossier->id }}"
-                       class="form-control form-control-sm"
-                       value="{{ $prixRef }}" placeholder="0">
-                <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-primary btn-sm" style="font-size:11px;flex-shrink:0;">✓</button>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <label style="font-size:11px;color:#ea580c;">🛠️ Prix technique (FCFA)</label>
-            <div style="display:flex;gap:6px;">
-                <input type="number" id="prix-technique-{{ $dossier->id }}"
-                       class="form-control form-control-sm"
-                       value="{{ $prixTech }}" placeholder="0">
-                <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-warning btn-sm" style="font-size:11px;flex-shrink:0;">✓</button>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <label style="font-size:11px;color:#7c3aed;">🚗 Prix logistique (FCFA)</label>
-            <div style="display:flex;gap:6px;">
-                <input type="number" id="prix-logistique-{{ $dossier->id }}"
-                       class="form-control form-control-sm"
-                       value="{{ $prixLogistique ?? $dossier->prix_logistique ?? 0 }}" placeholder="0">
-                <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-sm" style="background:#7c3aed;color:white;font-size:11px;flex-shrink:0;">✓</button>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <label style="font-size:11px;color:#ca8a04;">Prix morcellement (FCFA)</label>
-            <div style="display:flex;gap:6px;">
-                <input type="number" id="prix-morcellement-{{ $dossier->id }}"
-                       class="form-control form-control-sm"
-                       value="{{ $prixMorcel }}" placeholder="0">
-                <button onclick="majPrix({{ $dossier->id }})"
-                        class="btn btn-sm" style="background:#ca8a04;color:white;font-size:11px;flex-shrink:0;">✓</button>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-{{-- 3 BLOCS PAIEMENTS --}}
-<div class="paiement-blocs">
-
-    {{-- BLOC DOSSIER --}}
-    <div class="paiement-bloc bloc-dossier">
-        <h6 style="color:#0d6efd;">
-            📁 Paiement Parcelle
-        </h6>
-        @if($prixRef > 0)
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Référence</span>
-            <span style="font-weight:600;">{{ number_format($prixRef, 0, ',', ' ') }} FCFA</span>
-        </div>
-        @endif
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Payé</span>
-            <span class="pay-amt" style="color:#16a34a;">{{ number_format($totalDossier, 0, ',', ' ') }} FCFA</span>
-        </div>
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Reste</span>
-            <span style="font-weight:700;color:{{ $resteDossier > 0 ? '#dc2626' : '#16a34a' }};">
-                {{ number_format($resteDossier, 0, ',', ' ') }} FCFA
-            </span>
-        </div>
-        @if($prixRef > 0)
-        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
-            @php $pct = $prixRef > 0 ? min(100, round(($totalDossier/$prixRef)*100)) : 0; @endphp
-            <div style="width:{{ $pct }}%;height:100%;background:#0d6efd;border-radius:3px;"></div>
-        </div>
-        <div style="font-size:10px;text-align:right;color:#0d6efd;font-weight:700;">{{ $pct }}%</div>
-        @endif
-        <div class="pay-historique">
-            @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
-            <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-    
-    <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;">
-            {{ $p->date_paiement }}
-        </div>
-
-        @if($p->note)
-            <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
-                {{ $p->note }}
+            {{-- ✅ AUCUN DOSSIER : Message + bouton pour en créer --}}
+            <div class="section-card" style="text-align:center;padding:40px;">
+                <div style="font-size:48px;margin-bottom:16px;">📂</div>
+                <h4 style="color:#1e3a5f;">Aucun dossier pour ce client</h4>
+                <p style="color:#64748b;margin-bottom:16px;">
+                    Ce client n'a pas encore de dossier. Créez-lui un dossier pour commencer le suivi.
+                </p>
+                <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}" 
+                   class="btn btn-primary">
+                    📂 Créer un dossier
+                </a>
             </div>
         @endif
-    </div>
-
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <span class="pay-amt" style="color:#16a34a;font-weight:700;">
-            {{ number_format($p->montant,0,',',' ') }}
-        </span>
-
-        <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
-            @csrf
-            @method('DELETE')
-
-            <button type="submit"
-                    onclick="return confirm('Supprimer ce paiement ?')"
-                    style="background:none;border:none;color:#dc2626;cursor:pointer;">
-                🗑
-            </button>
-        </form>
-    </div>
-
-</div>
-            @empty
-            <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
-            @endforelse
-        </div>
-    </div>
-
-    {{-- BLOC TECHNIQUE --}}
-    <div class="paiement-bloc bloc-technique">
-        <h6 style="color:#ea580c;">
-            🛠️ Paiement Technique
-        </h6>
-        @if($prixTech > 0)
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Référence</span>
-            <span style="font-weight:600;">{{ number_format($prixTech, 0, ',', ' ') }} FCFA</span>
-        </div>
-        @endif
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Payé</span>
-            <span class="pay-amt" style="color:#ea580c;">{{ number_format($totalTechnique, 0, ',', ' ') }} FCFA</span>
-        </div>
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Reste</span>
-            <span style="font-weight:700;color:{{ $resteTech > 0 ? '#dc2626' : '#16a34a' }};">
-                {{ number_format($resteTech, 0, ',', ' ') }} FCFA
-            </span>
-        </div>
-        @if($prixTech > 0)
-        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
-            @php $pctT = $prixTech > 0 ? min(100, round(($totalTechnique/$prixTech)*100)) : 0; @endphp
-            <div style="width:{{ $pctT }}%;height:100%;background:#ea580c;border-radius:3px;"></div>
-        </div>
-        <div style="font-size:10px;text-align:right;color:#ea580c;font-weight:700;">{{ $pctT }}%</div>
-        @endif
-        <div class="pay-historique">
-            @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
-            <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-    
-    <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;">
-            {{ $p->date_paiement }}
-        </div>
-
-        @if($p->note)
-            <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
-                {{ $p->note }}
-            </div>
-        @endif
-    </div>
-
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <span class="pay-amt" style="color:#16a34a;font-weight:700;">
-            {{ number_format($p->montant,0,',',' ') }}
-        </span>
-
-        <form action="{{ route('paiements-techniques.destroy', $p->id) }}" method="POST">
-            @csrf
-            @method('DELETE')
-
-            <button type="submit"
-                    onclick="return confirm('Supprimer ce paiement ?')"
-                    style="background:none;border:none;color:#dc2626;cursor:pointer;">
-                🗑
-            </button>
-        </form>
-    </div>
-
-</div>
-            @empty
-            <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
-            @endforelse
-        </div>
-    </div>
-
-    {{-- BLOC MORCELLEMENT --}}
-    <div class="paiement-bloc bloc-morcel">
-        <h6 style="color:#ca8a04;">
-        Paiement Morcellement
-        </h6>
-        @if($prixMorcel > 0)
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Référence</span>
-            <span style="font-weight:600;">{{ number_format($prixMorcel, 0, ',', ' ') }} FCFA</span>
-        </div>
-        @endif
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Payé</span>
-            <span class="pay-amt" style="color:#ca8a04;">{{ number_format($totalMorcel, 0, ',', ' ') }} FCFA</span>
-        </div>
-        <div class="pay-total-row">
-            <span style="color:#64748b;">Reste</span>
-            <span style="font-weight:700;color:{{ $resteMorcel > 0 ? '#dc2626' : '#16a34a' }};">
-                {{ number_format($resteMorcel, 0, ',', ' ') }} FCFA
-            </span>
-        </div>
-        @if($prixMorcel > 0)
-        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
-            @php $pctM = $prixMorcel > 0 ? min(100, round(($totalMorcel/$prixMorcel)*100)) : 0; @endphp
-            <div style="width:{{ $pctM }}%;height:100%;background:#ca8a04;border-radius:3px;"></div>
-        </div>
-        <div style="font-size:10px;text-align:right;color:#ca8a04;font-weight:700;">{{ $pctM }}%</div>
-        @endif
-        <div class="pay-historique">
-            @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
-            <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-    
-    <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;">
-            {{ $p->date_paiement }}
-        </div>
-
-        @if($p->note)
-            <div style="font-size:11px;color:#64748b;word-break:break-word;white-space:normal;">
-                {{ $p->note }}
-            </div>
-        @endif
-    </div>
-
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <span class="pay-amt" style="color:#16a34a;font-weight:700;">
-            {{ number_format($p->montant,0,',',' ') }}
-        </span>
-
-        <form action="{{ route('paiements-morcellements.destroy', $p->id) }}" method="POST">
-            @csrf
-            @method('DELETE')
-
-            <button type="submit"
-                    onclick="return confirm('Supprimer ce paiement ?')"
-                    style="background:none;border:none;color:#dc2626;cursor:pointer;">
-                🗑
-            </button>
-        </form>
-    </div>
-
-</div>
-            @empty
-            <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
-            @endforelse
-        </div>
-    </div>
-
-</div>
-            </div>
-        </div>
-        @endforeach
     </div>
 
     {{-- VISITES --}}
