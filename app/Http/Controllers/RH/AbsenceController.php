@@ -6,6 +6,7 @@ use App\Models\RH\Absence;
 use App\Models\RH\Employe;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Artisan;
 
 class AbsenceController extends Controller
 {
@@ -91,4 +92,13 @@ class AbsenceController extends Controller
         $pdf = Pdf::loadView('rh.absences.pdf_liste', compact('absences'))->setPaper('a4', 'landscape');
         return $pdf->download('absences_' . now()->format('Y-m-d') . '.pdf');
     }
+
+    public function nettoyerAbsencesDoublons()
+{
+    Artisan::call('rh:nettoyer-absences-doublons');
+    $output = Artisan::output();
+    
+    return back()->with('success', 'Nettoyage des absences doublons effectué. ' . $output);
+}
+
 }

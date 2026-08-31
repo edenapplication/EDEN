@@ -154,7 +154,7 @@ class RetardController extends Controller
     // IMPORT EXCEL
     // Colonnes : A=Matricule | B=NOMS | C=Date | D=H.A | E=H.D
     // =========================================================
-    public function importExcel(Request $request)
+   public function importExcel(Request $request)
 {
     $request->validate([
         'fichier_excel' => 'required|file|mimes:xlsx,xls,csv|max:10240',
@@ -169,7 +169,7 @@ class RetardController extends Controller
     $erreurs = [];
     $first = true;
 
-    // Pour suivre les doublons par employé et date
+    // ✅ Tableau pour suivre les employés + dates déjà traités
     $traites = [];
 
     foreach ($rows as $row) {
@@ -177,22 +177,20 @@ class RetardController extends Controller
 
         $matricule = trim($row['A'] ?? '');
         $dateRaw = trim($row['C'] ?? '');
-        $ha = trim($row['D'] ?? ''); // Heure Arrivée
-        $hd = trim($row['E'] ?? ''); // Heure Départ
+        $ha = trim($row['D'] ?? '');
+        $hd = trim($row['E'] ?? '');
 
         if (empty($matricule) || empty($dateRaw)) {
             $ignores++;
             continue;
         }
 
-        // Trouver l'employé
         $employe = Employe::where('matricule', $matricule)->first();
         if (!$employe) {
             $erreurs[] = "Matricule introuvable : {$matricule}";
             continue;
         }
 
-        // Parser la date
         try {
             if (is_numeric($dateRaw)) {
                 $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($dateRaw);
@@ -205,7 +203,7 @@ class RetardController extends Controller
             continue;
         }
 
-        // ✅ VÉRIFIER LES DOUBLONS (même employé + même date)
+        // ✅ VÉRIFIER SI DÉJÀ TRAITÉ (même employé + même date)
         $cle = $employe->id . '_' . $dateStr;
         if (isset($traites[$cle])) {
             $ignores++;
@@ -213,16 +211,25 @@ class RetardController extends Controller
         }
         $traites[$cle] = true;
 
+        // ✅ VÉRIFIER SI UN RETARD EXISTE DÉJÀ POUR CETTE DATE
+        $retardExistant = Retard::where('employe_id', $employe->id)
+            ->whereDate('date', $dateStr)
+            ->exists();
+
+        if ($retardExistant) {
+            $ignores++;
+            continue;
+        }
+
         // ✅ SI PAS D'HEURE D'ARRIVÉE ET PAS D'HEURE DE DÉPART → ABSENCE INJUSTIFIÉE
         if (empty($ha) && empty($hd)) {
-            // Vérifier si une absence existe déjà pour cette date
+            // ✅ VÉRIFIER SI UNE ABSENCE EXISTE DÉJÀ POUR CETTE DATE
             $absenceExiste = Absence::where('employe_id', $employe->id)
                 ->whereDate('date_debut', '<=', $dateStr)
                 ->whereDate('date_fin', '>=', $dateStr)
                 ->exists();
 
             if (!$absenceExiste) {
-                // Créer une absence injustifiée
                 $reference = 'ABS-INJ-' . strtoupper(substr(uniqid(), -6));
                 Absence::create([
                     'employe_id' => $employe->id,
@@ -231,7 +238,7 @@ class RetardController extends Controller
                     'date_fin' => $dateStr,
                     'nombre_jours' => 1,
                     'motif' => 'Import Excel - Pas de pointage',
-                    'type_journee' => 'journée',
+                    'type_journee' => 'journée complète',
                     'type_absence' => 'Absence injustifiée',
                     'justificatif_fourni' => false,
                     'statut' => 'refusé',
@@ -239,7 +246,7 @@ class RetardController extends Controller
                 ]);
                 $absencesCrees++;
             }
-            continue; // Passer au suivant
+            continue;
         }
 
         // Normaliser les heures
@@ -248,16 +255,6 @@ class RetardController extends Controller
 
         // Calculer retard et heures sup
         [$minutesRetard, $minutesSup] = $this->calculerTemps($ha ?: '08:00', $hd ?: null);
-
-        // Vérifier s'il y a déjà un retard pour cette date
-        $retardExistant = Retard::where('employe_id', $employe->id)
-            ->where('date', $dateStr)
-            ->exists();
-
-        if ($retardExistant) {
-            $ignores++;
-            continue;
-        }
 
         // Si pas de retard ET pas d'heures sup, créer une absence injustifiée
         if ($minutesRetard === 0 && $minutesSup === 0) {
@@ -275,7 +272,7 @@ class RetardController extends Controller
                     'date_fin' => $dateStr,
                     'nombre_jours' => 1,
                     'motif' => 'Import Excel - Pointage sans retard',
-                    'type_journee' => 'journée',
+                    'type_journee' => 'journée complète',
                     'type_absence' => 'Absence injustifiée',
                     'justificatif_fourni' => false,
                     'statut' => 'refusé',
@@ -342,17 +339,12 @@ class RetardController extends Controller
         return $pdf->download('retards_' . $mois . '.pdf');
     }
 
-    /**
- * Nettoyer les doublons de retards (exécuté via commande ou bouton)
- */
-/**
- * Nettoyer les doublons de retards
- */
-/**
+  /**
  * Nettoyer les doublons de retards
  */
 public function nettoyerDoublons()
 {
+    // Récupérer les doublons (même employé, même date)
     $doublons = Retard::select('employe_id', 'date')
         ->groupBy('employe_id', 'date')
         ->havingRaw('COUNT(*) > 1')
@@ -367,17 +359,22 @@ public function nettoyerDoublons()
             ->orderBy('created_at')
             ->get();
 
+        // Garder le premier, supprimer les autres
         $premier = $retards->shift();
         foreach ($retards as $r) {
             $r->delete();
             $supprimes++;
         }
 
+        // ✅ VÉRIFIER SI UNE ABSENCE EXISTE DÉJÀ
         $absenceExiste = Absence::where('employe_id', $d->employe_id)
             ->whereDate('date_debut', '<=', $d->date)
             ->whereDate('date_fin', '>=', $d->date)
             ->exists();
 
+        // Créer une absence uniquement si :
+        // 1. Pas de retard (0 min) ET pas d'heures sup (0 min)
+        // 2. Pas d'absence existante
         if ($premier->minutes_retard === 0 && $premier->minutes_sup === 0 && !$absenceExiste) {
             $reference = 'ABS-INJ-' . strtoupper(substr(uniqid(), -6));
             Absence::create([
@@ -387,10 +384,10 @@ public function nettoyerDoublons()
                 'date_fin' => $d->date,
                 'nombre_jours' => 1,
                 'motif' => 'Nettoyage doublons - Pointage sans retard',
-                'type_journee' => 'journée complète',  // ✅ Valeur correcte
-                'type_absence' => 'Absence injustifiée',  // ✅ Valeur correcte
+                'type_journee' => 'journée complète',
+                'type_absence' => 'Absence injustifiée',
                 'justificatif_fourni' => false,
-                'statut' => 'refusé',  // ✅ Valeur correcte
+                'statut' => 'refusé',
                 'observations' => 'Généré automatiquement après nettoyage des doublons',
             ]);
             $absencesCrees++;
