@@ -640,7 +640,7 @@ function actionGroupee(action) {
         },
         'export_whatsapp': { 
             title: '💬 Envoyer sur WhatsApp', 
-            message: `Envoyer les informations de ${ids.length} client(s) sur WhatsApp au numéro +237 694 284 493 ?`,
+            message: `Envoyer les informations de ${ids.length} client(s) sur WhatsApp au numéro +237 653 350 503 ?`,
             btnText: 'Envoyer',
             btnClass: 'btn-primary'
         }

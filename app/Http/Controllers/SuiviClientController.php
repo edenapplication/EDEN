@@ -706,7 +706,7 @@ class SuiviClientController extends Controller
     public function exportWhatsApp($clients)
     {
         try {
-            $whatsappNumber = '237694284493';
+            $whatsappNumber = '237653350503';
 
             $message = "📢 *EDEN GROUP - Nouveaux clients*\n\n";
             $message .= "Voici la liste des clients récents :\n\n";
