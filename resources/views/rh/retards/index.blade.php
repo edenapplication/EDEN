@@ -18,16 +18,31 @@
         <h2 style="color:#1e3a5f;font-weight:800;margin:0;">⏰ Retards</h2>
         <span class="horaire-ref">Horaire : 08h00 → 18h00</span>
     </div>
-    <div class="d-flex gap-2">
-    <a href="{{ route('rh.retards.import-excel') }}" class="btn btn-outline-success btn-sm">📊 Import Excel</a>
-    <a href="{{ route('rh.retards.nettoyer-doublons') }}" class="btn btn-outline-warning btn-sm" 
-       onclick="return confirm('Supprimer les doublons de retards ?')">
-        🧹 Nettoyer doublons
-    </a>
-    <a href="{{ route('rh.retards.pdf-liste', ['mois' => $mois]) }}" class="btn btn-outline-danger btn-sm">🖨️ PDF</a>
-    <button onclick="openModal('addModal')" class="btn btn-primary">+ Enregistrer</button>
-</div>
-
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('rh.retards.pdf-liste', ['mois' => $mois]) }}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-file-pdf"></i> PDF
+        </a>
+        
+        {{-- ✅ FORMULAIRE IMPORT EXCEL (POST) --}}
+        <form action="{{ route('rh.retards.import-excel') }}" method="POST" style="display:inline;" enctype="multipart/form-data" id="importForm">
+            @csrf
+            <label class="btn btn-outline-success btn-sm" style="cursor:pointer;">
+                <i class="bi bi-file-excel"></i> Import Excel
+                <input type="file" name="fichier_excel" accept=".xlsx,.xls,.csv" style="display:none;" 
+                       onchange="if(confirm('Importer ce fichier ?')) document.getElementById('importForm').submit();">
+            </label>
+        </form>
+        
+        <a href="{{ route('rh.retards.nettoyer-doublons') }}" 
+           class="btn btn-outline-warning btn-sm"
+           onclick="return confirm('⚠️ Supprimer les doublons de retards ? Cette action est irréversible.')">
+            <i class="bi bi-brush"></i> Nettoyer doublons
+        </a>
+        
+        <button onclick="openModal('addModal')" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Enregistrer
+        </button>
+    </div>
 </div>
 
 @if(session('success'))
