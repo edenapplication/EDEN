@@ -34,7 +34,8 @@
         <button onclick="openModal('addModal')" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Nouvelle demande
         </button>
-        <form action="{{ route('rh.abscences.nettoyer-absences') }}" method="POST" style="display:inline;" 
+        {{-- Nettoyer les absences doublons - route corrigée --}}
+<form action="{{ route('rh.absences.nettoyer-doublons') }}" method="POST" style="display:inline;" 
       onsubmit="return confirm('⚠️ Supprimer toutes les absences injustifiées en double ? Cette action est irréversible.')">
     @csrf
     <button class="btn btn-outline-danger btn-sm">

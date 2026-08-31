@@ -278,7 +278,7 @@ Route::prefix('rh')->middleware(['auth', 'check.role:admin,rh'])->group(function
 
     Route::get('/absences',                   [AbsenceController::class, 'index'])->name('rh.absences.index');
     Route::post('/absences',                  [AbsenceController::class, 'store'])->name('rh.absences.store');
-    Route::post('/retards/nettoyer-absences', [AbsenceController::class, 'nettoyerAbsencesDoublons'])->name('rh.abscences.nettoyer-absences');
+    Route::post('/absences/nettoyer-doublons', [AbsenceController::class, 'nettoyerAbsencesDoublons'])->name('rh.absences.nettoyer-doublons');
     Route::put('/absences/{id}',              [AbsenceController::class, 'update'])->name('rh.absences.update');
     Route::delete('/absences/{id}',           [AbsenceController::class, 'destroy'])->name('rh.absences.destroy');
     Route::post('/absences/{id}/approuver',   [AbsenceController::class, 'approuver'])->name('rh.absences.approuver');

@@ -6,7 +6,7 @@ use App\Models\RH\Absence;
 use App\Models\RH\Employe;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 class AbsenceController extends Controller
 {
@@ -93,12 +93,47 @@ class AbsenceController extends Controller
         return $pdf->download('absences_' . now()->format('Y-m-d') . '.pdf');
     }
 
+    /**
+     * Nettoyer les absences injustifiées en double
+     */
     public function nettoyerAbsencesDoublons()
-{
-    Artisan::call('rh:nettoyer-absences-doublons');
-    $output = Artisan::output();
-    
-    return back()->with('success', 'Nettoyage des absences doublons effectué. ' . $output);
-}
+    {
+        try {
+            // Récupérer les doublons (même employé, même date)
+            $doublons = DB::table('rh_absences')
+                ->select('employe_id', 'date_debut', DB::raw('COUNT(*) as total'))
+                ->where('type_absence', 'Absence injustifiée')
+                ->where('statut', 'refusé')
+                ->groupBy('employe_id', 'date_debut')
+                ->having('total', '>', 1)
+                ->get();
 
+            if ($doublons->isEmpty()) {
+                return back()->with('success', '✅ Aucune absence injustifiée en double trouvée.');
+            }
+
+            $totalSupprimees = 0;
+
+            foreach ($doublons as $d) {
+                $absences = Absence::where('employe_id', $d->employe_id)
+                    ->where('date_debut', $d->date_debut)
+                    ->where('type_absence', 'Absence injustifiée')
+                    ->where('statut', 'refusé')
+                    ->orderBy('created_at')
+                    ->get();
+
+                // Garder la première, supprimer les autres
+                $absences->shift();
+                foreach ($absences as $a) {
+                    $a->delete();
+                    $totalSupprimees++;
+                }
+            }
+
+            return back()->with('success', "✅ Nettoyage terminé. {$totalSupprimees} absence(s) injustifiée(s) en double supprimée(s).");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erreur lors du nettoyage : ' . $e->getMessage());
+        }
+    }
 }
