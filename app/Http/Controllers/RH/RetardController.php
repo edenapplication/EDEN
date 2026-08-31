@@ -8,6 +8,7 @@ use App\Models\RH\Direction;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Models\RH\Absence;
 use Carbon\Carbon;
 
 class RetardController extends Controller
@@ -154,94 +155,161 @@ class RetardController extends Controller
     // Colonnes : A=Matricule | B=NOMS | C=Date | D=H.A | E=H.D
     // =========================================================
     public function importExcel(Request $request)
-    {
-        $request->validate([
-            'fichier_excel' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+{
+    $request->validate([
+        'fichier_excel' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+    ]);
+
+    $spreadsheet = IOFactory::load($request->file('fichier_excel')->getRealPath());
+    $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+
+    $inseres = 0;
+    $ignores = 0;
+    $absencesCrees = 0;
+    $erreurs = [];
+    $first = true;
+
+    // Pour suivre les doublons par employé et date
+    $traites = [];
+
+    foreach ($rows as $row) {
+        if ($first) { $first = false; continue; }
+
+        $matricule = trim($row['A'] ?? '');
+        $dateRaw = trim($row['C'] ?? '');
+        $ha = trim($row['D'] ?? ''); // Heure Arrivée
+        $hd = trim($row['E'] ?? ''); // Heure Départ
+
+        if (empty($matricule) || empty($dateRaw)) {
+            $ignores++;
+            continue;
+        }
+
+        // Trouver l'employé
+        $employe = Employe::where('matricule', $matricule)->first();
+        if (!$employe) {
+            $erreurs[] = "Matricule introuvable : {$matricule}";
+            continue;
+        }
+
+        // Parser la date
+        try {
+            if (is_numeric($dateRaw)) {
+                $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($dateRaw);
+                $dateStr = Carbon::instance($date)->format('Y-m-d');
+            } else {
+                $dateStr = Carbon::parse($dateRaw)->format('Y-m-d');
+            }
+        } catch (\Throwable $e) {
+            $erreurs[] = "Date invalide pour {$matricule} : {$dateRaw}";
+            continue;
+        }
+
+        // ✅ VÉRIFIER LES DOUBLONS (même employé + même date)
+        $cle = $employe->id . '_' . $dateStr;
+        if (isset($traites[$cle])) {
+            $ignores++;
+            continue;
+        }
+        $traites[$cle] = true;
+
+        // ✅ SI PAS D'HEURE D'ARRIVÉE ET PAS D'HEURE DE DÉPART → ABSENCE INJUSTIFIÉE
+        if (empty($ha) && empty($hd)) {
+            // Vérifier si une absence existe déjà pour cette date
+            $absenceExiste = Absence::where('employe_id', $employe->id)
+                ->whereDate('date_debut', '<=', $dateStr)
+                ->whereDate('date_fin', '>=', $dateStr)
+                ->exists();
+
+            if (!$absenceExiste) {
+                // Créer une absence injustifiée
+                $reference = 'ABS-INJ-' . strtoupper(substr(uniqid(), -6));
+                Absence::create([
+                    'employe_id' => $employe->id,
+                    'reference' => $reference,
+                    'date_debut' => $dateStr,
+                    'date_fin' => $dateStr,
+                    'nombre_jours' => 1,
+                    'motif' => 'Import Excel - Pas de pointage',
+                    'type_journee' => 'journée',
+                    'type_absence' => 'Absence injustifiée',
+                    'justificatif_fourni' => false,
+                    'statut' => 'refusé',
+                    'observations' => 'Généré automatiquement depuis l\'import Excel (pas d\'heure d\'arrivée ni de départ)',
+                ]);
+                $absencesCrees++;
+            }
+            continue; // Passer au suivant
+        }
+
+        // Normaliser les heures
+        $ha = $this->normaliserHeure($ha);
+        $hd = $this->normaliserHeure($hd);
+
+        // Calculer retard et heures sup
+        [$minutesRetard, $minutesSup] = $this->calculerTemps($ha ?: '08:00', $hd ?: null);
+
+        // Vérifier s'il y a déjà un retard pour cette date
+        $retardExistant = Retard::where('employe_id', $employe->id)
+            ->where('date', $dateStr)
+            ->exists();
+
+        if ($retardExistant) {
+            $ignores++;
+            continue;
+        }
+
+        // Si pas de retard ET pas d'heures sup, créer une absence injustifiée
+        if ($minutesRetard === 0 && $minutesSup === 0) {
+            $absenceExiste = Absence::where('employe_id', $employe->id)
+                ->whereDate('date_debut', '<=', $dateStr)
+                ->whereDate('date_fin', '>=', $dateStr)
+                ->exists();
+
+            if (!$absenceExiste) {
+                $reference = 'ABS-INJ-' . strtoupper(substr(uniqid(), -6));
+                Absence::create([
+                    'employe_id' => $employe->id,
+                    'reference' => $reference,
+                    'date_debut' => $dateStr,
+                    'date_fin' => $dateStr,
+                    'nombre_jours' => 1,
+                    'motif' => 'Import Excel - Pointage sans retard',
+                    'type_journee' => 'journée',
+                    'type_absence' => 'Absence injustifiée',
+                    'justificatif_fourni' => false,
+                    'statut' => 'refusé',
+                    'observations' => 'Généré automatiquement depuis l\'import Excel',
+                ]);
+                $absencesCrees++;
+            }
+            continue;
+        }
+
+        // Créer le retard
+        Retard::create([
+            'employe_id' => $employe->id,
+            'date' => $dateStr,
+            'heure_arrivee' => $ha ?: null,
+            'heure_depart' => $hd ?: null,
+            'minutes_retard' => $minutesRetard,
+            'minutes_sup' => $minutesSup,
+            'motif' => 'Import Excel',
         ]);
 
-        $spreadsheet = IOFactory::load($request->file('fichier_excel')->getRealPath());
-        $rows        = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
-
-        $inseres = 0;
-        $ignores = 0;
-        $erreurs = [];
-        $first   = true;
-
-        foreach ($rows as $row) {
-            // Ignorer la première ligne (entête)
-            if ($first) { $first = false; continue; }
-
-            $matricule = trim($row['A'] ?? '');
-            $dateRaw   = trim($row['C'] ?? '');
-            $ha        = trim($row['D'] ?? ''); // Heure Arrivée
-            $hd        = trim($row['E'] ?? ''); // Heure Départ
-
-            if (empty($matricule) || empty($dateRaw)) {
-                $ignores++;
-                continue;
-            }
-
-            // Trouver l'employé
-            $employe = Employe::where('matricule', $matricule)->first();
-            if (!$employe) {
-                $erreurs[] = "Matricule introuvable : {$matricule}";
-                continue;
-            }
-
-            // Parser la date (format Excel numérique ou texte)
-            try {
-                if (is_numeric($dateRaw)) {
-                    $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($dateRaw);
-                    $dateStr = Carbon::instance($date)->format('Y-m-d');
-                } else {
-                    $dateStr = Carbon::parse($dateRaw)->format('Y-m-d');
-                }
-            } catch (\Throwable $e) {
-                $erreurs[] = "Date invalide pour {$matricule} : {$dateRaw}";
-                continue;
-            }
-
-            // Normaliser les heures (HH:MM)
-            $ha = $this->normaliserHeure($ha);
-            $hd = $this->normaliserHeure($hd);
-
-            // Calculer retard et heures sup
-            [$minutesRetard, $minutesSup] = $this->calculerTemps($ha ?: '08:00', $hd ?: null);
-
-            // Ignorer si pas de retard ET pas d'heures sup
-            if ($minutesRetard === 0 && $minutesSup === 0 && empty($ha)) {
-                $ignores++;
-                continue;
-            }
-
-            // Vérifier doublon (même employé + même date)
-            if (Retard::where('employe_id', $employe->id)->where('date', $dateStr)->exists()) {
-                $ignores++;
-                continue;
-            }
-
-            Retard::create([
-                'employe_id'     => $employe->id,
-                'date'           => $dateStr,
-                'heure_arrivee'  => $ha ?: null,
-                'heure_depart'   => $hd ?: null,
-                'minutes_retard' => $minutesRetard,
-                'minutes_sup'    => $minutesSup,
-                'motif'          => "Import Excel",
-            ]);
-
-            $inseres++;
-        }
-
-        $msg = "Import : {$inseres} ligne(s) importée(s).";
-        if ($ignores) $msg .= " {$ignores} ignorée(s).";
-        if (!empty($erreurs)) {
-            session(['import_errors' => $erreurs]);
-            $msg .= " " . count($erreurs) . " erreur(s).";
-        }
-
-        return back()->with('success', $msg);
+        $inseres++;
     }
+
+    $msg = "Import : {$inseres} retard(s) importé(s).";
+    if ($absencesCrees) $msg .= " {$absencesCrees} absence(s) injustifiée(s) créée(s).";
+    if ($ignores) $msg .= " {$ignores} ignoré(s).";
+    if (!empty($erreurs)) {
+        session(['import_errors' => $erreurs]);
+        $msg .= " " . count($erreurs) . " erreur(s).";
+    }
+
+    return back()->with('success', $msg);
+}
 
     // Normalise HHhMM / HH:MM / HHMM → HH:MM
     private function normaliserHeure(?string $h): string
@@ -273,4 +341,68 @@ class RetardController extends Controller
             ->setPaper('a4', 'landscape');
         return $pdf->download('retards_' . $mois . '.pdf');
     }
+
+    /**
+ * Nettoyer les doublons de retards (exécuté via commande ou bouton)
+ */
+/**
+ * Nettoyer les doublons de retards
+ */
+/**
+ * Nettoyer les doublons de retards
+ */
+public function nettoyerDoublons()
+{
+    $doublons = Retard::select('employe_id', 'date')
+        ->groupBy('employe_id', 'date')
+        ->havingRaw('COUNT(*) > 1')
+        ->get();
+
+    $supprimes = 0;
+    $absencesCrees = 0;
+
+    foreach ($doublons as $d) {
+        $retards = Retard::where('employe_id', $d->employe_id)
+            ->where('date', $d->date)
+            ->orderBy('created_at')
+            ->get();
+
+        $premier = $retards->shift();
+        foreach ($retards as $r) {
+            $r->delete();
+            $supprimes++;
+        }
+
+        $absenceExiste = Absence::where('employe_id', $d->employe_id)
+            ->whereDate('date_debut', '<=', $d->date)
+            ->whereDate('date_fin', '>=', $d->date)
+            ->exists();
+
+        if ($premier->minutes_retard === 0 && $premier->minutes_sup === 0 && !$absenceExiste) {
+            $reference = 'ABS-INJ-' . strtoupper(substr(uniqid(), -6));
+            Absence::create([
+                'employe_id' => $d->employe_id,
+                'reference' => $reference,
+                'date_debut' => $d->date,
+                'date_fin' => $d->date,
+                'nombre_jours' => 1,
+                'motif' => 'Nettoyage doublons - Pointage sans retard',
+                'type_journee' => 'journée complète',  // ✅ Valeur correcte
+                'type_absence' => 'Absence injustifiée',  // ✅ Valeur correcte
+                'justificatif_fourni' => false,
+                'statut' => 'refusé',  // ✅ Valeur correcte
+                'observations' => 'Généré automatiquement après nettoyage des doublons',
+            ]);
+            $absencesCrees++;
+        }
+    }
+
+    $message = "🧹 Nettoyage terminé : {$supprimes} doublon(s) supprimé(s)";
+    if ($absencesCrees > 0) {
+        $message .= ", {$absencesCrees} absence(s) injustifiée(s) créée(s)";
+    }
+
+    return back()->with('success', $message);
+}
+
 }

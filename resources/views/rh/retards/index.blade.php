@@ -19,11 +19,15 @@
         <span class="horaire-ref">Horaire : 08h00 → 18h00</span>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ route('rh.retards.pdf-liste', ['mois' => $mois]) }}"
-           class="btn btn-outline-danger btn-sm">🖨️ PDF</a>
-        <button onclick="openModal('importModal')" class="btn btn-outline-success btn-sm">📊 Import Excel</button>
-        <button onclick="openModal('addModal')" class="btn btn-primary">+ Enregistrer</button>
-    </div>
+    <a href="{{ route('rh.retards.import-excel') }}" class="btn btn-outline-success btn-sm">📊 Import Excel</a>
+    <a href="{{ route('rh.retards.nettoyer-doublons') }}" class="btn btn-outline-warning btn-sm" 
+       onclick="return confirm('Supprimer les doublons de retards ?')">
+        🧹 Nettoyer doublons
+    </a>
+    <a href="{{ route('rh.retards.pdf-liste', ['mois' => $mois]) }}" class="btn btn-outline-danger btn-sm">🖨️ PDF</a>
+    <button onclick="openModal('addModal')" class="btn btn-primary">+ Enregistrer</button>
+</div>
+
 </div>
 
 @if(session('success'))

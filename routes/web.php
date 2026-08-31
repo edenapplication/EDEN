@@ -299,6 +299,8 @@ Route::prefix('rh')->middleware(['auth', 'check.role:admin,rh'])->group(function
     Route::get('/retards',             [RetardController::class, 'index'])->name('rh.retards.index');
     Route::post('/retards',            [RetardController::class, 'store'])->name('rh.retards.store');
     Route::get('/retards/pdf-liste',   [RetardController::class, 'pdfListe'])->name('rh.retards.pdf-liste');
+    // ✅ MEILLEURE SOLUTION - Utiliser GET
+Route::get('/retards/nettoyer-doublons', [RetardController::class, 'nettoyerDoublons'])->name('rh.retards.nettoyer-doublons');
     Route::post('/retards/import-excel', [RetardController::class, 'importExcel'])->name('rh.retards.import-excel');
     Route::put('/retards/{id}',        [RetardController::class, 'update'])->name('rh.retards.update');
     Route::delete('/retards/{id}',     [RetardController::class, 'destroy'])->name('rh.retards.destroy');
@@ -315,13 +317,17 @@ Route::prefix('rh')->middleware(['auth', 'check.role:admin,rh'])->group(function
     Route::delete('/postes/{id}',     [DirectionController::class, 'destroyPoste'])->name('rh.postes.destroy');
 
     // ===== CONGÉS =====
-    Route::get('rh/conges',               [App\Http\Controllers\RH\CongeController::class, 'index'])  ->name('rh.conges.index');
-    Route::post('rh/conges',              [App\Http\Controllers\RH\CongeController::class, 'store'])  ->name('rh.conges.store');
-    Route::put('rh/conges/{id}',          [App\Http\Controllers\RH\CongeController::class, 'update']) ->name('rh.conges.update');
-    Route::delete('rh/conges/{id}',       [App\Http\Controllers\RH\CongeController::class, 'destroy'])->name('rh.conges.destroy');
-    Route::get('rh/conges/{id}/pdf',      [App\Http\Controllers\RH\CongeController::class, 'pdf'])    ->name('rh.conges.pdf');
-    Route::get('rh/conges/planning-pdf',  [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('rh.conges.planning-pdf');
-
+Route::prefix('conges')->name('rh.conges.')->group(function () {
+    // ✅ Routes fixes AVANT les routes avec paramètres
+    Route::get('/', [App\Http\Controllers\RH\CongeController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\RH\CongeController::class, 'store'])->name('store');
+    Route::get('/planning-pdf', [App\Http\Controllers\RH\CongeController::class, 'planningPdf'])->name('planning-pdf');
+    
+    // ⚠️ Routes avec paramètres APRÈS
+    Route::put('/{id}', [App\Http\Controllers\RH\CongeController::class, 'update'])->name('update');
+    Route::delete('/{id}', [App\Http\Controllers\RH\CongeController::class, 'destroy'])->name('destroy');
+    Route::get('/{id}/pdf', [App\Http\Controllers\RH\CongeController::class, 'pdf'])->name('pdf');
+});
     // ===== CONTRATS =====
 Route::resource('contrats', App\Http\Controllers\RH\ContratController::class, [
     'names' => [
