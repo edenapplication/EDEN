@@ -199,7 +199,7 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::delete('/suivi-client/{id}',       [SuiviClientController::class, 'destroy'])->name('suivi-client.destroy');
     });
 
-    Route::middleware('check.role:admin')->group(function () {
+    Route::middleware('check.role:admin,commercial')->group(function () {
         Route::post('/clients/{clientId}/modifier-nom',
             [SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
 
