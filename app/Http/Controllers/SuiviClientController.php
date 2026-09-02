@@ -265,89 +265,91 @@ class SuiviClientController extends Controller
     }
 
     public function store(Request $request)
-    {
-        try {
-            $request->validate([
-                'name'               => 'required|string|max:255',
-                'phone'              => 'required|string',
-                'nom_dossier'        => 'required|string|max:255',
-                'commercial_id'      => 'nullable|exists:commerciaux,id',
-                'conducteur_id'      => 'nullable|exists:conducteurs,id',
-                'facilitateur_id'    => 'nullable|exists:facilitateurs,id',
-                'agent_commercial_id'=> 'nullable|exists:agents_commerciaux,id',
-                'grand_site_id'      => 'nullable|exists:grand_sites,id',
-                'direction'          => 'nullable|string',
-                'superficie_voulue'  => 'nullable|numeric',
-                'prix_superficie'    => 'required|numeric|min:0',
-                'prix_technique'     => 'required|numeric|min:0',
-                'prix_logistique'    => 'required|numeric|min:0',
-                'prix_morcellement'  => 'nullable|numeric|min:0',
-                'cni_images'         => 'nullable|array',
-                'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            ]);
+{
+    try {
+        $request->validate([
+            'name'               => 'required|string|max:255',
+            'phone'              => 'required|string',
+            'nom_dossier'        => 'required|string|max:255',
+            'commercial_id'      => 'nullable|exists:commerciaux,id',
+            'conducteur_id'      => 'nullable|exists:conducteurs,id',
+            'facilitateur_id'    => 'nullable|exists:facilitateurs,id',
+            'agent_commercial_id'=> 'nullable|exists:agents_commerciaux,id',
+            'grand_site_id'      => 'nullable|exists:grand_sites,id',
+            'direction'          => 'nullable|string',
+            'superficie_voulue'  => 'nullable|numeric',
+            'prix_superficie'    => 'required|numeric|min:0',
+            'prix_technique'     => 'required|numeric|min:0',
+            'prix_logistique'    => 'required|numeric|min:0',
+            'prix_morcellement'  => 'nullable|numeric|min:0',
+            'cni_images'         => 'nullable|array',
+            'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+        ]);
 
-            $client = Client::firstOrCreate(
-                ['phone' => $request->phone],
-                ['name'  => $request->name, 'is_new' => true]
-            );
+        $client = Client::firstOrCreate(
+            ['phone' => $request->phone],
+            ['name'  => $request->name, 'is_new' => true]
+        );
 
-            $agentId = $request->agent_commercial_id;
-            if (!$agentId && $request->agent_nom) {
-                $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
-                $agentId = $a->id;
-            }
+        $agentId = $request->agent_commercial_id;
+        if (!$agentId && $request->agent_nom) {
+            $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
+            $agentId = $a->id;
+        }
 
-            $conducteurId = $request->conducteur_id;
-            if (!$conducteurId && $request->conducteur_nom) {
-                $c = Conducteur::create(['nom' => $request->conducteur_nom, 'numero' => $request->conducteur_numero]);
-                $conducteurId = $c->id;
-            }
+        $conducteurId = $request->conducteur_id;
+        if (!$conducteurId && $request->conducteur_nom) {
+            $c = Conducteur::create(['nom' => $request->conducteur_nom, 'numero' => $request->conducteur_numero]);
+            $conducteurId = $c->id;
+        }
 
-            $facilitateurId = $request->facilitateur_id;
-            if (!$facilitateurId && $request->facilitateur_nom) {
-                $f = Facilitateur::create(['nom' => $request->facilitateur_nom, 'numero' => $request->facilitateur_numero]);
-                $facilitateurId = $f->id;
-            }
+        $facilitateurId = $request->facilitateur_id;
+        if (!$facilitateurId && $request->facilitateur_nom) {
+            $f = Facilitateur::create(['nom' => $request->facilitateur_nom, 'numero' => $request->facilitateur_numero]);
+            $facilitateurId = $f->id;
+        }
 
-            $cniImages = [];
-            if ($request->hasFile('cni_images')) {
-                foreach ($request->file('cni_images') as $file) {
-                    if ($file && $file->isValid()) {
-                        $path = $file->store('cni', 'public');
-                        if ($path) {
-                            $cniImages[] = $path;
-                        }
+        $cniImages = [];
+        if ($request->hasFile('cni_images')) {
+            foreach ($request->file('cni_images') as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('cni', 'public');
+                    if ($path) {
+                        $cniImages[] = $path;
                     }
                 }
             }
-
-            DossierClient::create([
-                'client_id'          => $client->id,
-                'nom_dossier'        => $request->nom_dossier,
-                'commercial_id'      => $request->commercial_id,
-                'conducteur_id'      => $conducteurId,
-                'facilitateur_id'    => $facilitateurId,
-                'agent_commercial_id'=> $agentId,
-                'grand_site_id'      => $request->grand_site_id,
-                'direction'          => $request->direction,
-                'superficie_voulue'  => $request->superficie_voulue,
-                'prix_superficie'    => $request->prix_superficie,
-                'prix_technique'     => $request->prix_technique,
-                'prix_logistique'    => $request->prix_logistique,
-                'prix_morcellement'  => $request->prix_morcellement ?? 0,
-                'cni_images'         => $cniImages,
-            ]);
-
-            return redirect()->route('suivi-client.show', $client->id)
-                             ->with('success', 'Client et dossier créés avec succès');
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->withInput()->with('error', 'Erreur de validation : ' . implode(', ', $e->errors()));
-        } catch (\Exception $e) {
-            Log::error('Erreur création dossier: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
         }
+
+        DossierClient::create([
+            'client_id'          => $client->id,
+            'nom_dossier'        => $request->nom_dossier,
+            'commercial_id'      => $request->commercial_id,
+            'conducteur_id'      => $conducteurId,
+            'facilitateur_id'    => $facilitateurId,
+            'agent_commercial_id'=> $agentId,
+            'grand_site_id'      => $request->grand_site_id,
+            'direction'          => $request->direction,
+            'superficie_voulue'  => $request->superficie_voulue,
+            'prix_superficie'    => $request->prix_superficie,
+            'prix_technique'     => $request->prix_technique,
+            'prix_logistique'    => $request->prix_logistique,
+            'prix_morcellement'  => $request->prix_morcellement ?? 0,
+            'cni_images'         => $cniImages,
+        ]);
+
+        return redirect()->route('suivi-client.show', $client->id)
+                         ->with('success', 'Client et dossier créés avec succès');
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        // ✅ CORRECTION : Utiliser withErrors au lieu de implode()
+        return back()->withErrors($e->errors())->withInput();
+        
+    } catch (\Exception $e) {
+        Log::error('Erreur création dossier: ' . $e->getMessage());
+        return back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
     }
+}
 
    // App\Http\Controllers\SuiviClientController.php
 
