@@ -684,7 +684,8 @@ function executerActionConfirmee() {
     
     if (window.EdenLoader) window.EdenLoader.show();
     
-    fetch('{{ route("suivi-client.actions-group") }}', {
+    // ✅ URL RELATIVE - CORRIGÉE
+    fetch('/admin/suivi-client/actions-group', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -732,7 +733,8 @@ function toggleNew(clientId) {
     btn.disabled = true;
     btn.textContent = '⏳ ...';
 
-    fetch(`/admin/suivi-client/toggle-new/${clientId}`, {
+    // ✅ URL RELATIVE - CORRIGÉE
+    fetch('/admin/suivi-client/toggle-new/' + clientId, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': CSRF,
@@ -889,7 +891,8 @@ function fermerEditNom() {
 function sauvegarderNom() {
     const nom = document.getElementById('input-nouveau-nom').value.trim();
     if (!nom) { alert('Le nom ne peut pas être vide.'); return; }
-    fetch(`/admin/clients/${clientIdCourant}/modifier-nom`, {
+    // ✅ URL RELATIVE - CORRIGÉE
+    fetch('/admin/clients/' + clientIdCourant + '/modifier-nom', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },
         body: JSON.stringify({ nom }),
