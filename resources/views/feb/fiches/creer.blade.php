@@ -328,10 +328,10 @@
 // CONFIG
 // ============================================================
 const CSRF          = '{{ csrf_token() }}';
-const URL_SOUMETTRE = '{{ route("feb.fiches.creer-soumettre") }}';
+const URL_SOUMETTRE = '/feb/fiches/creer-soumettre';           // ✅ URL relative
 const URL_RETOUR    = '{{ route("feb.fiches.index") }}';
-const URL_DESTINATAIRES = '{{ route("feb.destinataires.index") }}';
-const URL_DESTINATAIRES_STORE = '{{ route("feb.destinataires.store") }}';
+const URL_DESTINATAIRES = '/feb/destinataires';               // ✅ URL relative
+const URL_DESTINATAIRES_STORE = '/feb/destinataires';         // ✅ URL relative
 const FICHE_ID      = {{ isset($fiche) ? $fiche->id : 'null' }};
 const MODELE_ID     = {{ $modele?->id ?? 'null' }};
 
