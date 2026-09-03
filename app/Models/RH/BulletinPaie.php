@@ -35,9 +35,9 @@ class BulletinPaie extends Model
         'montant_sanction',
         'imputation_salaire',
         'frais_bancaires',
-        'cnps',
-        'cnps_salariale',  // ✅ NOUVEAU
-        'cnps_patronale',  // ✅ NOUVEAU
+        //'cnps',
+        //'cnps_salariale',  // ✅ NOUVEAU
+        //'cnps_patronale',  // ✅ NOUVEAU
         'net_a_payer',
         'statut',
         'observation',
@@ -48,10 +48,10 @@ class BulletinPaie extends Model
         'date_paiement' => 'date',
         'est_generer_auto' => 'boolean',
         'salaire_brut' => 'decimal:2',
-        'base_cnps' => 'decimal:2',
-        'cnps_salariale' => 'decimal:2',
-        'cnps_patronale' => 'decimal:2',
-        'cnps' => 'decimal:2',
+        //'base_cnps' => 'decimal:2',
+        //'cnps_salariale' => 'decimal:2',
+        //'cnps_patronale' => 'decimal:2',
+        //'cnps' => 'decimal:2',
         'net_a_payer' => 'decimal:2',
     ];
 
@@ -80,21 +80,23 @@ class BulletinPaie extends Model
      * Calculer les cotisations CNPS
      * Taux : Salarié 2.52%, Patronal 4.20%, Total 6.72%
      */
-    public function calculerCnps(): array
-    {
-        $base = $this->base_cnps ?? $this->salaire_brut;
+    
+    //public function calculerCnps(): array
+    //{
+        //$base = $this->base_cnps ?? $this->salaire_brut;
         
-        $salariale = round($base * 0.0252, 2);
-        $patronale = round($base * 0.0420, 2);
-        $total = $salariale + $patronale;
+        //$salariale = round($base * 0.0252, 2);
+        //$patronale = round($base * 0.0420, 2);
+        //$total = $salariale + $patronale;
 
-        return [
-            'base' => $base,
-            'salariale' => $salariale,
-            'patronale' => $patronale,
-            'total' => $total,
-        ];
-    }
+        //return [
+            //'base' => $base,
+            //'salariale' => $salariale,
+            //'patronale' => $patronale,
+            //'total' => $total,
+        //];
+    //}
+        
 
     /**
      * Calculer le net à payer
@@ -107,7 +109,7 @@ class BulletinPaie extends Model
         $deductions = ($this->montant_retard ?? 0) + ($this->montant_absence ?? 0) 
                     + ($this->acompte ?? 0) + ($this->pret ?? 0) 
                     + ($this->montant_sanction ?? 0) + ($this->imputation_salaire ?? 0)
-                    + ($this->frais_bancaires ?? 0) + ($this->cnps ?? 0);
+                    + ($this->frais_bancaires ?? 0); //+ ($this->cnps ?? 0);
         
         return max(0, $brut - $deductions);
     }
@@ -126,11 +128,11 @@ class BulletinPaie extends Model
         }
 
         // Calculer les cotisations CNPS
-        $cnps = $this->calculerCnps();
-        $this->base_cnps = $cnps['base'];
-        $this->cnps_salariale = $cnps['salariale'];
-        $this->cnps_patronale = $cnps['patronale'];
-        $this->cnps = $cnps['total'];
+        //$cnps = $this->calculerCnps();
+       // $this->base_cnps = $cnps['base'];
+       // $this->cnps_salariale = $cnps['salariale'];
+       // $this->cnps_patronale = $cnps['patronale'];
+       // $this->cnps = $cnps['total'];
 
         // Calculer le net
         $this->net_a_payer = $this->calculerNet();

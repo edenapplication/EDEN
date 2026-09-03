@@ -67,7 +67,7 @@
             <div class="row"><span class="lbl">Direction</span><span class="val">{{ $bulletin->employe?->direction?->nom ?? '-' }}</span></div>
             <div class="row"><span class="lbl">Service</span><span class="val">{{ $bulletin->employe?->service?->nom ?? '-' }}</span></div>
             <div class="row"><span class="lbl">Poste</span><span class="val">{{ $bulletin->employe?->intitule_poste ?? '-' }}</span></div>
-            <div class="row"><span class="lbl">N° CNPS</span><span class="val blue">{{ $bulletin->employe?->numero_cnps ?? '-' }}</span></div>
+            {{-- <div class="row"><span class="lbl">N° CNPS</span><span class="val blue">{{ $bulletin->employe?->numero_cnps ?? '-' }}</span></div> --}}
         </div>
         <div>
             <div class="row"><span class="lbl">Type contrat</span><span class="val">{{ $bulletin->employe?->type_contrat ?? '-' }}</span></div>
@@ -115,13 +115,13 @@
         <div class="row"><span class="lbl">Sanction</span><span class="val red">{{ number_format($bulletin->montant_sanction ?? 0, 0, ',', ' ') }} FCFA</span></div>
         <div class="row"><span class="lbl">Imputation salaire</span><span class="val red">{{ number_format($bulletin->imputation_salaire ?? 0, 0, ',', ' ') }} FCFA</span></div>
         <div class="row"><span class="lbl">Frais bancaires</span><span class="val red">{{ number_format($bulletin->frais_bancaires ?? 0, 0, ',', ' ') }} FCFA</span></div>
-        <div class="row" style="border-bottom:2px solid #dc2626;padding-bottom:4px;">
+        {{-- <div class="row" style="border-bottom:2px solid #dc2626;padding-bottom:4px;">
             <span class="lbl">CNPS (part salariale)</span>
             <span class="val red">{{ number_format($bulletin->cnps ?? 0, 0, ',', ' ') }} FCFA</span>
-        </div>
+        </div> --}}
 
-        {{-- DÉTAIL CNPS --}}
-        <div class="cnps-box">
+        {{-- DÉTAIL CNPS COMMENTÉ --}}
+        {{-- <div class="cnps-box">
             <div style="font-size:9px;font-weight:700;color:#92400e;margin-bottom:4px;">🏛️ Détail des cotisations CNPS</div>
             <div class="row">
                 <span class="lbl" style="font-size:8.5px;">Base de calcul</span>
@@ -139,13 +139,13 @@
                 <span class="lbl" style="font-size:9px;font-weight:700;">TOTAL CNPS (6.72%)</span>
                 <span class="val orange" style="font-size:10px;font-weight:700;">{{ number_format(($bulletin->cnps_salariale ?? 0) + ($bulletin->cnps_patronale ?? 0), 0, ',', ' ') }} FCFA</span>
             </div>
-        </div>
+        </div> --}}
 
         @php
             $totalDeductions = ($bulletin->montant_retard??0) + ($bulletin->montant_absence??0) + 
                                ($bulletin->acompte??0) + ($bulletin->pret??0) + 
                                ($bulletin->montant_sanction??0) + ($bulletin->imputation_salaire??0) + 
-                               ($bulletin->frais_bancaires??0) + ($bulletin->cnps??0);
+                               ($bulletin->frais_bancaires??0); // + ($bulletin->cnps??0) commenté
         @endphp
         <div class="row" style="background:#fff1f2;font-weight:700;padding:5px 0;border-top:2px solid #dc2626;margin-top:4px;">
             <span class="lbl" style="font-weight:700;">TOTAL DÉDUCTIONS</span>
@@ -167,15 +167,15 @@
 </div>
 @endif
 
-{{-- RÉCAPITULATIF DES TAUX CNPS --}}
-<div class="section" style="margin-top:8px;">
+{{-- RÉCAPITULATIF DES TAUX CNPS COMMENTÉ --}}
+{{-- <div class="section" style="margin-top:8px;">
     <div style="font-size:8px;color:#94a3b8;text-align:center;border:1px solid #e2e8f0;border-radius:4px;padding:6px;">
         <span style="font-weight:600;">Taux CNPS applicables :</span>
         <span style="color:#dc2626;">Salariale 2.52%</span> &nbsp;|&nbsp;
         <span style="color:#7c3aed;">Patronale 4.20%</span> &nbsp;|&nbsp;
         <span style="color:#1d4ed8;font-weight:700;">Total 6.72%</span>
     </div>
-</div>
+</div> --}}
 
 <div class="sign">
     <div class="sign-box">Signature Employé<br><br><br></div>

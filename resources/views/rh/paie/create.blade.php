@@ -200,6 +200,10 @@
                     <span id="c-total-brut" style="color:#16a34a;font-size:15px;">0 FCFA</span>
                 </div>
 
+                {{-- ============================================================ --}}
+                {{-- SECTION CNPS COMMENTÉE --}}
+                {{-- ============================================================ --}}
+                {{-- 
                 <div style="font-size:11px; font-weight:700; color:#7c3aed; text-transform:uppercase; margin:10px 0 6px;">🏛️ Cotisations CNPS</div>
                 <div class="calc-row calc-cnps">
                     <span>Base CNPS</span>
@@ -217,6 +221,10 @@
                     <span><span class="badge-cnps total">Total CNPS 6.72%</span></span>
                     <span id="c-total-cnps" style="color:#1d4ed8;font-weight:700;font-size:14px;">0 FCFA</span>
                 </div>
+                --}}
+                {{-- ============================================================ --}}
+                {{-- FIN SECTION CNPS COMMENTÉE --}}
+                {{-- ============================================================ --}}
 
                 <div style="font-size:11px; font-weight:700; color:#dc2626; text-transform:uppercase; margin:10px 0 6px;">Déductions</div>
                 <div class="calc-row"><span>Retards</span><span id="c-retard">0 FCFA</span></div>
@@ -238,9 +246,10 @@
 
                 <input type="hidden" name="net_a_payer" id="net_a_payer" value="0">
                 <input type="hidden" name="montant_heures_sup" id="montant_heures_sup" value="0">
-                <input type="hidden" name="cnps_salariale" id="cnps_salariale" value="0">
-                <input type="hidden" name="cnps_patronale" id="cnps_patronale" value="0">
-                <input type="hidden" name="base_cnps" id="base_cnps" value="0">
+                {{-- CHAMPS CNPS COMMENTÉS --}}
+                {{-- <input type="hidden" name="cnps_salariale" id="cnps_salariale" value="0"> --}}
+                {{-- <input type="hidden" name="cnps_patronale" id="cnps_patronale" value="0"> --}}
+                {{-- <input type="hidden" name="base_cnps" id="base_cnps" value="0"> --}}
             </div>
 
             <div class="d-flex gap-2 mt-3">
@@ -349,12 +358,13 @@ function calculer() {
     const fixe = val('montant_fixe');
     const totalBrut = brut + hs + prime + ind + fixe;
 
-    // ===== COTISATIONS CNPS =====
-    // Taux: Salarié 2.52%, Patronal 4.20%, Total 6.72%
-    const baseCnps = brut;
-    const cnpsSalariale = Math.round(baseCnps * 0.0252);
-    const cnpsPatronale = Math.round(baseCnps * 0.0420);
-    const totalCnps = cnpsSalariale + cnpsPatronale;
+    // ============================================================
+    // CALCUL CNPS COMMENTÉ
+    // ============================================================
+    // const baseCnps = brut;
+    // const cnpsSalariale = Math.round(baseCnps * 0.0252);
+    // const cnpsPatronale = Math.round(baseCnps * 0.0420);
+    // const totalCnps = cnpsSalariale + cnpsPatronale;
 
     // ===== DÉDUCTIONS =====
     const retard = parseFloat(document.querySelector('[name="montant_retard"]')?.value) || 0;
@@ -365,7 +375,11 @@ function calculer() {
     const imputation = parseFloat(document.querySelector('[name="imputation_salaire"]')?.value) || 0;
     const frais = parseFloat(document.querySelector('[name="frais_bancaires"]')?.value) || 0;
 
-    const totalDed = retard + absence + acompte + pret + sanction + imputation + frais + totalCnps;
+    // ============================================================
+    // DÉDUCTIONS SANS CNPS
+    // ============================================================
+    // const totalDed = retard + absence + acompte + pret + sanction + imputation + frais + totalCnps;
+    const totalDed = retard + absence + acompte + pret + sanction + imputation + frais;
     const net = Math.max(0, totalBrut - totalDed);
 
     // ===== MISE À JOUR AFFICHAGE =====
@@ -380,11 +394,13 @@ function calculer() {
     document.getElementById('c-fixe').innerText = fmt(fixe);
     document.getElementById('c-total-brut').innerText = fmt(totalBrut);
 
-    // CNPS
-    document.getElementById('c-base-cnps').innerText = fmt(baseCnps);
-    document.getElementById('c-cnps-salariale').innerText = fmt(cnpsSalariale);
-    document.getElementById('c-cnps-patronale').innerText = fmt(cnpsPatronale);
-    document.getElementById('c-total-cnps').innerText = fmt(totalCnps);
+    // ============================================================
+    // AFFICHAGE CNPS COMMENTÉ
+    // ============================================================
+    // document.getElementById('c-base-cnps').innerText = fmt(baseCnps);
+    // document.getElementById('c-cnps-salariale').innerText = fmt(cnpsSalariale);
+    // document.getElementById('c-cnps-patronale').innerText = fmt(cnpsPatronale);
+    // document.getElementById('c-total-cnps').innerText = fmt(totalCnps);
 
     // Déductions
     document.getElementById('c-retard').innerText = fmt(retard);
@@ -401,9 +417,10 @@ function calculer() {
 
     // Hidden fields
     document.getElementById('net_a_payer').value = net;
-    document.getElementById('cnps_salariale').value = cnpsSalariale;
-    document.getElementById('cnps_patronale').value = cnpsPatronale;
-    document.getElementById('base_cnps').value = baseCnps;
+    // CHAMPS CNPS COMMENTÉS
+    // document.getElementById('cnps_salariale').value = cnpsSalariale;
+    // document.getElementById('cnps_patronale').value = cnpsPatronale;
+    // document.getElementById('base_cnps').value = baseCnps;
 }
 
 document.addEventListener('DOMContentLoaded', calculer);

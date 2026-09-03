@@ -56,7 +56,7 @@ class PaieController extends Controller
         // Créer le bulletin
         $data = $request->all();
         $data['contrat_id'] = $contrat?->id;
-        $data['base_cnps'] = $request->salaire_brut;
+        //$data['base_cnps'] = $request->salaire_brut;
         $data['mois_annee'] = Carbon::createFromFormat('Y-m', $request->periode)->translatedFormat('F Y');
 
         $bulletin = BulletinPaie::create($data);

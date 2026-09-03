@@ -117,9 +117,10 @@
             <th>Vague</th>
             <th class="text-end">Brut</th>
             <th class="text-end">HS</th>
-            <th class="text-end">CNPS Sal.</th>
-            <th class="text-end">CNPS Pat.</th>
-            <th class="text-end">Total CNPS</th>
+            {{-- CNPS COLUMNS COMMENTED --}}
+            {{-- <th class="text-end">CNPS Sal.</th> --}}
+            {{-- <th class="text-end">CNPS Pat.</th> --}}
+            {{-- <th class="text-end">Total CNPS</th> --}}
             <th class="text-end">Sanction</th>
             <th class="text-end">Acompte</th>
             <th class="text-end">Net</th>
@@ -144,9 +145,10 @@
             </td>
             <td class="text-end">{{ number_format($b->salaire_brut, 0, ',', ' ') }}</td>
             <td class="text-end text-success">{{ $b->montant_heures_sup > 0 ? number_format($b->montant_heures_sup, 0, ',', ' ') : '-' }}</td>
-            <td class="text-end" style="color:#dc2626;">{{ $b->cnps_salariale > 0 ? number_format($b->cnps_salariale, 0, ',', ' ') : '-' }}</td>
-            <td class="text-end" style="color:#7c3aed;">{{ $b->cnps_patronale > 0 ? number_format($b->cnps_patronale, 0, ',', ' ') : '-' }}</td>
-            <td class="text-end" style="font-weight:700;color:#1d4ed8;">{{ $b->cnps > 0 ? number_format($b->cnps, 0, ',', ' ') : '-' }}</td>
+            {{-- CNPS DATA COMMENTED --}}
+            {{-- <td class="text-end" style="color:#dc2626;">{{ $b->cnps_salariale > 0 ? number_format($b->cnps_salariale, 0, ',', ' ') : '-' }}</td> --}}
+            {{-- <td class="text-end" style="color:#7c3aed;">{{ $b->cnps_patronale > 0 ? number_format($b->cnps_patronale, 0, ',', ' ') : '-' }}</td> --}}
+            {{-- <td class="text-end" style="font-weight:700;color:#1d4ed8;">{{ $b->cnps > 0 ? number_format($b->cnps, 0, ',', ' ') : '-' }}</td> --}}
             <td class="text-end text-danger">{{ $b->montant_sanction > 0 ? number_format($b->montant_sanction, 0, ',', ' ') : '-' }}</td>
             <td class="text-end text-purple">{{ $b->acompte > 0 ? number_format($b->acompte, 0, ',', ' ') : '-' }}</td>
             <td class="text-end" style="font-weight:700;color:#1d4ed8;font-size:14px;">{{ number_format($b->net_a_payer, 0, ',', ' ') }}</td>
@@ -179,9 +181,10 @@
             <td colspan="4">TOTAUX ({{ $bulletins->count() }} employés)</td>
             <td class="text-end">{{ number_format($totalBrut, 0, ',', ' ') }}</td>
             <td class="text-end">—</td>
-            <td class="text-end" style="color:#dc2626;">{{ number_format($bulletins->sum('cnps_salariale'), 0, ',', ' ') }}</td>
-            <td class="text-end" style="color:#7c3aed;">{{ number_format($bulletins->sum('cnps_patronale'), 0, ',', ' ') }}</td>
-            <td class="text-end" style="color:#1d4ed8;font-weight:800;">{{ number_format($bulletins->sum('cnps'), 0, ',', ' ') }}</td>
+            {{-- CNPS TOTALS COMMENTED --}}
+            {{-- <td class="text-end" style="color:#dc2626;">{{ number_format($bulletins->sum('cnps_salariale'), 0, ',', ' ') }}</td> --}}
+            {{-- <td class="text-end" style="color:#7c3aed;">{{ number_format($bulletins->sum('cnps_patronale'), 0, ',', ' ') }}</td> --}}
+            {{-- <td class="text-end" style="color:#1d4ed8;font-weight:800;">{{ number_format($bulletins->sum('cnps'), 0, ',', ' ') }}</td> --}}
             <td class="text-end">{{ number_format($totalSanction, 0, ',', ' ') }}</td>
             <td class="text-end">{{ number_format($totalAcompte, 0, ',', ' ') }}</td>
             <td class="text-end" style="color:#1d4ed8;font-size:15px;">{{ number_format($totalNet, 0, ',', ' ') }}</td>
