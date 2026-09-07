@@ -6,6 +6,8 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Illuminate\Support\Facades\Log;
 
 class DossierClientController extends Controller
 {
@@ -42,6 +44,7 @@ class DossierClientController extends Controller
                 'prix_superficie'   => 'nullable|numeric|min:0',
                 'prix_technique'    => 'nullable|numeric|min:0',
                 'prix_morcellement' => 'nullable|numeric|min:0',
+                'prix_logistique'   => 'nullable|numeric|min:0',
             ]);
 
             $dossier = DossierClient::findOrFail($dossierId);
@@ -50,7 +53,7 @@ class DossierClientController extends Controller
             if ($request->has('prix_superficie'))   $data['prix_superficie']   = $request->prix_superficie   ?? 0;
             if ($request->has('prix_technique'))    $data['prix_technique']    = $request->prix_technique    ?? 0;
             if ($request->has('prix_morcellement')) $data['prix_morcellement'] = $request->prix_morcellement ?? 0;
-            if ($request->has('prix_logistique')) $data['prix_logistique'] = $request->prix_logistique ?? 0;
+            if ($request->has('prix_logistique'))   $data['prix_logistique']   = $request->prix_logistique   ?? 0;
 
             $dossier->update($data);
 
@@ -59,26 +62,153 @@ class DossierClientController extends Controller
                 'prix_superficie'  => $dossier->fresh()->prix_superficie,
                 'prix_technique'   => $dossier->fresh()->prix_technique,
                 'prix_morcellement'=> $dossier->fresh()->prix_morcellement,
+                'prix_logistique'  => $dossier->fresh()->prix_logistique,
             ]);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    // Export Excel
+    // ════════════════════════════════════════════════════════════════
+    // ✅ EXPORT EXCEL (avec sélection et sexe correct)
+    // ════════════════════════════════════════════════════════════════
+
     public function exportExcel(Request $request)
     {
-        $query = DossierClient::with([
-            'client',
-            'grandSite',
-            'paiements' => fn($q) => $q->orderBy('date_paiement')->limit(1),
+        try {
+            // ✅ Récupérer les IDs sélectionnés
+            $ids = $request->input('ids', []);
+            
+            $query = DossierClient::with([
+                'client',
+                'grandSite',
+                'paiements' => fn($q) => $q->orderBy('date_paiement')->limit(1),
+            ]);
+
+            // ✅ Si des IDs sont sélectionnés, filtrer uniquement ces dossiers
+            if (!empty($ids)) {
+                // Récupérer les clients correspondants aux IDs
+                $clientsIds = Client::whereIn('id', $ids)->pluck('id')->toArray();
+                if (!empty($clientsIds)) {
+                    $query->whereIn('client_id', $clientsIds);
+                } else {
+                    // Aucun client trouvé, retourner un fichier vide
+                    return $this->generateEmptyExcel();
+                }
+            }
+
+            // Appliquer les filtres
+            if ($request->filled('du'))           $query->whereDate('created_at', '>=', $request->du);
+            if ($request->filled('au'))           $query->whereDate('created_at', '<=', $request->au);
+            if ($request->filled('grand_site_id'))$query->where('grand_site_id', $request->grand_site_id);
+
+            $dossiers    = $query->orderByDesc('created_at')->get();
+            
+            return $this->generateExcel($dossiers);
+
+        } catch (\Throwable $e) {
+            Log::error('Erreur exportExcel: ' . $e->getMessage());
+            return back()->with('error', 'Erreur lors de l\'export: ' . $e->getMessage());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ GÉNÉRER LE FICHIER EXCEL
+    // ════════════════════════════════════════════════════════════════
+
+    private function generateExcel($dossiers)
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Dossiers Clients');
+
+        // ═══ EN-TÊTES ═══
+        $headers = [
+            'A'=>'Identifiant','B'=>'Mot de passe','C'=>'Nom','D'=>'Email',
+            'E'=>'Téléphone','F'=>'Ville','G'=>'Sexe','H'=>'Rôle','I'=>'Actif',
+            'J'=>'Intitulé dossier','K'=>'Superficie (m²)',
+            'L'=>'Date paiement (YYYY-MM-DD)','M'=>'Notes dossier',
+            'N'=>'Identifiant accès 2','O'=>'Identifiant accès 3','P'=>'Identifiant accès 4',
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col.'1', $header);
+            $sheet->getStyle($col.'1')->getFont()->setBold(true);
+            $sheet->getStyle($col.'1')->getFill()
+                  ->setFillType(Fill::FILL_SOLID)
+                  ->getStartColor()->setRGB('1E3A5F');
+            $sheet->getStyle($col.'1')->getFont()->getColor()->setRGB('FFFFFF');
+        }
+
+        // ═══ DONNÉES ═══
+        $row = 2;
+        foreach ($dossiers as $dossier) {
+            $client          = $dossier->client;
+            $nom             = $client?->name ?? '';
+            $telephone       = $client?->phone ?? '';
+            $sexe            = $client?->sexe ?? 'non_renseigne';
+            $grandSiteNom    = $dossier->grandSite?->nom ?? $dossier->nom_dossier ?? '';
+            $superficie      = $dossier->superficie_voulue ?? '';
+            $premierPaiement = $dossier->paiements->first();
+            $datePaiement    = $premierPaiement
+                ? \Carbon\Carbon::parse($premierPaiement->date_paiement)->format('d/m/Y')
+                : '';
+            
+            // Génération de l'email
+            $emailGen = $nom
+                ? strtolower(str_replace([' ',"'"], ['.',''],
+                    iconv('UTF-8','ASCII//TRANSLIT',$nom))).'@edengroup.cm'
+                : '';
+
+            // ✅ Sexe correct
+            $sexeLabel = match($sexe) {
+                'masculin' => 'Masculin',
+                'feminin' => 'Féminin',
+                default => 'Non renseigné',
+            };
+
+            $sheet->setCellValue('A'.$row, $nom);
+            $sheet->setCellValue('B'.$row, 'eden');
+            $sheet->setCellValue('C'.$row, $nom);
+            $sheet->setCellValue('D'.$row, $emailGen);
+            $sheet->setCellValue('E'.$row, $telephone);
+            $sheet->setCellValue('F'.$row, 'Yaoundé');
+            $sheet->setCellValue('G'.$row, $sexeLabel);  // ✅ Sexe correct
+            $sheet->setCellValue('H'.$row, 'client');
+            $sheet->setCellValue('I'.$row, 'Oui');
+            $sheet->setCellValue('J'.$row, $grandSiteNom);
+            $sheet->setCellValue('K'.$row, $superficie);
+            $sheet->setCellValue('L'.$row, $datePaiement);
+            $sheet->setCellValue('M'.$row, 'EDEN GROUP');
+            $sheet->setCellValue('N'.$row, '');
+            $sheet->setCellValue('O'.$row, '');
+            $sheet->setCellValue('P'.$row, '');
+            $row++;
+        }
+
+        // ═══ AUTO SIZE ═══
+        foreach (range('A','P') as $col)
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+
+        // ═══ TÉLÉCHARGEMENT ═══
+        $fileName = 'dossiers_clients_'.now()->format('Y-m-d').'.xlsx';
+        $writer   = new Xlsx($spreadsheet);
+        
+        return response()->stream(function() use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Cache-Control' => 'max-age=0',
         ]);
+    }
 
-        if ($request->filled('du'))           $query->whereDate('created_at', '>=', $request->du);
-        if ($request->filled('au'))           $query->whereDate('created_at', '<=', $request->au);
-        if ($request->filled('grand_site_id'))$query->where('grand_site_id', $request->grand_site_id);
+    // ════════════════════════════════════════════════════════════════
+    // ✅ GÉNÉRER UN EXCEL VIDE (si aucun client sélectionné)
+    // ════════════════════════════════════════════════════════════════
 
-        $dossiers    = $query->orderByDesc('created_at')->get();
+    private function generateEmptyExcel()
+    {
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Dossiers Clients');
@@ -95,136 +225,103 @@ class DossierClientController extends Controller
             $sheet->setCellValue($col.'1', $header);
             $sheet->getStyle($col.'1')->getFont()->setBold(true);
             $sheet->getStyle($col.'1')->getFill()
-                  ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->setFillType(Fill::FILL_SOLID)
                   ->getStartColor()->setRGB('1E3A5F');
             $sheet->getStyle($col.'1')->getFont()->getColor()->setRGB('FFFFFF');
-        }
-
-        $row = 2;
-        foreach ($dossiers as $dossier) {
-            $client          = $dossier->client;
-            $nom             = $client?->name ?? '';
-            $telephone       = $client?->phone ?? '';
-            $grandSiteNom    = $dossier->grandSite?->nom ?? $dossier->nom_dossier ?? '';
-            $superficie      = $dossier->superficie_voulue ?? '';
-            $premierPaiement = $dossier->paiements->first();
-            $datePaiement    = $premierPaiement
-                ? \Carbon\Carbon::parse($premierPaiement->date_paiement)->format('d/m/Y')
-                : '';
-            $emailGen = $nom
-                ? strtolower(str_replace([' ',"'"], ['.',''],
-                    iconv('UTF-8','ASCII//TRANSLIT',$nom))).'@edengroup.cm'
-                : '';
-
-            $sheet->setCellValue('A'.$row, $nom);
-            $sheet->setCellValue('B'.$row, 'eden');
-            $sheet->setCellValue('C'.$row, $nom);
-            $sheet->setCellValue('D'.$row, $emailGen);
-            $sheet->setCellValue('E'.$row, $telephone);
-            $sheet->setCellValue('F'.$row, 'Yaoundé');
-            $sheet->setCellValue('G'.$row, 'masculin');
-            $sheet->setCellValue('H'.$row, 'client');
-            $sheet->setCellValue('I'.$row, 'Oui');
-            $sheet->setCellValue('J'.$row, $grandSiteNom);
-            $sheet->setCellValue('K'.$row, $superficie);
-            $sheet->setCellValue('L'.$row, $datePaiement);
-            $sheet->setCellValue('M'.$row, 'EDEN GROUP');
-            $sheet->setCellValue('N'.$row, '');
-            $sheet->setCellValue('O'.$row, '');
-            $sheet->setCellValue('P'.$row, '');
-            $row++;
         }
 
         foreach (range('A','P') as $col)
             $sheet->getColumnDimension($col)->setAutoSize(true);
 
-        $fileName = 'dossiers_clients_'.now()->format('Y-m-d').'.xlsx';
+        $sheet->setCellValue('A2', 'Aucun dossier trouvé');
+
+        $fileName = 'dossiers_clients_vide_'.now()->format('Y-m-d').'.xlsx';
         $writer   = new Xlsx($spreadsheet);
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="'.$fileName.'"');
-        header('Cache-Control: max-age=0');
-        $writer->save('php://output');
-        exit;
+        
+        return response()->stream(function() use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ MAJ ÉTAPE
+    // ════════════════════════════════════════════════════════════════
 
     public function majEtape(Request $request, $dossierId)
-{
-    try {
-        $request->validate([
-            'etape'  => 'required|in:implantation_prevue,deja_implante,dossier_technique,morcellement',
-            'date'   => 'required|date',
-            'active' => 'boolean',
-        ]);
+    {
+        try {
+            $request->validate([
+                'etape'  => 'required|in:implantation_prevue,deja_implante,dossier_technique,morcellement',
+                'date'   => 'required|date',
+                'active' => 'boolean',
+            ]);
 
-        $dossier = DossierClient::findOrFail($dossierId);
+            $dossier = DossierClient::findOrFail($dossierId);
 
-        // Ordre des étapes — on ne peut qu'avancer (ou décocher)
-        $etapes = [
-            'implantation_prevue' => 1,
-            'deja_implante'       => 2,
-            'dossier_technique'   => 3,
-            'morcellement'        => 4,
-        ];
+            $etapes = [
+                'implantation_prevue' => 1,
+                'deja_implante'       => 2,
+                'dossier_technique'   => 3,
+                'morcellement'        => 4,
+            ];
 
-        $champs = [
-            'implantation_prevue' => 'date_implantation_prevue',
-            'deja_implante'       => 'date_deja_implante',
-            'dossier_technique'   => 'date_dossier_technique',
-            'morcellement'        => 'date_morcellement',
-        ];
+            $champs = [
+                'implantation_prevue' => 'date_implantation_prevue',
+                'deja_implante'       => 'date_deja_implante',
+                'dossier_technique'   => 'date_dossier_technique',
+                'morcellement'        => 'date_morcellement',
+            ];
 
-        $etapeSelectionnee = $request->etape;
-        $active            = $request->boolean('active', true);
+            $etapeSelectionnee = $request->etape;
+            $active            = $request->boolean('active', true);
 
-        $data = [];
+            $data = [];
 
-        if ($active) {
-            // Cocher cette étape et toutes les précédentes
-            foreach ($etapes as $etapeNom => $ordre) {
-                if ($ordre <= $etapes[$etapeSelectionnee]) {
-                    // Si pas encore de date pour cette étape, mettre la date fournie
-                    // ou aujourd'hui pour les étapes précédentes
-                    if (empty($dossier->{$champs[$etapeNom]})) {
-                        $data[$champs[$etapeNom]] = ($etapeNom === $etapeSelectionnee)
-                            ? $request->date
-                            : now()->format('Y-m-d');
+            if ($active) {
+                foreach ($etapes as $etapeNom => $ordre) {
+                    if ($ordre <= $etapes[$etapeSelectionnee]) {
+                        if (empty($dossier->{$champs[$etapeNom]})) {
+                            $data[$champs[$etapeNom]] = ($etapeNom === $etapeSelectionnee)
+                                ? $request->date
+                                : now()->format('Y-m-d');
+                        }
                     }
                 }
-            }
-            $data['etape_actuelle'] = $etapeSelectionnee;
-        } else {
-            // Décocher — effacer cette étape et toutes les suivantes
-            foreach ($etapes as $etapeNom => $ordre) {
-                if ($ordre >= $etapes[$etapeSelectionnee]) {
-                    $data[$champs[$etapeNom]] = null;
+                $data['etape_actuelle'] = $etapeSelectionnee;
+            } else {
+                foreach ($etapes as $etapeNom => $ordre) {
+                    if ($ordre >= $etapes[$etapeSelectionnee]) {
+                        $data[$champs[$etapeNom]] = null;
+                    }
                 }
-            }
-            // Revenir à l'étape précédente
-            $etapePrecedente = null;
-            foreach ($etapes as $etapeNom => $ordre) {
-                if ($ordre < $etapes[$etapeSelectionnee] && !empty($dossier->{$champs[$etapeNom]})) {
-                    $etapePrecedente = $etapeNom;
+                $etapePrecedente = null;
+                foreach ($etapes as $etapeNom => $ordre) {
+                    if ($ordre < $etapes[$etapeSelectionnee] && !empty($dossier->{$champs[$etapeNom]})) {
+                        $etapePrecedente = $etapeNom;
+                    }
                 }
+                $data['etape_actuelle'] = $etapePrecedente;
             }
-            $data['etape_actuelle'] = $etapePrecedente;
+
+            $dossier->update($data);
+
+            return response()->json([
+                'success'       => true,
+                'etape_actuelle'=> $dossier->fresh()->etape_actuelle,
+                'dates'         => [
+                    'implantation_prevue' => $dossier->fresh()->date_implantation_prevue?->format('d/m/Y'),
+                    'deja_implante'       => $dossier->fresh()->date_deja_implante?->format('d/m/Y'),
+                    'dossier_technique'   => $dossier->fresh()->date_dossier_technique?->format('d/m/Y'),
+                    'morcellement'        => $dossier->fresh()->date_morcellement?->format('d/m/Y'),
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        $dossier->update($data);
-
-        return response()->json([
-            'success'       => true,
-            'etape_actuelle'=> $dossier->fresh()->etape_actuelle,
-            'dates'         => [
-                'implantation_prevue' => $dossier->fresh()->date_implantation_prevue?->format('d/m/Y'),
-                'deja_implante'       => $dossier->fresh()->date_deja_implante?->format('d/m/Y'),
-                'dossier_technique'   => $dossier->fresh()->date_dossier_technique?->format('d/m/Y'),
-                'morcellement'        => $dossier->fresh()->date_morcellement?->format('d/m/Y'),
-            ],
-        ]);
-
-    } catch (\Throwable $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
-}
-
 }

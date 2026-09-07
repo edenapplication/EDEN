@@ -91,7 +91,6 @@
         .sidebar a.active { background:rgba(255,255,255,0.08); color:white; border-left-color:#60a5fa; }
         .nav-direct { padding:4px 0 8px; border-bottom:1px solid rgba(255,255,255,0.06); }
 
-        /* Badge rôle dans sidebar */
         .role-tag {
             display:inline-block; font-size:9px; font-weight:700;
             padding:2px 7px; border-radius:10px; margin-left:auto;
@@ -99,10 +98,11 @@
         .role-tag.admin    { background:rgba(220,38,38,0.2); color:#fca5a5; }
         .role-tag.rh       { background:rgba(124,58,237,0.2); color:#c4b5fd; }
         .role-tag.commercial { background:rgba(16,185,129,0.2); color:#6ee7b7; }
+
         @keyframes badgePulse {
-    0%,100% { background:#dc2626; }
-    50%      { background:#f87171; }
-}
+            0%,100% { background:#dc2626; }
+            50%      { background:#f87171; }
+        }
 
         /* TOPBAR */
         .topbar {
@@ -192,7 +192,6 @@
     flex-direction:column;
     gap:20px;
 ">
-    {{-- Carte centrale --}}
     <div style="
         background:white;
         border-radius:20px;
@@ -203,13 +202,11 @@
         position:relative;
         overflow:hidden;
     ">
-        {{-- Barre de couleur en haut --}}
         <div style="
             position:absolute;top:0;left:0;right:0;height:5px;
             background:linear-gradient(90deg,#1d4ed8 0%,#7c3aed 50%,#dc2626 100%);
         "></div>
 
-        {{-- BOUTON CROIX FERMER --}}
         <button id="eden-loader-close" style="
             position:absolute;
             top:12px;
@@ -230,7 +227,6 @@
             ✕
         </button>
 
-        {{-- Logo / Initiale --}}
         <div style="
             width:64px;height:64px;
             background:linear-gradient(135deg,#1d4ed8,#7c3aed);
@@ -241,7 +237,6 @@
             letter-spacing:-1px;
         ">E</div>
 
-        {{-- Nom société --}}
         <div style="
             font-size:13px;font-weight:800;
             background:linear-gradient(90deg,#1d4ed8,#dc2626);
@@ -250,7 +245,6 @@
             letter-spacing:1px;margin-bottom:20px;
         ">EDEN GROUP</div>
 
-        {{-- Spinner SVG animé --}}
         <div style="margin:0 auto 18px auto;width:52px;height:52px;">
             <svg viewBox="0 0 52 52" style="width:52px;height:52px;animation:edenSpin 1s linear infinite;">
                 <circle cx="26" cy="26" r="22"
@@ -274,12 +268,10 @@
             </svg>
         </div>
 
-        {{-- Texte chargement animé --}}
         <div id="eden-loader-msg" style="
             font-size:13px;font-weight:600;color:#475569;
         ">Chargement en cours<span id="eden-dots"></span></div>
 
-        {{-- Barre de progression --}}
         <div style="
             height:3px;background:#f1f5f9;border-radius:2px;
             margin-top:16px;overflow:hidden;
@@ -291,7 +283,6 @@
             "></div>
         </div>
 
-        {{-- Petit texte annuler --}}
         <div style="
             margin-top:12px;
             font-size:9pt;
@@ -309,8 +300,6 @@
 #eden-loader.actif {
     display: flex !important;
 }
-
-/* Animation d'apparition de la croix au survol */
 #eden-loader-close {
     transition: all 0.2s ease;
 }
@@ -328,9 +317,6 @@
 
     let estAnnule = false;
 
-    // ============================================================
-    // ANIMATION DES POINTS
-    // ============================================================
     let dotsCount = 0;
     let dotsTimer = null;
     function animerPoints() {
@@ -341,9 +327,6 @@
         }, 400);
     }
 
-    // ============================================================
-    // BARRE DE PROGRESSION SIMULÉE
-    // ============================================================
     let progValue  = 0;
     let progTimer  = null;
     function demarrerProgression() {
@@ -372,9 +355,6 @@
         }, 300);
     }
 
-    // ============================================================
-    // ANNULER / FERMER
-    // ============================================================
     function annulerChargement() {
         estAnnule = true;
         clearInterval(dotsTimer);
@@ -382,8 +362,6 @@
         loader.classList.remove('actif');
         dots.innerText = '';
         progBar.style.width = '0%';
-        
-        // Optionnel : petit message de confirmation
         const msg = document.getElementById('eden-loader-msg');
         if (msg) {
             msg.innerText = '⏹ Chargement annulé';
@@ -393,15 +371,11 @@
         }
     }
 
-    // ============================================================
-    // AFFICHER / MASQUER
-    // ============================================================
     function afficher() {
         estAnnule = false;
         loader.classList.add('actif');
         demarrerProgression();
         animerPoints();
-        // Remettre le message original
         const msg = document.getElementById('eden-loader-msg');
         if (msg) msg.innerText = 'Chargement en cours';
     }
@@ -416,9 +390,6 @@
         });
     }
 
-    // ============================================================
-    // ÉVÉNEMENT CROIX FERMER
-    // ============================================================
     if (closeBtn) {
         closeBtn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -426,11 +397,6 @@
         });
     }
 
-    // ============================================================
-    // DÉCLENCHEURS
-    // ============================================================
-
-    // 1. Tous les liens qui causent une navigation
     document.addEventListener('click', function(e) {
         const a = e.target.closest('a');
         if (!a) return;
@@ -445,7 +411,6 @@
         afficher();
     });
 
-    // 2. Tous les formulaires soumis
     document.addEventListener('submit', function(e) {
         const form = e.target;
         if (form.dataset.ajax === 'true') return;
@@ -453,7 +418,6 @@
         afficher();
     });
 
-    // 3. Boutons submit classiques
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('button[type="submit"]');
         if (!btn) return;
@@ -463,21 +427,16 @@
         }
     });
 
-    // 4. Masquer dès que la page est chargée
     window.addEventListener('pageshow', function(e) {
         masquer();
     });
 
-    // 5. Masquer si la page est déjà chargée
     if (document.readyState === 'complete') {
         masquer();
     } else {
         window.addEventListener('load', masquer);
     }
 
-    // ============================================================
-    // API GLOBALE
-    // ============================================================
     window.EdenLoader = {
         show: afficher,
         hide: masquer,
@@ -520,7 +479,8 @@
             </div>
         </div>
 
-        {{-- ✅ DASHBOARD — visible pour tous --}}
+        {{-- ✅ DASHBOARD — admin uniquement --}}
+        @if($role === 'admin')
         <div class="nav-direct">
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <span>📊</span> Dashboard
@@ -529,6 +489,7 @@
                 </span>
             </a>
         </div>
+        @endif
 
         {{-- ✅ GESTION ACCÈS — admin uniquement --}}
         @if($role === 'admin')
@@ -539,32 +500,28 @@
         </div>
         @endif
 
-        @if($role === 'admin')
-<div style="padding:4px 0;">
-    <a href="{{ route('affectations.index') }}" onclick="fermerSidebar()"
-       class="{{ request()->is('admin/affectations*') ? 'active' : '' }}">
-        <span>🗺️</span> Blocs & Lots
-    </a>
-</div>
-@endif
+        {{-- ✅ BLOCS & LOTS — admin + commercial --}}
+        @if(in_array($role, ['admin', 'commercial']))
+        <div style="padding:4px 0;">
+            <a href="{{ route('affectations.index') }}" onclick="fermerSidebar()"
+               class="{{ request()->is('admin/affectations*') ? 'active' : '' }}">
+                <span>🗺️</span> Blocs & Lots
+            </a>
+        </div>
+        @endif
 
         <div class="nav-section">
 
-            {{-- ✅ GESTION FONCIÈRE — admin + commercial (lecture) --}}
+            {{-- ✅ GESTION FONCIÈRE — admin + commercial --}}
             @if(in_array($role, ['admin', 'commercial']))
             <button class="nav-group-btn" onclick="toggleGroup('group-foncier', this)">
                 <span>🏢 Gestion foncière</span>
                 <span class="chevron">›</span>
             </button>
             <div class="nav-group-items" id="group-foncier">
-                {{-- Sites & Zones : admin peut modifier, commercial voit seulement --}}
                 <a href="{{ route('grand-sites.index') }}" onclick="fermerSidebar()">
                     <span>🗂️</span> Sites & Zones
-                    @if($role !== 'admin')
-                        <span style="font-size:9px;color:#475569;margin-left:auto;">lecture</span>
-                    @endif
                 </a>
-                {{-- Suivi parcelles : admin + commercial --}}
                 <a href="{{ route('lots.vendus') }}" onclick="fermerSidebar()">
                     <span>📁</span> Suivi des parcelles
                 </a>
@@ -581,44 +538,41 @@
                 <a href="{{ route('suivi-client.index') }}" onclick="fermerSidebar()">
                     <span>👤</span> Suivi clients
                 </a>
-                {{-- Commerciaux & Agents — admin seulement --}}
-                @if($role === 'admin')
-                    <a href="{{ route('commerciaux.index') }}" onclick="fermerSidebar()">
-                        <span>🧑‍💼</span> Commerciaux
-                    </a>
-                    <a href="{{ route('agents.index') }}" onclick="fermerSidebar()">
-                        <span>🤝</span> Agents commerciaux
-                    </a>
-                @endif
+                <a href="{{ route('commerciaux.index') }}" onclick="fermerSidebar()">
+                    <span>🧑‍💼</span> Commerciaux
+                </a>
+                <a href="{{ route('agents.index') }}" onclick="fermerSidebar()">
+                    <span>🤝</span> Agents commerciaux
+                </a>
             </div>
             @endif
 
-          {{-- MODULE FEB — admin seulement --}}
-@if($role === 'admin')
-@php
-    $nbFebNew = \App\Models\Feb\Fiche::where('vue_admin', false)
-                    ->where('statut', 'soumise')
-                    ->count();
-@endphp
-<div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;">
-    <a href="{{ route('admin.feb.index') }}" onclick="fermerSidebar()"
-       class="{{ request()->is('admin/feb*') ? 'active' : '' }}"
-       style="position:relative;">
-        <span>📋</span> Fiches d'Expression
-        @if($nbFebNew > 0)
-            <span style="
-                background:#dc2626; color:white; border-radius:10px;
-                font-size:9px; padding:2px 7px; font-weight:800;
-                margin-left:auto; flex-shrink:0;
-                animation:badgePulse 1.5s infinite;
-            ">{{ $nbFebNew }}</span>
-        @endif
-    </a>
-</div>
-@endif
-
-            {{-- ✅ RAPPORTS & DONNÉES — admin uniquement --}}
+            {{-- ✅ MODULE FEB — admin uniquement --}}
             @if($role === 'admin')
+            @php
+                $nbFebNew = \App\Models\Feb\Fiche::where('vue_admin', false)
+                                ->where('statut', 'soumise')
+                                ->count();
+            @endphp
+            <div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;">
+                <a href="{{ route('admin.feb.index') }}" onclick="fermerSidebar()"
+                   class="{{ request()->is('admin/feb*') ? 'active' : '' }}"
+                   style="position:relative;">
+                    <span>📋</span> Fiches d'Expression
+                    @if($nbFebNew > 0)
+                        <span style="
+                            background:#dc2626; color:white; border-radius:10px;
+                            font-size:9px; padding:2px 7px; font-weight:800;
+                            margin-left:auto; flex-shrink:0;
+                            animation:badgePulse 1.5s infinite;
+                        ">{{ $nbFebNew }}</span>
+                    @endif
+                </a>
+            </div>
+            @endif
+
+            {{-- ✅ RAPPORTS & DONNÉES — admin + commercial --}}
+            @if(in_array($role, ['admin', 'commercial']))
             <button class="nav-group-btn" onclick="toggleGroup('group-rapports', this)">
                 <span>📊 Rapports & Données</span>
                 <span class="chevron">›</span>
@@ -630,26 +584,23 @@
                 <a href="{{ route('rapport.liste') }}" onclick="fermerSidebar()">
                     <span>🗂️</span> Rapports sauvegardés
                 </a>
+                <a href="{{ route('visites.index') }}" onclick="fermerSidebar()">
+                    <span>🚶</span> Registre des visites
+                </a>
+            </div>
+            @endif
+
+            {{-- ✅ IMPORT/EXPORT — admin uniquement --}}
+            @if($role === 'admin')
+            <div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.06);">
                 <a href="{{ route('import-export.index') }}" onclick="fermerSidebar()">
                     <span>🔄</span> Import / Export
                 </a>
-                <a href="{{ route('visites.index') }}" onclick="fermerSidebar()">
-                    <span>🚶</span> Registre des visites
-                </a>
             </div>
             @endif
 
-            {{-- ✅ VISITES — commercial (sans les rapports) --}}
-            @if($role === 'commercial')
-            <div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.06);">
-                <a href="{{ route('visites.index') }}" onclick="fermerSidebar()">
-                    <span>🚶</span> Registre des visites
-                </a>
-            </div>
-            @endif
-
-            {{-- ✅ MODULE RH — admin peut y accéder aussi --}}
-            @if($role === 'admin')
+            {{-- ✅ MODULE RH — admin + rh --}}
+            @if(in_array($role, ['admin', 'rh']))
             <div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.06);">
                 <a href="{{ route('rh.dashboard') }}" onclick="fermerSidebar()">
                     <span>🏢</span> Module RH
@@ -674,8 +625,8 @@
         {{-- Accueil modules --}}
         <a href="{{ route('home') }}" class="topbar-link">🏠 Accueil</a>
 
-        {{-- Raccourci RH — admin uniquement --}}
-        @if($role === 'admin')
+        {{-- Raccourci RH — admin + rh --}}
+        @if(in_array($role, ['admin', 'rh']))
         <a href="{{ route('rh.dashboard') }}" class="topbar-link">🏢 RH</a>
         @endif
 
@@ -756,7 +707,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const groupes = {
         'group-foncier' : ['/admin/grand-sites','/admin/sites','/admin/tf','/admin/lots'],
         'group-clients' : ['/admin/suivi-client','/admin/commerciaux','/admin/agents'],
-        'group-rapports': ['/admin/rapport','/admin/import-export','/admin/visites'],
+        'group-rapports': ['/admin/rapport','/admin/visites'],
     };
     Object.entries(groupes).forEach(([groupId, prefixes]) => {
         const el = document.getElementById(groupId); if (!el) return;

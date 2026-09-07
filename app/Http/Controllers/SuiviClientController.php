@@ -13,7 +13,9 @@ use App\Models\GrandSite;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
+use ZipArchive;
+use Illuminate\Support\Str;
 
 class SuiviClientController extends Controller
 {
@@ -70,6 +72,15 @@ class SuiviClientController extends Controller
             });
         }
 
+        // ✅ FILTRE SEXE
+        if ($request->filled('sexe')) {
+            if ($request->sexe == 'masculin') {
+                $query->where('sexe', 'masculin');
+            } elseif ($request->sexe == 'feminin') {
+                $query->where('sexe', 'feminin');
+            }
+        }
+
         // 📅 Dates
         if ($request->filled('du'))
             $query->whereDate('created_at', '>=', $request->du);
@@ -121,7 +132,7 @@ class SuiviClientController extends Controller
             }
         }
 
-        // ✅ Filtre par paiement dossier (superficie) soldé - CORRIGÉ
+        // ✅ Filtre par paiement dossier (superficie) soldé
         if ($request->filled('dossier_solde')) {
             if ($request->dossier_solde == 'solde') {
                 $query->whereHas('dossiers', function($q) {
@@ -197,6 +208,16 @@ class SuiviClientController extends Controller
                 $query->where('is_new', false);
             }
         }
+
+        // ✅ FILTRE SEXE
+        if ($request->filled('sexe')) {
+            if ($request->sexe == 'masculin') {
+                $query->where('sexe', 'masculin');
+            } elseif ($request->sexe == 'feminin') {
+                $query->where('sexe', 'feminin');
+            }
+        }
+
         if ($request->filled('technique_solde')) {
             if ($request->technique_solde == 'solde') {
                 $query->whereHas('dossiers', function($q) {
@@ -258,149 +279,281 @@ class SuiviClientController extends Controller
             'total_clients' => $clients->count(),
         ];
 
-        $pdf = PDF::loadView('admin.suivi_client.export_pdf', $data);
+        $pdf = Pdf::loadView('admin.suivi_client.export_pdf', $data);
         $pdf->setPaper('A4', 'landscape');
         
         return $pdf->download('clients_export_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    public function store(Request $request)
-{
-    try {
-        $request->validate([
-            'name'               => 'required|string|max:255',
-            'phone'              => 'required|string',
-            'nom_dossier'        => 'required|string|max:255',
-            'commercial_id'      => 'nullable|exists:commerciaux,id',
-            'conducteur_id'      => 'nullable|exists:conducteurs,id',
-            'facilitateur_id'    => 'nullable|exists:facilitateurs,id',
-            'agent_commercial_id'=> 'nullable|exists:agents_commerciaux,id',
-            'grand_site_id'      => 'nullable|exists:grand_sites,id',
-            'direction'          => 'nullable|string',
-            'superficie_voulue'  => 'nullable|numeric',
-            'prix_superficie'    => 'required|numeric|min:0',
-            'prix_technique'     => 'required|numeric|min:0',
-            'prix_logistique'    => 'required|numeric|min:0',
-            'prix_morcellement'  => 'nullable|numeric|min:0',
-            'cni_images'         => 'nullable|array',
-            'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-        ]);
+    // ════════════════════════════════════════════════════════════════
+    // ✅ EXPORT PDF DES CLIENTS SÉLECTIONNÉS
+    // ════════════════════════════════════════════════════════════════
 
-        $client = Client::firstOrCreate(
-            ['phone' => $request->phone],
-            ['name'  => $request->name, 'is_new' => true]
-        );
+    public function exportPdfSelected(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            if (empty($ids)) {
+                return response()->json(['error' => 'Aucun client sélectionné'], 400);
+            }
 
-        $agentId = $request->agent_commercial_id;
-        if (!$agentId && $request->agent_nom) {
-            $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
-            $agentId = $a->id;
+            $clients = Client::with([
+                'dossiers.grandSite',
+                'dossiers.affectations.grandSite',
+                'dossiers.affectations.bloc',
+                'dossiers.affectations.lot',
+                'dossiers.paiementsTechniques',
+                'dossiers.paiementsMorcellements',
+                'dossiers.paiements',
+                'dossiers.paiementsLogistiques',
+            ])->whereIn('id', $ids)->get();
+
+            $data = [
+                'clients' => $clients,
+                'date_export' => now()->format('d/m/Y H:i'),
+                'total_clients' => $clients->count(),
+                'titre' => 'Export sélectionné',
+            ];
+
+            $pdf = Pdf::loadView('admin.suivi_client.export_pdf', $data);
+            $pdf->setPaper('A4', 'landscape');
+            
+            return $pdf->download('clients_selectionnes_' . now()->format('Y-m-d') . '.pdf');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur exportPdfSelected: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
 
-        $conducteurId = $request->conducteur_id;
-        if (!$conducteurId && $request->conducteur_nom) {
-            $c = Conducteur::create(['nom' => $request->conducteur_nom, 'numero' => $request->conducteur_numero]);
-            $conducteurId = $c->id;
-        }
+    // ════════════════════════════════════════════════════════════════
+    // ✅ EXPORTER LES DOCUMENTS D'UN CLIENT
+    // ════════════════════════════════════════════════════════════════
 
-        $facilitateurId = $request->facilitateur_id;
-        if (!$facilitateurId && $request->facilitateur_nom) {
-            $f = Facilitateur::create(['nom' => $request->facilitateur_nom, 'numero' => $request->facilitateur_numero]);
-            $facilitateurId = $f->id;
-        }
+    public function exportDocuments($clientId)
+    {
+        try {
+            $client = Client::with('dossiers')->findOrFail($clientId);
+            $documents = [];
 
-        $cniImages = [];
-        if ($request->hasFile('cni_images')) {
-            foreach ($request->file('cni_images') as $file) {
-                if ($file && $file->isValid()) {
-                    $path = $file->store('cni', 'public');
-                    if ($path) {
-                        $cniImages[] = $path;
+            // Récupérer les CNI du client
+            foreach ($client->dossiers as $dossier) {
+                if ($dossier->cni_images) {
+                    foreach ($dossier->cni_images as $cni) {
+                        $path = storage_path('app/public/' . $cni);
+                        if (file_exists($path)) {
+                            $documents[] = [
+                                'name' => 'CNI_' . $client->name . '_' . basename($cni),
+                                'path' => $path,
+                                'url' => asset('storage/' . $cni),
+                                'type' => 'cni',
+                            ];
+                        }
                     }
                 }
             }
+
+            return response()->json([
+                'success' => true,
+                'client_name' => $client->name,
+                'documents_count' => count($documents),
+                'documents' => $documents,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur exportDocuments: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        DossierClient::create([
-            'client_id'          => $client->id,
-            'nom_dossier'        => $request->nom_dossier,
-            'commercial_id'      => $request->commercial_id,
-            'conducteur_id'      => $conducteurId,
-            'facilitateur_id'    => $facilitateurId,
-            'agent_commercial_id'=> $agentId,
-            'grand_site_id'      => $request->grand_site_id,
-            'direction'          => $request->direction,
-            'superficie_voulue'  => $request->superficie_voulue,
-            'prix_superficie'    => $request->prix_superficie,
-            'prix_technique'     => $request->prix_technique,
-            'prix_logistique'    => $request->prix_logistique,
-            'prix_morcellement'  => $request->prix_morcellement ?? 0,
-            'cni_images'         => $cniImages,
-        ]);
-
-        return redirect()->route('suivi-client.show', $client->id)
-                         ->with('success', 'Client et dossier créés avec succès');
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        // ✅ CORRECTION : Utiliser withErrors au lieu de implode()
-        return back()->withErrors($e->errors())->withInput();
-        
-    } catch (\Exception $e) {
-        Log::error('Erreur création dossier: ' . $e->getMessage());
-        return back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
     }
-}
 
-   // App\Http\Controllers\SuiviClientController.php
+    // ════════════════════════════════════════════════════════════════
+    // ✅ TÉLÉCHARGER LES DOCUMENTS EN ZIP
+    // ════════════════════════════════════════════════════════════════
 
-public function show($id)
-{
-    try {
-        $client = Client::with([
-            'dossiers.commercial',
-            'dossiers.conducteur',
-            'dossiers.facilitateur',
-            'dossiers.agentCommercial',
-            'dossiers.grandSite',
-            'dossiers.paiements',
-            'dossiers.paiementsTechniques',
-            'dossiers.paiementsMorcellements',
-            'dossiers.paiementsLogistiques',
-            'dossiers.bons',
-            'dossiers.affectations.grandSite',
-            'dossiers.affectations.bloc',
-            'dossiers.affectations.lot',
-            'lots.tf.site.grandSite',
-            'lots.dossier',
-            'visites.visiteur',
-            'visites.grandSite',
-            'visites.site',
-        ])->findOrFail($id);
+    public function downloadDocumentsZip(Request $request)
+    {
+        try {
+            $documents = $request->input('documents', []);
+            
+            if (empty($documents)) {
+                return response()->json(['error' => 'Aucun document'], 400);
+            }
 
-        // ✅ Récupérer le premier dossier OU null si aucun
-        $dossier = $client->dossiers->first();
-        
-        // ✅ Si pas de dossier, on passe une collection vide
-        $affectations = $dossier ? $dossier->affectations : collect();
+            $zipFileName = 'documents_clients_' . now()->format('Y-m-d_H-i-s') . '.zip';
+            $zipPath = storage_path('app/temp/' . $zipFileName);
+            
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
 
-        // ✅ Vérifier les CNI (si dossier existe)
-        if ($dossier && $dossier->cni_images) {
-            $cnisValides = [];
-            foreach ($dossier->cni_images as $img) {
-                if (file_exists(storage_path('app/public/' . $img))) {
-                    $cnisValides[] = $img;
+            $zip = new ZipArchive();
+            if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                throw new \Exception('Impossible de créer le fichier ZIP');
+            }
+
+            foreach ($documents as $doc) {
+                if (isset($doc['path']) && file_exists($doc['path'])) {
+                    $name = isset($doc['name']) ? $doc['name'] : basename($doc['path']);
+                    $zip->addFile($doc['path'], $name);
                 }
             }
-            $dossier->cni_images = $cnisValides;
+
+            $zip->close();
+
+            return response()->download($zipPath, $zipFileName)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur downloadDocumentsZip: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        return view('admin.suivi_client.show', compact('client', 'affectations', 'dossier'));
-
-    } catch (\Exception $e) {
-        Log::error('Erreur show client ' . $id . ': ' . $e->getMessage());
-        return back()->with('error', 'Erreur lors du chargement du client: ' . $e->getMessage());
     }
-}
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ STORE
+    // ════════════════════════════════════════════════════════════════
+
+    public function store(Request $request)
+    {
+        try {
+            $request->validate([
+                'name'               => 'required|string|max:255',
+                'phone'              => 'required|string',
+                'nom_dossier'        => 'required|string|max:255',
+                'commercial_id'      => 'nullable|exists:commerciaux,id',
+                'conducteur_id'      => 'nullable|exists:conducteurs,id',
+                'facilitateur_id'    => 'nullable|exists:facilitateurs,id',
+                'agent_commercial_id'=> 'nullable|exists:agents_commerciaux,id',
+                'grand_site_id'      => 'nullable|exists:grand_sites,id',
+                'direction'          => 'nullable|string',
+                'superficie_voulue'  => 'nullable|numeric',
+                'prix_superficie'    => 'required|numeric|min:0',
+                'prix_technique'     => 'required|numeric|min:0',
+                'prix_logistique'    => 'required|numeric|min:0',
+                'prix_morcellement'  => 'nullable|numeric|min:0',
+                'cni_images'         => 'nullable|array',
+                'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+                'sexe'               => 'nullable|in:masculin,feminin',
+            ]);
+
+            $client = Client::firstOrCreate(
+                ['phone' => $request->phone],
+                ['name'  => $request->name, 'is_new' => true, 'sexe' => $request->sexe]
+            );
+
+            $agentId = $request->agent_commercial_id;
+            if (!$agentId && $request->agent_nom) {
+                $a = AgentCommercial::create(['nom' => $request->agent_nom, 'numero' => $request->agent_numero]);
+                $agentId = $a->id;
+            }
+
+            $conducteurId = $request->conducteur_id;
+            if (!$conducteurId && $request->conducteur_nom) {
+                $c = Conducteur::create(['nom' => $request->conducteur_nom, 'numero' => $request->conducteur_numero]);
+                $conducteurId = $c->id;
+            }
+
+            $facilitateurId = $request->facilitateur_id;
+            if (!$facilitateurId && $request->facilitateur_nom) {
+                $f = Facilitateur::create(['nom' => $request->facilitateur_nom, 'numero' => $request->facilitateur_numero]);
+                $facilitateurId = $f->id;
+            }
+
+            $cniImages = [];
+            if ($request->hasFile('cni_images')) {
+                foreach ($request->file('cni_images') as $file) {
+                    if ($file && $file->isValid()) {
+                        $path = $file->store('cni', 'public');
+                        if ($path) {
+                            $cniImages[] = $path;
+                        }
+                    }
+                }
+            }
+
+            DossierClient::create([
+                'client_id'          => $client->id,
+                'nom_dossier'        => $request->nom_dossier,
+                'commercial_id'      => $request->commercial_id,
+                'conducteur_id'      => $conducteurId,
+                'facilitateur_id'    => $facilitateurId,
+                'agent_commercial_id'=> $agentId,
+                'grand_site_id'      => $request->grand_site_id,
+                'direction'          => $request->direction,
+                'superficie_voulue'  => $request->superficie_voulue,
+                'prix_superficie'    => $request->prix_superficie,
+                'prix_technique'     => $request->prix_technique,
+                'prix_logistique'    => $request->prix_logistique,
+                'prix_morcellement'  => $request->prix_morcellement ?? 0,
+                'cni_images'         => $cniImages,
+            ]);
+
+            return redirect()->route('suivi-client.show', $client->id)
+                             ->with('success', 'Client et dossier créés avec succès');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur création dossier: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ SHOW
+    // ════════════════════════════════════════════════════════════════
+
+    public function show($id)
+    {
+        try {
+            $client = Client::with([
+                'dossiers.commercial',
+                'dossiers.conducteur',
+                'dossiers.facilitateur',
+                'dossiers.agentCommercial',
+                'dossiers.grandSite',
+                'dossiers.paiements',
+                'dossiers.paiementsTechniques',
+                'dossiers.paiementsMorcellements',
+                'dossiers.paiementsLogistiques',
+                'dossiers.bons',
+                'dossiers.affectations.grandSite',
+                'dossiers.affectations.bloc',
+                'dossiers.affectations.lot',
+                'lots.tf.site.grandSite',
+                'lots.dossier',
+                'visites.visiteur',
+                'visites.grandSite',
+                'visites.site',
+            ])->findOrFail($id);
+
+            $dossier = $client->dossiers->first();
+            $affectations = $dossier ? $dossier->affectations : collect();
+
+            if ($dossier && $dossier->cni_images) {
+                $cnisValides = [];
+                foreach ($dossier->cni_images as $img) {
+                    if (file_exists(storage_path('app/public/' . $img))) {
+                        $cnisValides[] = $img;
+                    }
+                }
+                $dossier->cni_images = $cnisValides;
+            }
+
+            return view('admin.suivi_client.show', compact('client', 'affectations', 'dossier'));
+
+        } catch (\Exception $e) {
+            Log::error('Erreur show client ' . $id . ': ' . $e->getMessage());
+            return back()->with('error', 'Erreur lors du chargement du client: ' . $e->getMessage());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ EDIT
+    // ════════════════════════════════════════════════════════════════
 
     public function edit(Request $request, $id)
     {
@@ -413,6 +566,10 @@ public function show($id)
 
         return view('admin.suivi_client.edit', compact('client','options','clientPre','dossier'));
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ UPDATE
+    // ════════════════════════════════════════════════════════════════
 
     public function update(Request $request, $id)
     {
@@ -435,11 +592,13 @@ public function show($id)
                 'prix_logistique'    => 'required|numeric|min:0',
                 'prix_morcellement'  => 'nullable|numeric|min:0',
                 'cni_images.*'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+                'sexe'               => 'nullable|in:masculin,feminin',
             ]);
 
             $updateData = [];
             if ($request->filled('phone')) $updateData['phone'] = $request->phone;
             if ($request->filled('name'))  $updateData['name']  = $request->name;
+            if ($request->filled('sexe'))  $updateData['sexe']  = $request->sexe;
             if (!empty($updateData)) $client->update($updateData);
 
             $agentId = $request->agent_commercial_id;
@@ -513,6 +672,10 @@ public function show($id)
         }
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // ✅ MODIFIER NOM
+    // ════════════════════════════════════════════════════════════════
+
     public function modifierNom(Request $request, $clientId)
     {
         $request->validate(['nom' => 'required|string|max:150']);
@@ -521,6 +684,10 @@ public function show($id)
         return response()->json(['success' => true, 'nom' => $client->name]);
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // ✅ DESTROY
+    // ════════════════════════════════════════════════════════════════
+
     public function destroy($id)
     {
         $client = Client::findOrFail($id);
@@ -528,6 +695,10 @@ public function show($id)
         $client->delete();
         return redirect()->route('suivi-client.index')->with('success', 'Client supprimé');
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ DESTROY DOSSIER
+    // ════════════════════════════════════════════════════════════════
 
     public function destroyDossier(DossierClient $dossier)
     {
@@ -552,15 +723,19 @@ public function show($id)
             ->with('success', 'Dossier supprimé avec succès.');
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // ✅ DOSSIERS API
+    // ════════════════════════════════════════════════════════════════
+
     public function dossiers($id)
     {
         $client = Client::with('dossiers')->findOrFail($id);
         return response()->json($client->dossiers);
     }
 
-    // ============================================================
-    // ✅ MÉTHODE POUR LES ÉTAPES
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════    // ✅ MAJ ÉTAPE
+    // ════════════════════════════════════════════════════════════════
+
     public function majEtape(Request $request, DossierClient $dossier)
     {
         try {
@@ -627,9 +802,10 @@ public function show($id)
         }
     }
 
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════
     // ✅ TOGGLE NEW STATUS
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════
+
     public function toggleNew($clientId)
     {
         try {
@@ -652,9 +828,10 @@ public function show($id)
         }
     }
 
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════
     // ✅ ACTIONS GROUPÉES
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════
+
     public function actionsGroup(Request $request)
     {
         try {
@@ -691,9 +868,34 @@ public function show($id)
                     }
                     $message = count($ids) . ' client(s) marqué(s) comme ancien(s)';
                     break;
+
+                case 'set_masculin':
+                    foreach ($clients as $client) {
+                        $client->update(['sexe' => 'masculin']);
+                    }
+                    $message = count($ids) . ' client(s) marqué(s) comme Masculin';
+                    break;
+                    
+                case 'set_feminin':
+                    foreach ($clients as $client) {
+                        $client->update(['sexe' => 'feminin']);
+                    }
+                    $message = count($ids) . ' client(s) marqué(s) comme Féminin';
+                    break;
                     
                 case 'delete':
                     foreach ($clients as $client) {
+                        // Supprimer les CNI
+                        foreach ($client->dossiers as $dossier) {
+                            if ($dossier->cni_images) {
+                                foreach ($dossier->cni_images as $cni) {
+                                    $path = storage_path('app/public/' . $cni);
+                                    if (file_exists($path)) {
+                                        unlink($path);
+                                    }
+                                }
+                            }
+                        }
                         $client->dossiers()->delete();
                         $client->delete();
                     }
@@ -724,9 +926,10 @@ public function show($id)
         }
     }
 
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════
     // ✅ EXPORT WHATSAPP
-    // ============================================================
+    // ════════════════════════════════════════════════════════════════
+
     public function exportWhatsApp($clients)
     {
         try {
@@ -740,6 +943,9 @@ public function show($id)
                 $message .= "   📞 Tél : " . ($client->phone ?? 'Non renseigné') . "\n";
                 if ($client->is_new) {
                     $message .= "   🆕 *Nouveau client*\n";
+                }
+                if ($client->sexe) {
+                    $message .= "   👤 Sexe : " . ($client->sexe == 'masculin' ? 'Masculin' : 'Féminin') . "\n";
                 }
                 if ($client->dossiers->count() > 0) {
                     $message .= "   📂 " . $client->dossiers->count() . " dossier(s)\n";

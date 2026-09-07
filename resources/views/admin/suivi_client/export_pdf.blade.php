@@ -46,12 +46,16 @@
             font-size: 8px;
         }
         
+        .sexe-masculin {
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+        .sexe-feminin {
+            color: #dc2626;
+            font-weight: 700;
+        }
+        
         .footer { text-align: center; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 8px; color: #94a3b8; }
-        
-        .page-break { page-break-after: always; }
-        
-        .client-row { background: #f1f5f9; font-weight: 700; }
-        .dossier-row { background: #ffffff; }
     </style>
 </head>
 <body>
@@ -67,6 +71,7 @@
             <th style="width:3%;">#</th>
             <th style="width:12%;">Nom Client</th>
             <th style="width:10%;">Téléphone</th>
+            <th style="width:6%;">Sexe</th>  {{-- ✅ AJOUT --}}
             <th style="width:6%;">Statut</th>
             <th style="width:12%;">Dossier</th>
             <th style="width:8%;">Site</th>
@@ -115,6 +120,15 @@
                             @endif
                         </td>
                         <td>{{ $client->phone ?? '-' }}</td>
+                        <td>
+                            @if($client->sexe == 'masculin')
+                                <span class="sexe-masculin">👨 Masculin</span>
+                            @elseif($client->sexe == 'feminin')
+                                <span class="sexe-feminin">👩 Féminin</span>
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td>
                             @if($client->is_new)
                                 <span class="badge-new">🆕</span>
@@ -191,6 +205,15 @@
                         @endif
                     </td>
                     <td>{{ $client->phone ?? '-' }}</td>
+                    <td>
+                        @if($client->sexe == 'masculin')
+                            <span class="sexe-masculin">👨 Masculin</span>
+                        @elseif($client->sexe == 'feminin')
+                            <span class="sexe-feminin">👩 Féminin</span>
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td>
                         @if($client->is_new)
                             <span class="badge-new">🆕</span>

@@ -47,6 +47,28 @@
     margin-left: 8px;
 }
 
+/* ═══ BADGE SEXE ═══ */
+.badge-sex-masculin {
+    background: #dbeafe;
+    color: #1d4ed8;
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-block;
+    margin-left: 4px;
+}
+.badge-sex-feminin {
+    background: #fce4ec;
+    color: #dc2626;
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-block;
+    margin-left: 4px;
+}
+
 @keyframes pulse-new {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.05); opacity: 0.8; }
@@ -118,6 +140,7 @@
 .action-bar .btn-warning:hover { background: #d97706; }
 .action-bar .btn-outline { background: transparent; border: 1.5px solid #e2e8f0; color: #64748b; }
 .action-bar .btn-outline:hover { background: #f1f5f9; }
+.action-bar .dropdown-menu .dropdown-item { font-size: 12px; padding: 6px 16px; }
 
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
 .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:500px; max-width:95%; }
@@ -201,9 +224,33 @@
         <button class="btn btn-warning" onclick="actionGroupee('mark_as_old')">
             📌 Marquer anciens
         </button>
+        
+        {{-- ✅ ACTIONS SEXE --}}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" 
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                👤 Sexe
+            </button>
+            <ul class="dropdown-menu">
+                <li><button class="dropdown-item" onclick="actionGroupee('set_masculin')">👨 Masculin</button></li>
+                <li><button class="dropdown-item" onclick="actionGroupee('set_feminin')">👩 Féminin</button></li>
+            </ul>
+        </div>
+        
         <button class="btn btn-primary" onclick="actionGroupee('export_whatsapp')">
             💬 WhatsApp
         </button>
+        
+        {{-- ✅ EXPORT PDF DES SÉLECTIONNÉS --}}
+        <button class="btn btn-danger" onclick="actionGroupee('export_pdf_selected')">
+            📄 PDF sélection
+        </button>
+        
+        {{-- ✅ RÉCUPÉRER TOUS LES DOCUMENTS --}}
+        <button class="btn btn-info" onclick="actionGroupee('export_documents')">
+            📁 Tous les docs
+        </button>
+        
         <button class="btn btn-danger" onclick="actionGroupee('delete')">
             🗑 Supprimer
         </button>
@@ -248,6 +295,16 @@
                         {{ $gs->nom }}
                     </option>
                 @endforeach
+            </select>
+        </div>
+
+        {{-- ✅ FILTRE SEXE --}}
+        <div class="col-md-1">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">👤 Sexe</label>
+            <select id="filtre-sexe" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
+                <option value="">Tous</option>
+                <option value="masculin" {{ request('sexe') == 'masculin' ? 'selected' : '' }}>👨 Masculin</option>
+                <option value="feminin" {{ request('sexe') == 'feminin' ? 'selected' : '' }}>👩 Féminin</option>
             </select>
         </div>
 
@@ -305,6 +362,7 @@
          data-nom="{{ strtolower($client->name) }}"
          data-phone="{{ $client->phone }}"
          data-is-new="{{ $client->is_new ? 'true' : 'false' }}"
+         data-sex="{{ $client->sexe ?? 'non_renseigne' }}"
          data-id="{{ $client->id }}">
         <div class="d-flex justify-content-between align-items-start">
             <div style="flex:1;display:flex;align-items:flex-start;gap:8px;">
@@ -329,6 +387,13 @@
                             <span class="badge-old" id="badge-{{ $client->id }}">
                                 Ancien
                             </span>
+                        @endif
+                        
+                        {{-- ═══ BADGE SEXE ═══ --}}
+                        @if($client->sexe == 'masculin')
+                            <span class="badge-sex-masculin">👨 Masculin</span>
+                        @elseif($client->sexe == 'feminin')
+                            <span class="badge-sex-feminin">👩 Féminin</span>
                         @endif
                         
                         <button onclick="ouvrirEditNom({{ $client->id }}, '{{ addslashes($client->name) }}')"
@@ -520,6 +585,33 @@
     </div>
 </div>
 
+{{-- MODAL PROGRESS DOCUMENTS --}}
+<div class="modal-overlay" id="modalProgressOverlay"></div>
+<div class="modal-box" id="modalProgress" style="width:600px; max-width:95%;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 style="color:#1e3a5f;font-weight:800;margin:0;">📁 Récupération des documents</h5>
+        <button onclick="fermerModalProgress()" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div id="progressContent">
+        <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;">
+                <span id="progressLabel">Préparation...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div style="height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:4px;">
+                <div id="progressBar" style="width:0%;height:100%;background:#1d4ed8;border-radius:3px;transition:width 0.3s;"></div>
+            </div>
+        </div>
+        <div id="progressDetails" style="font-size:12px;color:#94a3b8;max-height:200px;overflow-y:auto;padding:8px;background:#f8fafc;border-radius:8px;"></div>
+    </div>
+    <div id="progressResult" style="display:none;text-align:center;padding:20px 0;">
+        <div style="font-size:48px;margin-bottom:12px;">✅</div>
+        <h5 style="color:#16a34a;">Documents récupérés avec succès !</h5>
+        <p id="resultMessage" style="color:#64748b;font-size:13px;"></p>
+        <button onclick="fermerModalProgress()" class="btn btn-primary">Fermer</button>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -539,6 +631,7 @@ function exporterPdf() {
     const au = document.getElementById('filtre-au')?.value || '';
     const site = document.getElementById('filtre-site')?.value || '';
     const statut = document.getElementById('filtre-statut')?.value || '';
+    const sexe = document.getElementById('filtre-sexe')?.value || '';
     const technique = document.getElementById('filtre-technique')?.value || '';
     const morcellement = document.getElementById('filtre-morcellement')?.value || '';
     const dossier = document.getElementById('filtre-dossier')?.value || '';
@@ -550,6 +643,7 @@ function exporterPdf() {
     if (au) url += 'au=' + au + '&';
     if (site) url += 'grand_site_id=' + site + '&';
     if (statut) url += 'status=' + statut + '&';
+    if (sexe) url += 'sexe=' + sexe + '&';
     if (technique) url += 'technique_solde=' + technique + '&';
     if (morcellement) url += 'morcellement_solde=' + morcellement + '&';
     if (dossier) url += 'dossier_solde=' + dossier + '&';
@@ -632,6 +726,18 @@ function actionGroupee(action) {
             btnText: 'Marquer',
             btnClass: 'btn-warning'
         },
+        'set_masculin': {
+            title: '👨 Marquer comme Masculin',
+            message: `Êtes-vous sûr de vouloir marquer ${ids.length} client(s) comme MASCULIN ?`,
+            btnText: 'Marquer',
+            btnClass: 'btn-primary'
+        },
+        'set_feminin': {
+            title: '👩 Marquer comme Féminin',
+            message: `Êtes-vous sûr de vouloir marquer ${ids.length} client(s) comme FÉMININ ?`,
+            btnText: 'Marquer',
+            btnClass: 'btn-primary'
+        },
         'delete': { 
             title: '🗑 Supprimer', 
             message: `Êtes-vous sûr de vouloir supprimer ${ids.length} client(s) ? Cette action est irréversible.`,
@@ -643,6 +749,18 @@ function actionGroupee(action) {
             message: `Envoyer les informations de ${ids.length} client(s) sur WhatsApp au numéro +237 653 350 503 ?`,
             btnText: 'Envoyer',
             btnClass: 'btn-primary'
+        },
+        'export_pdf_selected': {
+            title: '📄 Exporter en PDF',
+            message: `Exporter les ${ids.length} client(s) sélectionné(s) en PDF ?`,
+            btnText: 'Exporter',
+            btnClass: 'btn-danger'
+        },
+        'export_documents': {
+            title: '📁 Récupérer tous les documents',
+            message: `Récupérer tous les documents des ${ids.length} client(s) sélectionné(s) ?`,
+            btnText: 'Récupérer',
+            btnClass: 'btn-info'
         }
     };
 
@@ -676,15 +794,29 @@ function fermerModalConfirmation() {
     document.getElementById('modalConfirmation').style.display = 'none';
 }
 
+function fermerModalProgress() {
+    document.getElementById('modalProgressOverlay').style.display = 'none';
+    document.getElementById('modalProgress').style.display = 'none';
+}
+
 function executerActionConfirmee() {
     const action = document.getElementById('modalConfirmationBtn').dataset.action;
     const ids = Array.from(selectedClients);
     
     fermerModalConfirmation();
     
+    if (action === 'export_documents') {
+        exporterDocuments(ids);
+        return;
+    }
+    
+    if (action === 'export_pdf_selected') {
+        exporterPdfSelection(ids);
+        return;
+    }
+    
     if (window.EdenLoader) window.EdenLoader.show();
     
-    // ✅ URL RELATIVE - CORRIGÉE
     fetch('/admin/suivi-client/actions-group', {
         method: 'POST',
         headers: {
@@ -720,6 +852,197 @@ function executerActionConfirmee() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// ✅ EXPORTER PDF DES SÉLECTIONNÉS
+// ════════════════════════════════════════════════════════════════
+
+function exporterPdfSelection(ids) {
+    if (window.EdenLoader) window.EdenLoader.show();
+    
+    const params = new URLSearchParams();
+    ids.forEach(id => params.append('ids[]', id));
+    
+    fetch('/admin/suivi-client/export-pdf-selected?' + params.toString(), {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': CSRF
+        }
+    })
+    .then(response => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Erreur lors de l\'export');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'clients_selectionnes_' + new Date().toISOString().split('T')[0] + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('✅ Export PDF terminé !', 'success');
+    })
+    .catch(error => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        showToast('❌ Erreur : ' + error.message, 'error');
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ EXPORTER TOUS LES DOCUMENTS
+// ════════════════════════════════════════════════════════════════
+
+function exporterDocuments(ids) {
+    // Afficher la modal de progression
+    document.getElementById('modalProgressOverlay').style.display = 'block';
+    document.getElementById('modalProgress').style.display = 'block';
+    document.getElementById('progressResult').style.display = 'none';
+    document.getElementById('progressContent').style.display = 'block';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressPercent').textContent = '0%';
+    document.getElementById('progressLabel').textContent = 'Préparation des documents...';
+    document.getElementById('progressDetails').innerHTML = '';
+    
+    let total = ids.length;
+    let completed = 0;
+    let documents = [];
+    let errors = [];
+    
+    function updateProgress() {
+        const percent = Math.round((completed / total) * 100);
+        document.getElementById('progressBar').style.width = percent + '%';
+        document.getElementById('progressPercent').textContent = percent + '%';
+        document.getElementById('progressLabel').textContent = `Traitement ${completed}/${total} clients...`;
+    }
+    
+    function processClient(clientId) {
+        return fetch('/admin/suivi-client/export-documents/' + clientId, {
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': CSRF
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            completed++;
+            updateProgress();
+            
+            const details = document.getElementById('progressDetails');
+            if (data.success) {
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:4px 8px;border-bottom:1px solid #e2e8f0;color:#16a34a;';
+                div.textContent = '✅ ' + data.client_name + ' - ' + data.documents_count + ' document(s) trouvé(s)';
+                details.appendChild(div);
+                if (data.documents) {
+                    documents = documents.concat(data.documents);
+                }
+            } else {
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:4px 8px;border-bottom:1px solid #e2e8f0;color:#dc2626;';
+                div.textContent = '❌ ' + (data.client_name || 'Client ' + clientId) + ' - ' + (data.message || 'Erreur');
+                details.appendChild(div);
+                errors.push(data.message || 'Erreur');
+            }
+            
+            details.scrollTop = details.scrollHeight;
+        })
+        .catch(error => {
+            completed++;
+            updateProgress();
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:4px 8px;border-bottom:1px solid #e2e8f0;color:#dc2626;';
+            div.textContent = '❌ Client ' + clientId + ' - Erreur réseau';
+            document.getElementById('progressDetails').appendChild(div);
+            errors.push('Erreur réseau pour le client ' + clientId);
+        });
+    }
+    
+    let index = 0;
+    const concurrency = 5;
+    
+    function processNext() {
+        if (index >= total) {
+            document.getElementById('progressLabel').textContent = 'Terminé !';
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressPercent').textContent = '100%';
+            
+            setTimeout(() => {
+                document.getElementById('progressContent').style.display = 'none';
+                document.getElementById('progressResult').style.display = 'block';
+                document.getElementById('resultMessage').textContent = 
+                    `${documents.length} document(s) récupéré(s) pour ${total - errors.length} client(s) sur ${total}.${errors.length > 0 ? ' ' + errors.length + ' erreur(s).' : ''}`;
+                
+                if (documents.length > 0) {
+                    telechargerDocumentsZip(documents);
+                }
+            }, 500);
+            return;
+        }
+        
+        const clientId = ids[index];
+        index++;
+        processClient(clientId).then(() => {
+            processNext();
+        });
+    }
+    
+    for (let i = 0; i < Math.min(concurrency, total); i++) {
+        processNext();
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ TÉLÉCHARGER LES DOCUMENTS EN ZIP
+// ════════════════════════════════════════════════════════════════
+
+function telechargerDocumentsZip(documents) {
+    if (documents.length === 0) {
+        showToast('⚠️ Aucun document à télécharger', 'warning');
+        return;
+    }
+    
+    if (documents.length === 1) {
+        const doc = documents[0];
+        if (doc.url) {
+            window.open(doc.url, '_blank');
+        }
+        return;
+    }
+    
+    fetch('/admin/suivi-client/download-documents-zip', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF
+        },
+        body: JSON.stringify({ documents: documents })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Erreur lors de la création du ZIP');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'documents_clients_' + new Date().toISOString().split('T')[0] + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('✅ Tous les documents ont été téléchargés !', 'success');
+    })
+    .catch(error => {
+        showToast('❌ Erreur lors du téléchargement : ' + error.message, 'error');
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
 // ✅ TOGGLE NEW STATUS
 // ════════════════════════════════════════════════════════════════
 
@@ -733,7 +1056,6 @@ function toggleNew(clientId) {
     btn.disabled = true;
     btn.textContent = '⏳ ...';
 
-    // ✅ URL RELATIVE - CORRIGÉE
     fetch('/admin/suivi-client/toggle-new/' + clientId, {
         method: 'POST',
         headers: {
@@ -852,6 +1174,7 @@ function appliquerFiltresServeur() {
     const au = document.getElementById('filtre-au')?.value;
     const site = document.getElementById('filtre-site')?.value;
     const statut = document.getElementById('filtre-statut')?.value;
+    const sexe = document.getElementById('filtre-sexe')?.value;
     const technique = document.getElementById('filtre-technique')?.value;
     const morcellement = document.getElementById('filtre-morcellement')?.value;
     const dossier = document.getElementById('filtre-dossier')?.value;
@@ -862,6 +1185,7 @@ function appliquerFiltresServeur() {
     au ? url.searchParams.set('au', au) : url.searchParams.delete('au');
     site ? url.searchParams.set('grand_site_id', site) : url.searchParams.delete('grand_site_id');
     statut ? url.searchParams.set('status', statut) : url.searchParams.delete('status');
+    sexe ? url.searchParams.set('sexe', sexe) : url.searchParams.delete('sexe');
     technique ? url.searchParams.set('technique_solde', technique) : url.searchParams.delete('technique_solde');
     morcellement ? url.searchParams.set('morcellement_solde', morcellement) : url.searchParams.delete('morcellement_solde');
     dossier ? url.searchParams.set('dossier_solde', dossier) : url.searchParams.delete('dossier_solde');
@@ -891,7 +1215,6 @@ function fermerEditNom() {
 function sauvegarderNom() {
     const nom = document.getElementById('input-nouveau-nom').value.trim();
     if (!nom) { alert('Le nom ne peut pas être vide.'); return; }
-    // ✅ URL RELATIVE - CORRIGÉE
     fetch('/admin/clients/' + clientIdCourant + '/modifier-nom', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },

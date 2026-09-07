@@ -102,6 +102,13 @@
     color: #dc2626;
     font-weight: 700;
 }
+.required-field {
+    border-color: #dc2626 !important;
+}
+.required-field:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.25) !important;
+}
 </style>
 
 @if(!isset($insideForm) || !$insideForm)
@@ -118,7 +125,7 @@
     <div class="row g-3">
         <div class="col-md-4">
             <label>Nom <span class="required-star">*</span></label>
-            <input type="text" name="name" class="form-control"
+            <input type="text" name="name" class="form-control required-field"
                    value="{{ old('name', $clientPre?->name ?? $client?->name) }}"
                    {{ ($clientPre || $client) ? 'readonly' : '' }}
                    style="{{ ($clientPre || $client) ? 'background:#f1f5f9;' : '' }}"
@@ -130,7 +137,7 @@
 
         <div class="col-md-4">
             <label>Téléphone <span class="required-star">*</span></label>
-            <input type="text" name="phone" class="form-control"
+            <input type="text" name="phone" class="form-control required-field"
                    value="{{ old('phone', $clientPre?->phone ?? $client?->phone) }}"
                    required>
             @if($clientPre || $client)
@@ -140,17 +147,32 @@
 
         <div class="col-md-4">
             <label>Nom du dossier <span class="required-star">*</span></label>
-            <input type="text" name="nom_dossier" class="form-control"
+            <input type="text" name="nom_dossier" class="form-control required-field"
                    value="{{ old('nom_dossier', $dossier?->nom_dossier) }}"
                    placeholder="Ex: Dossier terrain Baffoussam" required>
         </div>
     </div>
 </div>
 
+{{-- SEXE --}}
+<div class="form-section">
+    <h5>👤 Sexe du client <span class="required-star">*</span></h5>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <select name="sexe" class="form-control required-field" required>
+                <option value="">-- Sélectionner --</option>
+                <option value="masculin" {{ old('sexe', $client?->sexe) == 'masculin' ? 'selected' : '' }}>👨 Masculin</option>
+                <option value="feminin" {{ old('sexe', $client?->sexe) == 'feminin' ? 'selected' : '' }}>👩 Féminin</option>
+            </select>
+            <small class="text-muted">Choisissez le sexe du client.</small>
+        </div>
+    </div>
+</div>
+
 {{-- COMMERCIAL --}}
 <div class="form-section">
-    <h5>🧑‍💼 Commercial qui l'a reçu</h5>
-    <select name="commercial_id" class="form-control">
+    <h5>🧑‍💼 Commercial qui l'a reçu <span class="required-star">*</span></h5>
+    <select name="commercial_id" class="form-control required-field" required>
         <option value="">-- Choisir --</option>
         @foreach($options['commerciaux'] as $c)
             <option value="{{ $c->id }}"
@@ -235,8 +257,8 @@
     <h5>📍 Intérêt foncier</h5>
     <div class="row g-3">
         <div class="col-md-3">
-            <label>Grand site souhaité</label>
-            <select name="grand_site_id" class="form-control">
+            <label>Grand site souhaité <span class="required-star">*</span></label>
+            <select name="grand_site_id" class="form-control required-field" required>
                 <option value="">-- Choisir --</option>
                 @foreach($options['grandsites'] as $gs)
                     <option value="{{ $gs->id }}"
@@ -254,7 +276,7 @@
                     (Recto, verso — obligatoire pour un nouveau dossier)
                 </span>
             </label>
-            <input type="file" name="cni_images[]" class="form-control"
+            <input type="file" name="cni_images[]" class="form-control required-field"
                    multiple accept="image/*,.pdf"
                    id="cni-input"
                    {{ (!isset($dossier) || !$dossier) ? 'required' : '' }}
@@ -280,9 +302,9 @@
         </div>
 
         <div class="col-md-3">
-            <label>Direction d'origine</label>
-            <select name="directionSelect" id="directionSelect" class="form-control"
-                    onchange="toggleAutreDirection(this.value)">
+            <label>Direction d'origine <span class="required-star">*</span></label>
+            <select name="directionSelect" id="directionSelect" class="form-control required-field"
+                    onchange="toggleAutreDirection(this.value)" required>
                 <option value="">-- Choisir --</option>
                 <option value="baffoussam"
                     {{ old('direction', $dossier?->direction) === 'baffoussam' ? 'selected' : '' }}>
@@ -309,7 +331,7 @@
             </select>
 
             <div id="autreDirectionWrap" style="display:none; margin-top:6px;">
-                <input type="text" id="autreDirectionInput" class="form-control"
+                <input type="text" id="autreDirectionInput" class="form-control required-field"
                        placeholder="Nom de la direction..." value="{{ old('direction_autre') }}">
                 <small class="text-muted">Cette direction sera enregistrée telle quelle.</small>
             </div>
@@ -319,15 +341,16 @@
         </div>
 
         <div class="col-md-3">
-            <label>Superficie voulue (m²)</label>
-            <input type="number" name="superficie_voulue" class="form-control"
-                   value="{{ old('superficie_voulue', $dossier?->superficie_voulue) }}">
+            <label>Superficie voulue (m²) <span class="required-star">*</span></label>
+            <input type="number" name="superficie_voulue" class="form-control required-field"
+                   value="{{ old('superficie_voulue', $dossier?->superficie_voulue) }}"
+                   required>
         </div>
 
         {{-- ✅ PRIX SUPERFICIE --}}
         <div class="col-md-3">
             <label>Prix de la superficie (FCFA) <span class="required-star">*</span></label>
-            <input type="number" name="prix_superficie" class="form-control"
+            <input type="number" name="prix_superficie" class="form-control required-field"
                    value="{{ old('prix_superficie', $dossier?->prix_superficie) }}"
                    required>
         </div>
@@ -335,7 +358,7 @@
         {{-- ✅ PRIX TECHNIQUE --}}
         <div class="col-md-3">
             <label style="color:#ea580c;">🛠️ Prix technique (FCFA) <span class="required-star">*</span></label>
-            <input type="number" name="prix_technique" class="form-control"
+            <input type="number" name="prix_technique" class="form-control required-field"
                    value="{{ old('prix_technique', $dossier?->prix_technique) }}"
                    required>
         </div>
@@ -343,26 +366,25 @@
         {{-- ✅ PRIX LOGISTIQUE --}}
         <div class="col-md-3">
             <label style="color:#7c3aed;">🚗 Prix logistique (FCFA) <span class="required-star">*</span></label>
-            <input type="number" name="prix_logistique" class="form-control"
+            <input type="number" name="prix_logistique" class="form-control required-field"
                    value="{{ old('prix_logistique', $dossier?->prix_logistique) }}"
                    required>
         </div>
 
-        {{-- ✅ PRIX MORCELLEMENT --}}
+        {{-- ✅ PRIX MORCELLEMENT (NON OBLIGATOIRE) --}}
         <div class="col-md-3">
             <label style="color:#ca8a04;">✂️ Prix morcellement (FCFA)</label>
             <input type="number" name="prix_morcellement" class="form-control"
                    value="{{ old('prix_morcellement', $dossier?->prix_morcellement) }}"
                    placeholder="0">
+            <small class="text-muted">Optionnel</small>
         </div>
     </div>
 </div>
 
 <div class="d-flex gap-2 mt-2">
     <a href="{{ route('suivi-client.index') }}" class="btn btn-light">Annuler</a>
-    <button type="submit" class="btn btn-success px-4" id="btnSubmit" 
-            {{ (!isset($dossier) || !$dossier) ? 'disabled' : '' }}
-            style="{{ (!isset($dossier) || !$dossier) ? 'opacity:0.5;cursor:not-allowed;' : '' }}">
+    <button type="submit" class="btn btn-success px-4" id="btnSubmit">
         💾 Enregistrer
     </button>
 </div>
