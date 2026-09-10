@@ -9,24 +9,47 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('visites', function (Blueprint $table) {
-            // ✅ Objet = simple chaîne (valeurs définies côté modèle)
-            $table->string('objet')->nullable()->after('type_personne');
+        // ✅ Ajout des colonnes objet et motif (string — compatible SQLite/MySQL)
+        if (!Schema::hasColumn('visites', 'objet')) {
+            Schema::table('visites', function (Blueprint $table) {
+                $table->string('objet')->nullable()->after('type_personne');
+            });
+        }
 
-            // ✅ Motif (utilisé uniquement pour certains objets)
-            $table->string('motif')->nullable()->after('objet');
-        });
+        if (!Schema::hasColumn('visites', 'motif')) {
+            Schema::table('visites', function (Blueprint $table) {
+                $table->string('motif')->nullable()->after('objet');
+            });
+        }
 
-        // ✅ On revient aux 3 types d'origine
-        // (à supprimer si la colonne type_personne n'est PAS un ENUM)
-        DB::statement("ALTER TABLE visites MODIFY type_personne ENUM('client','proprietaire','autre') DEFAULT 'autre'");
-        DB::statement("ALTER TABLE visiteurs MODIFY type ENUM('client','proprietaire','autre') DEFAULT 'autre'");
+        // ✅ Nettoyage des anciennes valeurs (au cas où)
+        DB::table('visites')
+            ->whereIn('type_personne', ['descente_client', 'visiteur'])
+            ->update(['type_personne' => 'autre']);
+
+        DB::table('visiteurs')
+            ->whereIn('type', ['descente_client', 'visiteur'])
+            ->update(['type' => 'autre']);
+
+        // ✅ Restriction ENUM uniquement sur MySQL / MariaDB
+        // (sur SQLite la colonne est déjà en varchar → rien à faire)
+        $driver = DB::getDriverName();
+
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            DB::statement("ALTER TABLE visites MODIFY type_personne ENUM('client','proprietaire','autre') DEFAULT 'autre'");
+            DB::statement("ALTER TABLE visiteurs MODIFY type ENUM('client','proprietaire','autre') DEFAULT 'autre'");
+        }
     }
 
     public function down(): void
     {
         Schema::table('visites', function (Blueprint $table) {
-            $table->dropColumn(['objet', 'motif']);
+            if (Schema::hasColumn('visites', 'objet')) {
+                $table->dropColumn('objet');
+            }
+            if (Schema::hasColumn('visites', 'motif')) {
+                $table->dropColumn('motif');
+            }
         });
     }
 };
