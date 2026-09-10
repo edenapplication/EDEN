@@ -27,6 +27,14 @@
 .bt-autre        { background:#f1f5f9; color:#475569; }
 .bt-paiement     { background:#fef3c7; color:#92400e; font-size:9px; }
 
+/* ✅ Badges objet */
+.badge-objet { font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; }
+.bo-bleu   { background:#dbeafe; color:#1e40af; }
+.bo-jaune  { background:#fef9c3; color:#854d0e; }
+.bo-vert   { background:#dcfce7; color:#15803d; }
+.bo-violet { background:#ede9fe; color:#6d28d9; }
+.bo-gris   { background:#f1f5f9; color:#475569; }
+
 .visiteur-wrap { position:relative; }
 .visiteur-dropdown {
     position:absolute; top:100%; left:0; right:0; z-index:9999;
@@ -85,7 +93,8 @@
 {{-- GUIDE IMPORT --}}
 <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; font-size:11px; color:#1e3a5f; margin-bottom:14px;">
     📋 <strong>Format CSV d'import (séparateur ;) :</strong>
-    Date ; Nom ; Numéro ; Type (client/proprietaire/autre) ; Heure arrivée ; Heure départ ; — ; — ; Note<br>
+    Date ; Nom ; Numéro ; Type (client/proprietaire/autre) ; Heure arrivée ; Heure départ ;
+    Objet ({{ implode(' / ', array_keys(\App\Models\Visite::OBJETS)) }}) ; Motif ; Note<br>
     Formats de date acceptés : <strong>dd/mm/yyyy</strong> ou <strong>yyyy-mm-dd</strong> —
     Heures acceptées : <strong>HH:MM</strong> ou <strong>HH:MM:SS</strong>
 </div>
@@ -104,9 +113,24 @@
             <label style="font-size:11px;font-weight:600;color:#64748b;">👤 Type</label>
             <select name="type_personne" class="form-control form-control-sm">
                 <option value="">Tous</option>
-                <option value="client"       {{ request('type_personne')==='client'       ? 'selected':'' }}>Client</option>
-                <option value="proprietaire" {{ request('type_personne')==='proprietaire' ? 'selected':'' }}>Propriétaire</option>
-                <option value="autre"        {{ request('type_personne')==='autre'        ? 'selected':'' }}>Autre</option>
+                @foreach(\App\Models\Visite::TYPES_PERSONNE as $code => $label)
+                    <option value="{{ $code }}" {{ request('type_personne')===$code ? 'selected':'' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- ✅ Filtre objet --}}
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:600;color:#64748b;">🎯 Objet</label>
+            <select name="objet" class="form-control form-control-sm">
+                <option value="">Tous</option>
+                @foreach(\App\Models\Visite::OBJETS as $code => $info)
+                    <option value="{{ $code }}" {{ request('objet')===$code ? 'selected':'' }}>
+                        {{ $info['label'] }}
+                    </option>
+                @endforeach
             </select>
         </div>
 
@@ -122,7 +146,6 @@
             </select>
         </div>
 
-        {{-- ✅ Filtre site --}}
         <div class="col-md-2">
             <label style="font-size:11px;font-weight:600;color:#64748b;">🗺️ Site</label>
             <select name="site_id" class="form-control form-control-sm">
@@ -153,7 +176,6 @@
                    value="{{ request('mois') }}">
         </div>
 
-        {{-- ✅ Filtre nombre de visites --}}
         <div class="col-md-3">
             <label style="font-size:11px;font-weight:600;color:#64748b;">🔢 Nb visites (entre)</label>
             <div class="d-flex gap-1 align-items-center">
@@ -197,107 +219,132 @@
             @if(in_array('nom',           $colonnesChoisies)) <th>Nom</th> @endif
             @if(in_array('numero',        $colonnesChoisies)) <th>Numéro</th> @endif
             @if(in_array('type_personne', $colonnesChoisies)) <th>Type</th> @endif
+            @if(in_array('objet',         $colonnesChoisies)) <th>Objet</th> @endif
+            @if(in_array('motif',         $colonnesChoisies)) <th>Motif</th> @endif
             @if(in_array('heure_arrivee', $colonnesChoisies)) <th>Arrivée</th> @endif
             @if(in_array('heure_depart',  $colonnesChoisies)) <th>Départ</th> @endif
             @if(in_array('grand_site',    $colonnesChoisies)) <th>Grand Site</th> @endif
             @if(in_array('site',          $colonnesChoisies)) <th>Site</th> @endif
             @if(in_array('nb_visites',    $colonnesChoisies)) <th>Nb visites</th> @endif
             @if(in_array('note',          $colonnesChoisies)) <th>Note</th> @endif
-             @if(in_array('bon',           $colonnesChoisies)) <th>Bon N°</th> @endif
+            @if(in_array('bon',           $colonnesChoisies)) <th>Bon N°</th> @endif
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
     @forelse($visites as $i => $v)
-<tr>
-    <td>{{ ($visites->currentPage() - 1) * $visites->perPage() + $i + 1 }}</td>
+        <tr>
+            <td>{{ ($visites->currentPage() - 1) * $visites->perPage() + $i + 1 }}</td>
 
-    @if(in_array('date_visite', $colonnesChoisies))
-        <td>{{ \Carbon\Carbon::parse($v->date_visite)->format('d/m/Y') }}</td>
-    @endif
-
-    @if(in_array('nom', $colonnesChoisies))
-        <td>
-            <strong>{{ $v->visiteur?->nom ?? '-' }}</strong>
-            @if($v->paiement_lie)
-                <span class="badge-type bt-paiement ms-1">💳 paiement</span>
+            @if(in_array('date_visite', $colonnesChoisies))
+                <td>{{ \Carbon\Carbon::parse($v->date_visite)->format('d/m/Y') }}</td>
             @endif
-        </td>
-    @endif
 
-    @if(in_array('numero', $colonnesChoisies))
-        <td>{{ $v->visiteur?->numero ?? '-' }}</td>
-    @endif
-
-    @if(in_array('type_personne', $colonnesChoisies))
-        <td>
-            <span class="badge-type bt-{{ $v->type_personne }}">{{ ucfirst($v->type_personne) }}</span>
-        </td>
-    @endif
-
-    @if(in_array('heure_arrivee', $colonnesChoisies))
-        <td>{{ $v->heure_arrivee ? substr($v->heure_arrivee, 0, 5) : '-' }}</td>
-    @endif
-
-    @if(in_array('heure_depart', $colonnesChoisies))
-        <td>
-            @if($v->heure_depart)
-                {{ substr($v->heure_depart, 0, 5) }}
-            @elseif(!$v->paiement_lie)
-                <button onclick="enregistrerDepart({{ $v->id }})"
-                        style="background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;border-radius:6px;border:none;cursor:pointer;">
-                    ⏱ Départ
-                </button>
-            @else
-                <span style="color:#94a3b8;font-size:10px;">—</span>
+            @if(in_array('nom', $colonnesChoisies))
+                <td>
+                    <strong>{{ $v->visiteur?->nom ?? '-' }}</strong>
+                    @if($v->paiement_lie)
+                        <span class="badge-type bt-paiement ms-1">💳 paiement</span>
+                    @endif
+                </td>
             @endif
-        </td>
-    @endif
 
-    @if(in_array('grand_site', $colonnesChoisies))
-        <td>{{ $v->grandSite?->nom ?? '-' }}</td>
-    @endif
-
-    @if(in_array('site', $colonnesChoisies))
-        <td>{{ $v->site?->name ?? '-' }}</td>
-    @endif
-
-    @if(in_array('nb_visites', $colonnesChoisies))
-        <td>
-            <span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">
-                {{ $comptageVisites[$v->visiteur_id] ?? 1 }}
-            </span>
-        </td>
-    @endif
-
-    @if(in_array('note', $colonnesChoisies))
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;" title="{{ $v->note }}">
-            {{ $v->note ?? '-' }}
-        </td>
-    @endif
-
-    @if(in_array('bon', $colonnesChoisies)) <!-- ✅ ICI - Ajouter la colonne Bon N° -->
-        <td>
-            @if($v->bon_id && $v->bon)
-                <a href="{{ route('bons.show', $v->bon_id) }}" 
-                   style="color:#1d4ed8;text-decoration:underline;font-size:11px;">
-                    {{ $v->bon->numero_bon }}
-                </a>
-            @else
-                <span style="color:#94a3b8;">—</span>
+            @if(in_array('numero', $colonnesChoisies))
+                <td>{{ $v->visiteur?->numero ?? '-' }}</td>
             @endif
-        </td>
-    @endif
 
-    <td>
-        <button onclick="supprimerVisite({{ $v->id }})"
-                style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;"
-                title="Supprimer">🗑</button>
-    </td>
-</tr>
-@empty
-    <tr><td colspan="15" class="text-center text-muted py-4">Aucune visite enregistrée</td></tr>
-@endforelse
+            @if(in_array('type_personne', $colonnesChoisies))
+                <td>
+                    <span class="badge-type bt-{{ $v->type_personne }}">
+                        {{ $v->type_personne_libelle }}
+                    </span>
+                </td>
+            @endif
+
+            {{-- ✅ Objet --}}
+            @if(in_array('objet', $colonnesChoisies))
+                <td>
+                    @if($v->objet)
+                        <span class="badge-objet bo-{{ $v->objet_couleur }}">
+                            {{ $v->objet_libelle }}
+                        </span>
+                    @else
+                        <span style="color:#94a3b8;">—</span>
+                    @endif
+                </td>
+            @endif
+
+            {{-- ✅ Motif --}}
+            @if(in_array('motif', $colonnesChoisies))
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;"
+                    title="{{ $v->motif }}">
+                    {{ $v->motif ?? '—' }}
+                </td>
+            @endif
+
+            @if(in_array('heure_arrivee', $colonnesChoisies))
+                <td>{{ $v->heure_arrivee ? substr($v->heure_arrivee, 0, 5) : '-' }}</td>
+            @endif
+
+            @if(in_array('heure_depart', $colonnesChoisies))
+                <td>
+                    @if($v->heure_depart)
+                        {{ substr($v->heure_depart, 0, 5) }}
+                    @elseif(!$v->paiement_lie)
+                        <button onclick="enregistrerDepart({{ $v->id }})"
+                                style="background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;border-radius:6px;border:none;cursor:pointer;">
+                            ⏱ Départ
+                        </button>
+                    @else
+                        <span style="color:#94a3b8;font-size:10px;">—</span>
+                    @endif
+                </td>
+            @endif
+
+            @if(in_array('grand_site', $colonnesChoisies))
+                <td>{{ $v->grandSite?->nom ?? '-' }}</td>
+            @endif
+
+            @if(in_array('site', $colonnesChoisies))
+                <td>{{ $v->site?->name ?? '-' }}</td>
+            @endif
+
+            @if(in_array('nb_visites', $colonnesChoisies))
+                <td>
+                    <span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">
+                        {{ $comptageVisites[$v->visiteur_id] ?? 1 }}
+                    </span>
+                </td>
+            @endif
+
+            @if(in_array('note', $colonnesChoisies))
+                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;" title="{{ $v->note }}">
+                    {{ $v->note ?? '-' }}
+                </td>
+            @endif
+
+            @if(in_array('bon', $colonnesChoisies))
+                <td>
+                    @if($v->bon_id && $v->bon)
+                        <a href="{{ route('bons.show', $v->bon_id) }}"
+                           style="color:#1d4ed8;text-decoration:underline;font-size:11px;">
+                            {{ $v->bon->numero_bon }}
+                        </a>
+                    @else
+                        <span style="color:#94a3b8;">—</span>
+                    @endif
+                </td>
+            @endif
+
+            <td>
+                <button onclick="supprimerVisite({{ $v->id }})"
+                        style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;"
+                        title="Supprimer">🗑</button>
+            </td>
+        </tr>
+    @empty
+        <tr><td colspan="15" class="text-center text-muted py-4">Aucune visite enregistrée</td></tr>
+    @endforelse
     </tbody>
 </table>
 </div>
@@ -338,10 +385,33 @@
     <div class="mb-3">
         <label style="font-weight:600;font-size:13px;">🏷️ Type</label>
         <select id="type_personne" class="form-control mt-1" onchange="toggleSiteFields(this.value)">
-            <option value="autre">Autre</option>
-            <option value="client">Client</option>
-            <option value="proprietaire">Propriétaire</option>
+            @foreach(\App\Models\Visite::TYPES_PERSONNE as $code => $label)
+                <option value="{{ $code }}">{{ $label }}</option>
+            @endforeach
         </select>
+    </div>
+
+    {{-- ✅ Objet --}}
+    <div class="mb-3">
+        <label style="font-weight:600;font-size:13px;">🎯 Objet de la visite</label>
+        <select id="objet" class="form-control mt-1" onchange="toggleMotifField()">
+            <option value="">-- Choisir --</option>
+            @foreach(\App\Models\Visite::OBJETS as $code => $info)
+                <option value="{{ $code }}"
+                        data-necessite-motif="{{ $info['necessite_motif'] ? '1' : '0' }}">
+                    {{ $info['label'] }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    {{-- ✅ Motif (affiché uniquement si l'objet le nécessite) --}}
+    <div class="mb-3" id="motifField" style="display:none;">
+        <label style="font-weight:600;font-size:13px;">
+            📝 Motif <span style="color:#dc2626;">*</span>
+        </label>
+        <textarea id="motif" class="form-control form-control-sm mt-1" rows="2"
+                  placeholder="Saisir le motif..."></textarea>
     </div>
 
     <div id="siteFields" style="display:none;">
@@ -408,6 +478,9 @@ function openModal() {
     document.getElementById('visiteur_numero').value = '';
     document.getElementById('visiteur_info').style.display = 'none';
     document.getElementById('type_personne').value   = 'autre';
+    document.getElementById('objet').value           = '';
+    document.getElementById('motif').value           = '';
+    document.getElementById('motifField').style.display = 'none';
     document.getElementById('siteFields').style.display = 'none';
     document.getElementById('date_visite').value     = '{{ now()->format("Y-m-d") }}';
     document.getElementById('heure_arrivee').value   = new Date().toTimeString().slice(0,5);
@@ -425,6 +498,15 @@ function closeModal() {
 function toggleSiteFields(type) {
     document.getElementById('siteFields').style.display =
         (type === 'client' || type === 'proprietaire') ? 'block' : 'none';
+}
+
+// ✅ Affiche / masque le champ Motif selon l'objet choisi
+function toggleMotifField() {
+    const sel = document.getElementById('objet');
+    const opt = sel.options[sel.selectedIndex];
+    const necessite = opt && opt.dataset.necessiteMotif === '1';
+    document.getElementById('motifField').style.display = necessite ? 'block' : 'none';
+    if (!necessite) document.getElementById('motif').value = '';
 }
 
 // AUTOCOMPLETE
@@ -473,6 +555,17 @@ function sauvegarderVisite() {
     const nom        = document.getElementById('visiteur_nom').value.trim();
     if (!visiteurId && !nom) { alert('Veuillez sélectionner ou saisir un visiteur.'); return; }
 
+    // ✅ Validation objet + motif
+    const objetSel = document.getElementById('objet');
+    const objetOpt = objetSel.options[objetSel.selectedIndex];
+    if (!objetSel.value) { alert('Veuillez choisir un objet.'); return; }
+
+    const motif = document.getElementById('motif').value.trim();
+    if (objetOpt.dataset.necessiteMotif === '1' && !motif) {
+        alert('Le motif est obligatoire pour cet objet.');
+        return;
+    }
+
     fetch('/admin/visites', {
         method : 'POST',
         headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN':'{{ csrf_token() }}' },
@@ -481,6 +574,8 @@ function sauvegarderVisite() {
             nom:           nom        || null,
             numero:        document.getElementById('visiteur_numero').value.trim() || null,
             type_personne: document.getElementById('type_personne').value,
+            objet:         objetSel.value,
+            motif:         motif || null,
             date_visite:   document.getElementById('date_visite').value,
             heure_arrivee: document.getElementById('heure_arrivee').value || null,
             heure_depart:  document.getElementById('heure_depart').value  || null,

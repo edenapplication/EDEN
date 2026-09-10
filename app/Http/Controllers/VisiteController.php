@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class VisiteController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Visite::with(['visiteur', 'client', 'grandSite', 'site', 'paiement','bon']);
+        $query = Visite::with(['visiteur', 'client', 'grandSite', 'site', 'paiement', 'bon']);
 
         if ($request->filled('nom'))
             $query->whereHas('visiteur', fn($q) =>
@@ -24,10 +25,13 @@ class VisiteController extends Controller
         if ($request->filled('type_personne'))
             $query->where('type_personne', $request->type_personne);
 
+        // ✅ Filtre objet
+        if ($request->filled('objet'))
+            $query->where('objet', $request->objet);
+
         if ($request->filled('grand_site_id'))
             $query->where('grand_site_id', $request->grand_site_id);
 
-        // ✅ Filtre site
         if ($request->filled('site_id'))
             $query->where('site_id', $request->site_id);
 
@@ -41,12 +45,11 @@ class VisiteController extends Controller
             $query->whereMonth('date_visite', date('m', strtotime($request->mois . '-01')))
                   ->whereYear('date_visite',  date('Y', strtotime($request->mois . '-01')));
 
-        // ✅ Filtre nombre minimum de visites (ex: au moins N fois)
+        // ✅ Filtre nombre de visites
         if ($request->filled('nb_min') || $request->filled('nb_max')) {
             $nbMin = $request->nb_min ?? 1;
             $nbMax = $request->nb_max ?? 99999;
 
-            // Sous-requête : visiteurs ayant entre nb_min et nb_max visites
             $visiteurIds = Visite::selectRaw('visiteur_id, COUNT(*) as total')
                 ->groupBy('visiteur_id')
                 ->havingRaw('total >= ? AND total <= ?', [$nbMin, $nbMax])
@@ -60,6 +63,8 @@ class VisiteController extends Controller
             'nom'           => 'Nom',
             'numero'        => 'Numéro',
             'type_personne' => 'Type',
+            'objet'         => 'Objet',
+            'motif'         => 'Motif',
             'heure_arrivee' => 'Arrivée',
             'heure_depart'  => 'Départ',
             'grand_site'    => 'Grand Site',
@@ -70,12 +75,13 @@ class VisiteController extends Controller
         ];
         $colonnesChoisies = $request->colonnes ?? array_keys($colonnesDisponibles);
 
-        // Comptage visites par visiteur pour affichage
         $comptageVisites = Visite::selectRaw('visiteur_id, COUNT(*) as total')
             ->groupBy('visiteur_id')
             ->pluck('total', 'visiteur_id');
 
-        $visites    = $query->orderBy('date_visite', 'desc')->orderBy('heure_arrivee', 'desc')->paginate(30)->withQueryString();
+        $visites    = $query->orderBy('date_visite', 'desc')
+                            ->orderBy('heure_arrivee', 'desc')
+                            ->paginate(30)->withQueryString();
         $grandsites = GrandSite::orderBy('nom')->get();
         $sites      = Site::orderBy('name')->get();
 
@@ -92,7 +98,9 @@ class VisiteController extends Controller
             'visiteur_id'   => 'nullable|exists:visiteurs,id',
             'nom'           => 'required_without:visiteur_id|string',
             'numero'        => 'nullable|string',
-            'type_personne' => 'required|in:client,proprietaire,autre',
+            'type_personne' => 'required|in:' . implode(',', array_keys(Visite::TYPES_PERSONNE)),
+            'objet'         => 'required|in:' . implode(',', Visite::codesObjets()),
+            'motif'         => 'nullable|string|max:500',
             'date_visite'   => 'required|date',
             'heure_arrivee' => 'nullable',
             'heure_depart'  => 'nullable',
@@ -102,12 +110,21 @@ class VisiteController extends Controller
             'client_id'     => 'nullable|exists:clients,id',
         ]);
 
+        // ✅ Motif obligatoire si nécessaire
+        if (Visite::objetNecessiteMotif($request->objet) && !$request->filled('motif')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le motif est obligatoire pour cet objet.',
+            ], 422);
+        }
+
         $visiteurId = $request->visiteur_id;
         if (!$visiteurId) {
-            $visiteur   = Visiteur::create([
+            $visiteur = Visiteur::create([
                 'nom'    => $request->nom,
                 'numero' => $request->numero,
-                'type'   => $request->type_personne,
+                'type'   => in_array($request->type_personne, array_keys(Visite::TYPES_PERSONNE))
+                            ? $request->type_personne : 'autre',
             ]);
             $visiteurId = $visiteur->id;
         }
@@ -132,6 +149,8 @@ class VisiteController extends Controller
             'heure_arrivee' => $request->heure_arrivee ?: null,
             'heure_depart'  => $request->heure_depart  ?: null,
             'type_personne' => $request->type_personne,
+            'objet'         => $request->objet,
+            'motif'         => Visite::objetNecessiteMotif($request->objet) ? $request->motif : null,
             'note'          => $request->note,
         ]);
 
@@ -141,10 +160,32 @@ class VisiteController extends Controller
     public function update(Request $request, $id)
     {
         $visite = Visite::findOrFail($id);
-        $visite->update($request->only([
+
+        $request->validate([
+            'type_personne' => 'nullable|in:' . implode(',', array_keys(Visite::TYPES_PERSONNE)),
+            'objet'         => 'nullable|in:' . implode(',', Visite::codesObjets()),
+            'motif'         => 'nullable|string|max:500',
+        ]);
+
+        $data = $request->only([
             'heure_arrivee', 'heure_depart', 'note',
             'grand_site_id', 'site_id', 'type_personne',
-        ]));
+            'objet', 'motif',
+        ]);
+
+        // ✅ Gestion du motif selon l'objet final
+        $objetFinal = $data['objet'] ?? $visite->objet;
+
+        if (!Visite::objetNecessiteMotif($objetFinal)) {
+            $data['motif'] = null;
+        } elseif (empty($data['motif'] ?? $visite->motif)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le motif est obligatoire pour cet objet.',
+            ], 422);
+        }
+
+        $visite->update($data);
         return response()->json(['success' => true]);
     }
 
@@ -164,7 +205,9 @@ class VisiteController extends Controller
     }
 
     // =============================================
-    // ✅ IMPORT — accepte dd/mm/yyyy ET yyyy-mm-dd
+    // ✅ IMPORT
+    // Format CSV :
+    // Date ; Nom ; Numéro ; Type ; Heure arrivée ; Heure départ ; Objet ; Motif ; Note
     // =============================================
     public function import(Request $request)
     {
@@ -172,7 +215,7 @@ class VisiteController extends Controller
 
         $path     = $request->file('fichier')->getRealPath();
         $handle   = fopen($path, 'r');
-        $header   = fgetcsv($handle, 0, ';'); // ignorer l'entête
+        $header   = fgetcsv($handle, 0, ';');
         $imported = 0;
         $errors   = [];
 
@@ -186,20 +229,32 @@ class VisiteController extends Controller
                 $type     = trim($row[3] ?? 'autre');
                 $hArrivee = $this->parseHeure(trim($row[4] ?? ''));
                 $hDepart  = $this->parseHeure(trim($row[5] ?? ''));
+                $objet    = trim($row[6] ?? '');
+                $motif    = trim($row[7] ?? '');
                 $note     = trim($row[8] ?? '');
 
                 if (!$dateRaw || !$nom) continue;
 
-                // ✅ Convertir la date quel que soit le format
                 $date = $this->parseDate($dateRaw);
                 if (!$date) {
                     $errors[] = "Date invalide : {$dateRaw}";
                     continue;
                 }
 
+                $typeValide = in_array($type, array_keys(Visite::TYPES_PERSONNE)) ? $type : 'autre';
+
+                if (!in_array($objet, Visite::codesObjets())) {
+                    $objet = 'descente_terrain';
+                }
+
+                if (Visite::objetNecessiteMotif($objet) && !$motif) {
+                    $errors[] = "Motif obligatoire pour l'objet « {$objet} » (ligne : {$nom})";
+                    continue;
+                }
+
                 $visiteur = Visiteur::firstOrCreate(
                     ['nom' => $nom, 'numero' => $numero ?: ''],
-                    ['type' => in_array($type, ['client','proprietaire','autre']) ? $type : 'autre']
+                    ['type' => $typeValide]
                 );
 
                 $existe = Visite::where('visiteur_id', $visiteur->id)
@@ -211,7 +266,9 @@ class VisiteController extends Controller
                         'date_visite'   => $date,
                         'heure_arrivee' => $hArrivee,
                         'heure_depart'  => $hDepart,
-                        'type_personne' => in_array($type, ['client','proprietaire','autre']) ? $type : 'autre',
+                        'type_personne' => $typeValide,
+                        'objet'         => $objet,
+                        'motif'         => Visite::objetNecessiteMotif($objet) ? $motif : null,
                         'note'          => $note ?: null,
                     ]);
                     $imported++;
@@ -228,37 +285,27 @@ class VisiteController extends Controller
         return back()->with('success', $msg);
     }
 
-    // ✅ Convertit dd/mm/yyyy, d/m/yyyy, yyyy-mm-dd → yyyy-mm-dd
     private function parseDate(string $raw): ?string
     {
         $raw = trim($raw);
         if (!$raw) return null;
 
-        // Format dd/mm/yyyy ou d/m/yyyy
         if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $raw, $m)) {
             return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
         }
-
-        // Format dd-mm-yyyy
         if (preg_match('#^(\d{1,2})-(\d{1,2})-(\d{4})$#', $raw, $m)) {
             return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
         }
-
-        // Format yyyy-mm-dd déjà correct
         if (preg_match('#^\d{4}-\d{2}-\d{2}$#', $raw)) {
             return $raw;
         }
-
-        // Essai avec strtotime
         $ts = strtotime($raw);
         return $ts ? date('Y-m-d', $ts) : null;
     }
 
-    // ✅ Nettoie l'heure — retire les secondes si présentes
     private function parseHeure(string $raw): ?string
     {
         if (!$raw) return null;
-        // HH:MM:SS → HH:MM
         if (preg_match('#^(\d{1,2}):(\d{2})#', $raw, $m)) {
             return sprintf('%02d:%02d', $m[1], $m[2]);
         }
@@ -275,6 +322,8 @@ class VisiteController extends Controller
             $query->where('date_visite', '<=', $request->date_fin);
         if ($request->filled('type_personne'))
             $query->where('type_personne', $request->type_personne);
+        if ($request->filled('objet'))
+            $query->where('objet', $request->objet);
         if ($request->filled('site_id'))
             $query->where('site_id', $request->site_id);
 
@@ -290,18 +339,20 @@ class VisiteController extends Controller
         $callback = function() use ($visites) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($file, ['Date','Nom','Numéro','Type','Arrivée','Départ','Grand Site','Site','Note'], ';');
+            fputcsv($file, ['Date','Nom','Numéro','Type','Objet','Motif','Arrivée','Départ','Grand Site','Site','Note'], ';');
             foreach ($visites as $v) {
                 fputcsv($file, [
                     $v->date_visite,
                     $v->visiteur?->nom    ?? '-',
                     $v->visiteur?->numero ?? '-',
                     $v->type_personne,
-                    $v->heure_arrivee    ?? '-',
-                    $v->heure_depart     ?? '-',
-                    $v->grandSite?->nom  ?? '-',
-                    $v->site?->name      ?? '-',
-                    $v->note             ?? '',
+                    $v->objet_libelle,
+                    $v->motif             ?? '',
+                    $v->heure_arrivee     ?? '-',
+                    $v->heure_depart      ?? '-',
+                    $v->grandSite?->nom   ?? '-',
+                    $v->site?->name       ?? '-',
+                    $v->note              ?? '',
                 ], ';');
             }
             fclose($file);

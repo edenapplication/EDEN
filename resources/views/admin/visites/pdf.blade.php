@@ -21,9 +21,19 @@ tbody tr:nth-child(even) { background:#f8fafc; }
 tbody td { padding:4px; border-bottom:1px solid #e2e8f0; font-size:7.5px; }
 .footer { text-align:right; font-size:6px; color:#94a3b8; margin-top:8px; }
 
+/* ✅ Badges Type */
 .bt-client       { background:#dbeafe; color:#1d4ed8; padding:1px 5px; border-radius:3px; font-size:7px; }
 .bt-proprietaire { background:#dcfce7; color:#15803d; padding:1px 5px; border-radius:3px; font-size:7px; }
 .bt-autre        { background:#f1f5f9; color:#475569; padding:1px 5px; border-radius:3px; font-size:7px; }
+
+/* ✅ Badges Objet */
+.bo-bleu   { background:#dbeafe; color:#1e40af; padding:1px 5px; border-radius:3px; font-size:7px; }
+.bo-jaune  { background:#fef9c3; color:#854d0e; padding:1px 5px; border-radius:3px; font-size:7px; }
+.bo-vert   { background:#dcfce7; color:#15803d; padding:1px 5px; border-radius:3px; font-size:7px; }
+.bo-violet { background:#ede9fe; color:#6d28d9; padding:1px 5px; border-radius:3px; font-size:7px; }
+.bo-gris   { background:#f1f5f9; color:#475569; padding:1px 5px; border-radius:3px; font-size:7px; }
+
+.motif-cell { max-width:120px; overflow:hidden; text-overflow:ellipsis; }
 </style>
 </head>
 <body>
@@ -41,6 +51,8 @@ tbody td { padding:4px; border-bottom:1px solid #e2e8f0; font-size:7.5px; }
             <th>Nom</th>
             <th>Numéro</th>
             <th>Type</th>
+            <th>Objet</th>
+            <th>Motif</th>
             <th>Arrivée</th>
             <th>Départ</th>
             <th>Grand Site</th>
@@ -51,15 +63,29 @@ tbody td { padding:4px; border-bottom:1px solid #e2e8f0; font-size:7.5px; }
     <tbody>
     @foreach($visites as $i => $v)
         <tr>
-            <td>{{ $i+1 }}</td>
-            <td>{{ $v->date_visite }}</td>
+            <td>{{ $i + 1 }}</td>
+            <td>{{ \Carbon\Carbon::parse($v->date_visite)->format('d/m/Y') }}</td>
             <td><strong>{{ $v->visiteur?->nom ?? '-' }}</strong></td>
             <td>{{ $v->visiteur?->numero ?? '-' }}</td>
             <td>
-                <span class="bt-{{ $v->type_personne }}">{{ ucfirst($v->type_personne) }}</span>
+                <span class="bt-{{ $v->type_personne }}">
+                    {{ $v->type_personne_libelle }}
+                </span>
             </td>
-            <td>{{ $v->heure_arrivee ?? '-' }}</td>
-            <td>{{ $v->heure_depart  ?? '-' }}</td>
+            <td>
+                @if($v->objet)
+                    <span class="bo-{{ $v->objet_couleur }}">
+                        {{ $v->objet_libelle }}
+                    </span>
+                @else
+                    —
+                @endif
+            </td>
+            <td class="motif-cell" title="{{ $v->motif }}">
+                {{ $v->motif ?? '—' }}
+            </td>
+            <td>{{ $v->heure_arrivee ? substr($v->heure_arrivee, 0, 5) : '-' }}</td>
+            <td>{{ $v->heure_depart  ? substr($v->heure_depart,  0, 5) : '-' }}</td>
             <td>{{ $v->grandSite?->nom ?? '-' }}</td>
             <td>{{ $v->site?->name    ?? '-' }}</td>
             <td>{{ $v->note           ?? '' }}</td>
