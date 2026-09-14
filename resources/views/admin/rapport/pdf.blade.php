@@ -4,296 +4,203 @@
 <meta charset="UTF-8">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:DejaVu Sans,sans-serif; font-size:8px; color:#1e293b; }
+body { font-family:DejaVu Sans, sans-serif; font-size:7.5px; color:#1e293b; }
 
-/* ✅ EN-TÊTE COLORÉ BLEU → VIOLET → ROUGE */
-.page-header {
-    background: #1e3a5f;
-    color: white;
-    padding: 16px 20px;
-    margin-bottom: 14px;
-    border-left: 8px solid #ef4444;
+.header {
+    background:#1e3a5f; color:white;
+    padding:14px 18px; margin-bottom:14px;
+    border-left:6px solid #dc2626;
 }
-.rapport-titre {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 4px;
-    letter-spacing: 0.3px;
-}
-.rapport-description {
-    font-size: 11px;
-    opacity: 0.88;
-    font-style: italic;
-    margin-bottom: 6px;
-}
-.rapport-meta { font-size: 8px; opacity: 0.65; }
+.header h1 { font-size:16px; font-weight:bold; margin-bottom:3px; }
+.header p  { font-size:8px; opacity:0.75; }
 
-table { width:100%; border-collapse:collapse; margin-bottom:8px; }
-thead tr { background:#1e3a5f; color:white; }
-thead th { padding:4px 3px; font-size:7px; font-weight:bold; text-align:left; white-space:nowrap; }
-tbody tr:nth-child(even) { background:#f8fafc; }
-tbody td { padding:3px; border-bottom:1px solid #e2e8f0; font-size:7px; }
-tfoot tr { background:#1e3a5f; color:white; }
-tfoot td { padding:4px 3px; font-size:7px; font-weight:bold; }
-.footer { text-align:right; font-size:6px; color:#94a3b8; margin-top:6px; }
-.prog-wrap { display:inline-block; width:40px; height:4px; background:#e2e8f0; border-radius:2px; vertical-align:middle; }
-.prog-fill  { height:100%; border-radius:2px; }
-
-/* ═══ RÉCAP PAIEMENTS ═══ */
-.recap-section { margin-bottom:14px; }
-.recap-title {
-    font-size:11px;
-    font-weight:bold;
-    color:#1e3a5f;
-    margin-bottom:8px;
-    padding-bottom:4px;
-    border-bottom:2px solid #e2e8f0;
+/* ═══ BANDEAU PÉRIODE ═══ */
+.periode-banner {
+    background:linear-gradient(135deg, #dbeafe, #eff6ff);
+    border-left:5px solid #0d6efd;
+    padding:10px 14px;
+    margin-bottom:12px;
+    border-radius:6px;
 }
-.recap-table {
+.periode-banner .label {
+    font-size:9px; color:#1e40af; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.5px;
+}
+.periode-banner .val {
+    font-size:16px; color:#0d6efd; font-weight:900;
+    margin-top:2px;
+}
+.periode-banner .dates {
+    font-size:8px; color:#475569; margin-top:2px;
+}
+
+/* ═══ RECAP ═══ */
+.recap-grid {
     width:100%;
-    border-collapse:collapse;
-    margin-bottom:10px;
+    margin-bottom:12px;
+    border-collapse:separate;
+    border-spacing:6px 0;
 }
-.recap-table th {
-    padding:6px 8px;
-    font-size:7px;
-    font-weight:bold;
-    text-align:left;
-    border:1px solid #e2e8f0;
-    background:#f8fafc;
-    color:#1e3a5f;
+.recap-grid td {
+    width:25%;
+    padding:8px 10px;
+    border-radius:6px;
+    vertical-align:top;
+    font-size:7.5px;
 }
-.recap-table td {
-    padding:6px 8px;
-    font-size:7px;
-    border:1px solid #e2e8f0;
-}
-.recap-table .row-total {
-    background:#1e3a5f;
-    color:white;
-    font-weight:bold;
-}
-.recap-table .row-total td {
-    border-color:#1e3a5f;
-    font-size:8px;
-}
-.recap-table .montant { text-align:right; font-family:DejaVu Sans Mono,monospace; }
-.recap-table .paye { color:#15803d; font-weight:bold; }
-.recap-table .reste { color:#b91c1c; font-weight:bold; }
-.recap-table .pct { text-align:center; font-weight:bold; }
+.recap-card-superficie   { background:#eff6ff; border-left:3px solid #0d6efd; }
+.recap-card-technique    { background:#fff7ed; border-left:3px solid #ea580c; }
+.recap-card-logistique   { background:#f5f3ff; border-left:3px solid #7c3aed; }
+.recap-card-morcellement { background:#fefce8; border-left:3px solid #ca8a04; }
+.recap-card h6 { font-size:8px; font-weight:bold; margin-bottom:4px; }
+.recap-row { display:flex; justify-content:space-between; padding:1px 0; }
+.recap-row .lbl { color:#64748b; }
+.recap-row .val { font-weight:bold; }
+
+/* ═══ TABLE ═══ */
+table.data { width:100%; border-collapse:collapse; }
+thead tr { background:#1e3a5f; color:white; }
+thead th { padding:5px 4px; font-size:7px; font-weight:bold; text-align:left; white-space:nowrap; }
+tbody tr:nth-child(even) { background:#f8fafc; }
+tbody td { padding:4px; border-bottom:1px solid #e2e8f0; font-size:7px; white-space:nowrap; }
+tfoot td { background:#1e3a5f; color:white; font-weight:bold; padding:6px 4px; font-size:7.5px; }
+
+.footer { text-align:right; font-size:6px; color:#94a3b8; margin-top:8px; }
+
+.badge-lot { background:#dbeafe; color:#1d4ed8; padding:1px 4px; border-radius:3px; font-size:6.5px; font-weight:bold; }
+
+.statut { padding:1px 4px; border-radius:3px; font-size:6.5px; font-weight:bold; }
+.statut-none                { background:#f1f5f9; color:#475569; }
+.statut-implantation_prevue { background:#ede9fe; color:#7c3aed; }
+.statut-deja_implante       { background:#dbeafe; color:#1d4ed8; }
+.statut-dossier_technique   { background:#fef9c3; color:#854d0e; }
+.statut-morcellement        { background:#dcfce7; color:#15803d; }
+
+.periode-cell { color:#0d6efd; font-weight:bold; background:#dbeafe; padding:1px 4px; border-radius:3px; }
+.periode-vide { color:#94a3b8; }
+
+.progress-wrap { width:36px; height:4px; background:#e2e8f0; border-radius:2px; display:inline-block; vertical-align:middle; }
+.progress-bar  { height:100%; border-radius:2px; }
 </style>
 </head>
 <body>
 
-{{-- ✅ TITRE ET DESCRIPTION EN GRAND --}}
-<div class="page-header">
-    <div class="rapport-titre">{{ $rapport_titre ?? 'Rapport EDEN GROUP' }}</div>
-    @if(!empty($rapport_description))
-        <div class="rapport-description">{{ $rapport_description }}</div>
-    @endif
-    <div class="rapport-meta">
-        Généré le {{ now()->format('d/m/Y à H:i') }}
-        — {{ $dossiers->count() }} dossiers
-        ({{ $dossiers->filter(fn($d)=>$d->affectations->count()>0)->count() }} avec lot,
-        {{ $dossiers->filter(fn($d)=>$d->affectations->count()===0)->count() }} sans lot)
-    </div>
+<div class="header">
+    <h1>📊 {{ $rapport_titre ?? 'Rapport EDEN GROUP' }}</h1>
+    <p>
+        @if(!empty($rapport_description))
+            {{ $rapport_description }} —
+        @endif
+        Généré le {{ now()->format('d/m/Y à H:i') }} — {{ $dossiers->count() }} dossier(s)
+    </p>
 </div>
 
-{{-- KPI --}}
-<table style="margin-bottom:10px;">
-    <tr style="background:#f0f7ff;">
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#1e3a5f;">{{ $totaux['nb_dossiers'] }}</div>
-            <div style="font-size:6px;color:#64748b;">DOSSIERS</div>
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+{{-- ✅ BANDEAU PÉRIODE (affiché uniquement si période sélectionnée) --}}
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+@if(request('date_debut') || request('date_fin'))
+    @php
+        $totalPeriode = array_sum($paiementsPeriode ?? []);
+    @endphp
+    <div class="periode-banner">
+        <div class="label">💵 Paiements sur la période</div>
+        <div class="val">{{ number_format($totalPeriode, 0, ',', ' ') }} FCFA</div>
+        <div class="dates">
+            @if(request('date_debut') && request('date_fin'))
+                Du {{ \Carbon\Carbon::parse(request('date_debut'))->format('d/m/Y') }}
+                au {{ \Carbon\Carbon::parse(request('date_fin'))->format('d/m/Y') }}
+            @elseif(request('date_debut'))
+                À partir du {{ \Carbon\Carbon::parse(request('date_debut'))->format('d/m/Y') }}
+            @else
+                Jusqu'au {{ \Carbon\Carbon::parse(request('date_fin'))->format('d/m/Y') }}
+            @endif
+        </div>
+    </div>
+@endif
+
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+{{-- ✅ RÉCAP PAIEMENTS (4 catégories) --}}
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+<table class="recap-grid">
+    <tr>
+        <td class="recap-card-superficie">
+            <h6 style="color:#0d6efd;">📁 Parcelle</h6>
+            <div class="recap-row">
+                <span class="lbl">Réf.</span>
+                <span class="val">{{ number_format($totaux['prix_superficie_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Payé</span>
+                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_superficie_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Reste</span>
+                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_superficie_total'] - $totaux['paye_superficie_total']),0,',',' ') }}</span>
+            </div>
         </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#1e3a5f;">{{ $totaux['nb_clients'] }}</div>
-            <div style="font-size:6px;color:#64748b;">CLIENTS</div>
+        <td class="recap-card-technique">
+            <h6 style="color:#ea580c;">🛠️ Technique</h6>
+            <div class="recap-row">
+                <span class="lbl">Réf.</span>
+                <span class="val">{{ number_format($totaux['prix_technique_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Payé</span>
+                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_technique_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Reste</span>
+                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_technique_total'] - $totaux['paye_technique_total']),0,',',' ') }}</span>
+            </div>
         </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#15803d;">{{ $totaux['nb_avec_lot'] }}</div>
-            <div style="font-size:6px;color:#64748b;">AVEC LOT</div>
+        <td class="recap-card-logistique">
+            <h6 style="color:#7c3aed;">🚗 Logistique</h6>
+            <div class="recap-row">
+                <span class="lbl">Réf.</span>
+                <span class="val">{{ number_format($totaux['prix_logistique_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Payé</span>
+                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_logistique_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Reste</span>
+                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_logistique_total'] - $totaux['paye_logistique_total']),0,',',' ') }}</span>
+            </div>
         </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#b91c1c;">{{ $totaux['nb_sans_lot'] }}</div>
-            <div style="font-size:6px;color:#64748b;">SANS LOT</div>
-        </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#15803d;">{{ number_format($totaux['prix_total'],0,',',' ') }}</div>
-            <div style="font-size:6px;color:#64748b;">PRIX TOTAL FCFA</div>
-        </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#1d4ed8;">{{ number_format($totaux['total_paye'],0,',',' ') }}</div>
-            <div style="font-size:6px;color:#64748b;">PAYÉ FCFA</div>
-        </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#b91c1c;">{{ number_format($totaux['total_reste'],0,',',' ') }}</div>
-            <div style="font-size:6px;color:#64748b;">RESTE FCFA</div>
-        </td>
-        <td style="padding:6px 8px;text-align:center;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:bold;color:#1e3a5f;">{{ $totaux['avg_progression'] }}%</div>
-            <div style="font-size:6px;color:#64748b;">MOY. PAIEMENT</div>
+        <td class="recap-card-morcellement">
+            <h6 style="color:#ca8a04;">✂️ Morcellement</h6>
+            <div class="recap-row">
+                <span class="lbl">Réf.</span>
+                <span class="val">{{ number_format($totaux['prix_morcellement_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Payé</span>
+                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_morcellement_total'],0,',',' ') }}</span>
+            </div>
+            <div class="recap-row">
+                <span class="lbl">Reste</span>
+                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_morcellement_total'] - $totaux['paye_morcellement_total']),0,',',' ') }}</span>
+            </div>
         </td>
     </tr>
 </table>
 
-{{-- ═══════════════════════════════════════════════════════════════════ --}}
-{{-- ✅ RÉCAPITULATIF DES PAIEMENTS --}}
-{{-- ═══════════════════════════════════════════════════════════════════ --}}
-<div class="recap-section">
-    <div class="recap-title">💰 RÉCAPITULATIF DES PAIEMENTS</div>
-
-    <table class="recap-table">
-        <thead>
-            <tr>
-                <th style="width:22%;">Type de paiement</th>
-                <th style="width:16%;text-align:right;">Référence (FCFA)</th>
-                <th style="width:16%;text-align:right;">Payé (FCFA)</th>
-                <th style="width:16%;text-align:right;">Reste (FCFA)</th>
-                <th style="width:10%;text-align:center;">Progression</th>
-                <th style="width:20%;text-align:center;">Barre</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{-- Paiement Parcelle --}}
-            @php
-                $resteSup = max(0, $totaux['prix_superficie_total'] - $totaux['paye_superficie_total']);
-                $pctSup = $totaux['prix_superficie_total'] > 0 ? min(100, round(($totaux['paye_superficie_total']/$totaux['prix_superficie_total'])*100)) : 0;
-            @endphp
-            <tr>
-                <td style="font-weight:bold;color:#0d6efd;">📁 Paiement Parcelle</td>
-                <td class="montant">{{ number_format($totaux['prix_superficie_total'],0,',',' ') }}</td>
-                <td class="montant paye">{{ number_format($totaux['paye_superficie_total'],0,',',' ') }}</td>
-                <td class="montant reste">{{ number_format($resteSup,0,',',' ') }}</td>
-                <td class="pct" style="color:#0d6efd;">{{ $pctSup }}%</td>
-                <td>
-                    <div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
-                        <div style="width:{{ $pctSup }}%;height:100%;background:#0d6efd;border-radius:3px;"></div>
-                    </div>
-                </td>
-            </tr>
-
-            {{-- Paiement Technique --}}
-            @php
-                $resteTech = max(0, $totaux['prix_technique_total'] - $totaux['paye_technique_total']);
-                $pctTech = $totaux['prix_technique_total'] > 0 ? min(100, round(($totaux['paye_technique_total']/$totaux['prix_technique_total'])*100)) : 0;
-            @endphp
-            <tr>
-                <td style="font-weight:bold;color:#ea580c;">🛠️ Paiement Technique</td>
-                <td class="montant">{{ number_format($totaux['prix_technique_total'],0,',',' ') }}</td>
-                <td class="montant paye">{{ number_format($totaux['paye_technique_total'],0,',',' ') }}</td>
-                <td class="montant reste">{{ number_format($resteTech,0,',',' ') }}</td>
-                <td class="pct" style="color:#ea580c;">{{ $pctTech }}%</td>
-                <td>
-                    <div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
-                        <div style="width:{{ $pctTech }}%;height:100%;background:#ea580c;border-radius:3px;"></div>
-                    </div>
-                </td>
-            </tr>
-
-            {{-- Paiement Logistique --}}
-            @php
-                $resteLog = max(0, $totaux['prix_logistique_total'] - $totaux['paye_logistique_total']);
-                $pctLog = $totaux['prix_logistique_total'] > 0 ? min(100, round(($totaux['paye_logistique_total']/$totaux['prix_logistique_total'])*100)) : 0;
-            @endphp
-            <tr>
-                <td style="font-weight:bold;color:#7c3aed;">🚗 Paiement Logistique</td>
-                <td class="montant">{{ number_format($totaux['prix_logistique_total'],0,',',' ') }}</td>
-                <td class="montant paye">{{ number_format($totaux['paye_logistique_total'],0,',',' ') }}</td>
-                <td class="montant reste">{{ number_format($resteLog,0,',',' ') }}</td>
-                <td class="pct" style="color:#7c3aed;">{{ $pctLog }}%</td>
-                <td>
-                    <div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
-                        <div style="width:{{ $pctLog }}%;height:100%;background:#7c3aed;border-radius:3px;"></div>
-                    </div>
-                </td>
-            </tr>
-
-            {{-- Paiement Morcellement --}}
-            @php
-                $resteMor = max(0, $totaux['prix_morcellement_total'] - $totaux['paye_morcellement_total']);
-                $pctMor = $totaux['prix_morcellement_total'] > 0 ? min(100, round(($totaux['paye_morcellement_total']/$totaux['prix_morcellement_total'])*100)) : 0;
-            @endphp
-            <tr>
-                <td style="font-weight:bold;color:#ca8a04;">✂️ Paiement Morcellement</td>
-                <td class="montant">{{ number_format($totaux['prix_morcellement_total'],0,',',' ') }}</td>
-                <td class="montant paye">{{ number_format($totaux['paye_morcellement_total'],0,',',' ') }}</td>
-                <td class="montant reste">{{ number_format($resteMor,0,',',' ') }}</td>
-                <td class="pct" style="color:#ca8a04;">{{ $pctMor }}%</td>
-                <td>
-                    <div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
-                        <div style="width:{{ $pctMor }}%;height:100%;background:#ca8a04;border-radius:3px;"></div>
-                    </div>
-                </td>
-            </tr>
-
-            {{-- TOTAL GÉNÉRAL --}}
-            <tr class="row-total">
-                <td>📊 TOTAL GÉNÉRAL</td>
-                <td class="montant">{{ number_format($totaux['prix_total'],0,',',' ') }}</td>
-                <td class="montant">{{ number_format($totaux['total_paye'],0,',',' ') }}</td>
-                <td class="montant">{{ number_format($totaux['total_reste'],0,',',' ') }}</td>
-                <td class="pct">{{ $totaux['avg_progression'] }}%</td>
-                <td>
-                    <div style="width:100%;height:6px;background:rgba(255,255,255,0.3);border-radius:3px;overflow:hidden;">
-                        <div style="width:{{ $totaux['avg_progression'] }}%;height:100%;background:#ffffff;border-radius:3px;"></div>
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-{{-- ═══════════════════════════════════════════════════════════════════ --}}
-{{-- ✅ TABLEAU DÉTAILLÉ DES DOSSIERS --}}
-{{-- ═══════════════════════════════════════════════════════════════════ --}}
-<div class="recap-title" style="margin-top:16px;">📋 DÉTAIL DES DOSSIERS</div>
-
-<table>
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+{{-- ✅ TABLEAU PRINCIPAL --}}
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+<table class="data">
     <thead>
         <tr>
             <th>#</th>
             @foreach($colonnesChoisies as $col)
-                <th>{{ [
-                    'grand_site'=>'Grand Site',
-                    'site'=>'Site',
-                    'tf'=>'TF',
-                    'bloc'=>'Bloc',
-                    'lot'=>'Lot',
-                    'client'=>'Client',
-                    'telephone'=>'Tél.',
-                    'sexe'=>'Sexe',
-                    'commercial'=>'Comm.',
-                    'facilitateur'=>'Facil.',
-                    'chauffeur'=>'Chauff.',
-                    'agent'=>'Agent',
-                    'direction'=>'Direction',
-                    'grand_site_dossier'=>'GS voulu',
-                    'superficie'=>'Sup.',
-                    'prix_superficie'=>'Prix Sup.',
-                    'prix_technique'=>'Prix Tech.',
-                    'prix_logistique'=>'Prix Log.',
-                    'prix_morcellement'=>'Prix Mor.',
-                    'paye_superficie'=>'Payé Sup.',
-                    'paye_technique'=>'Payé Tech.',
-                    'paye_logistique'=>'Payé Log.',
-                    'paye_morcellement'=>'Payé Mor.',
-                    'total_paye'=>'Total Payé',
-                    'total_reste'=>'Total Reste',
-                    'progression'=>'Prog.',
-                    'date_implantation'=>'D.Implant.',
-                    'date_dossier_tech'=>'D.Tech.',
-                    'date_morcellement'=>'D.Morcel.',
-                    'statut_dossier'=>'Statut',
-                    'nom_dossier'=>'Dossier'
-                ][$col] ?? $col }}</th>
+                <th>{{ $colonnes[$col] ?? $col }}</th>
             @endforeach
         </tr>
     </thead>
     <tbody>
     @foreach($dossiers as $i => $d)
         @php
-            // ✅ Calculs réels
             $payeSuperficie   = $d->paiements->sum('montant');
             $payeTechnique    = $d->paiementsTechniques->sum('montant');
             $payeLogistique   = $d->paiementsLogistiques?->sum('montant') ?? 0;
@@ -309,65 +216,116 @@ tfoot td { padding:4px 3px; font-size:7px; font-weight:bold; }
             $progression      = $totalPrix > 0 ? round(($totalPaye / $totalPrix) * 100) : 0;
             $progColor        = $progression < 40 ? '#dc3545' : ($progression < 75 ? '#fd7e14' : '#28a745');
 
-            // ✅ Affectation réelle
-            $affectation = $d->affectations->first();
-            $lot         = $affectation?->lot;
-            $bloc        = $affectation?->bloc;
+            $affectations = $d->affectations;
+            $nbLots       = $affectations->count();
+
+            // ✅ Paiement période
+            $payePeriode = ($paiementsPeriode ?? [])[$d->id] ?? 0;
         @endphp
         <tr>
-            <td>{{ $i+1 }}</td>
+            <td>{{ $i + 1 }}</td>
             @foreach($colonnesChoisies as $col)
             <td>
                 @switch($col)
-                    @case('grand_site')         {{ $affectation?->grandSite?->nom ?? '—' }} @break
-                    @case('site')               {{ $affectation?->grandSite?->nom ?? '—' }} @break
-                    @case('tf')                 {{ $bloc?->tf?->title ?? '—' }} @break
-                    @case('bloc')               {{ $bloc?->code ?? '—' }} @break
-                    @case('lot')                {{ $lot ? strtoupper($lot->numero) : 'Sans lot' }} @break
-                    @case('client')             {{ $d->client?->name ?? '-' }} @break
-                    @case('telephone')          {{ $d->client?->phone ?? '-' }} @break
+
+                    {{-- 👤 CLIENT --}}
+                    @case('client')    <strong>{{ $d->client?->name ?? '-' }}</strong> @break
+                    @case('telephone') {{ $d->client?->phone ?? '-' }} @break
                     @case('sexe')
-                        @if($d->client?->sexe === 'masculin') Masculin
-                        @elseif($d->client?->sexe === 'feminin') Féminin
-                        @else —
-                        @endif
+                        {{ $d->client?->sexe === 'masculin' ? 'Masculin' : ($d->client?->sexe === 'feminin' ? 'Féminin' : '-') }}
                         @break
-                    @case('commercial')         {{ $d->commercial?->name ?? '-' }} @break
-                    @case('facilitateur')       {{ $d->facilitateur?->nom ?? '-' }} @break
-                    @case('chauffeur')          {{ $d->conducteur?->nom ?? '-' }} @break
-                    @case('agent')              {{ $d->agentCommercial?->nom ?? '-' }} @break
-                    @case('direction')          {{ match($d->direction) { 'baffoussam'=>'Baffoussam','bagante'=>'Bagante','direction_generale'=>'Dir. Gén.',default=>$d->direction??'-' } }} @break
+
+                    {{-- 📁 DOSSIER --}}
+                    @case('nom_dossier')        {{ $d->nom_dossier ?? '-' }} @break
                     @case('grand_site_dossier') {{ $d->grandSite?->nom ?? '-' }} @break
-                    @case('superficie')         {{ $d->superficie_voulue ?? '-' }} @break
-                    @case('prix_superficie')    {{ number_format($prixSuperficie,0,',',' ') }} @break
-                    @case('prix_technique')     {{ number_format($prixTechnique,0,',',' ') }} @break
-                    @case('prix_logistique')    {{ number_format($prixLogistique,0,',',' ') }} @break
-                    @case('prix_morcellement')  {{ number_format($prixMorcellement,0,',',' ') }} @break
-                    @case('paye_superficie')    {{ number_format($payeSuperficie,0,',',' ') }} @break
-                    @case('paye_technique')     {{ number_format($payeTechnique,0,',',' ') }} @break
-                    @case('paye_logistique')    {{ number_format($payeLogistique,0,',',' ') }} @break
-                    @case('paye_morcellement')  {{ number_format($payeMorcellement,0,',',' ') }} @break
-                    @case('total_paye')         {{ number_format($totalPaye,0,',',' ') }} @break
-                    @case('total_reste')        {{ number_format($totalReste,0,',',' ') }} @break
-                    @case('progression')
-                        <div class="prog-wrap"><div class="prog-fill" style="width:{{ $progression }}%;background:{{ $progColor }};"></div></div> {{ $progression }}%
+                    @case('superficie')         {{ $d->superficie_voulue ? number_format($d->superficie_voulue,0,',',' ') : '-' }} @break
+                    @case('direction')
+                        {{ match($d->direction) {
+                            'baffoussam' => 'Baffoussam',
+                            'bagante'    => 'Bagante',
+                            'direction_generale' => 'Dir. Générale',
+                            default => $d->direction ?? '-'
+                        } }}
                         @break
-                    @case('date_implantation')  {{ $d->date_implantation_prevue?->format('d/m/Y') ?? '-' }} @break
-                    @case('date_dossier_tech')  {{ $d->date_dossier_technique?->format('d/m/Y') ?? '-' }} @break
-                    @case('date_morcellement')  {{ $d->date_morcellement?->format('d/m/Y') ?? '-' }} @break
                     @case('statut_dossier')
                         @php
                             $statut = $d->etape_actuelle ?? 'none';
-                            echo match($statut) {
-                                'implantation_prevue' => 'Implant. prévue',
+                            $label = match($statut) {
+                                'implantation_prevue' => 'Implantation prévue',
                                 'deja_implante'       => 'Déjà implanté',
-                                'dossier_technique'   => 'Dossier tech.',
+                                'dossier_technique'   => 'Dossier technique',
                                 'morcellement'        => 'Morcellement',
                                 default               => 'Non commencé',
                             };
                         @endphp
+                        <span class="statut statut-{{ $statut }}">{{ $label }}</span>
                         @break
-                    @case('nom_dossier')        {{ $d->nom_dossier ?? '-' }} @break
+
+                    {{-- 👥 ACTEURS --}}
+                    @case('commercial')   {{ $d->commercial?->name ?? '-' }} @break
+                    @case('facilitateur') {{ $d->facilitateur?->nom ?? '-' }} @break
+                    @case('chauffeur')    {{ $d->conducteur?->nom ?? '-' }} @break
+                    @case('agent')        {{ $d->agentCommercial?->nom ?? '-' }} @break
+
+                    {{-- 🗺️ AFFECTATIONS --}}
+                    @case('grand_site')
+                        {{ $nbLots > 0 ? $affectations->pluck('grandSite.nom')->filter()->unique()->implode(', ') : '—' }}
+                        @break
+                    @case('site')
+                        {{ $nbLots > 0 ? $affectations->pluck('grandSite.nom')->filter()->unique()->implode(', ') : '—' }}
+                        @break
+                    @case('tf')
+                        {{ $nbLots > 0 ? $affectations->pluck('bloc.tf.title')->filter()->unique()->implode(', ') : '—' }}
+                        @break
+                    @case('bloc')
+                        {{ $nbLots > 0 ? $affectations->pluck('bloc.code')->filter()->unique()->implode(', ') : '—' }}
+                        @break
+                    @case('lot')
+                        @if($nbLots > 0)
+                            @foreach($affectations as $aff)
+                                @if($aff->lot)
+                                    <span class="badge-lot">{{ strtoupper($aff->lot->numero) }}</span>
+                                @endif
+                            @endforeach
+                        @else
+                            <em style="color:#94a3b8;">Sans lot</em>
+                        @endif
+                        @break
+
+                    {{-- 💰 PAIEMENTS --}}
+                    @case('prix_superficie')   {{ number_format($prixSuperficie,0,',',' ') }} @break
+                    @case('prix_technique')    {{ number_format($prixTechnique,0,',',' ') }} @break
+                    @case('prix_logistique')   {{ number_format($prixLogistique,0,',',' ') }} @break
+                    @case('prix_morcellement') {{ number_format($prixMorcellement,0,',',' ') }} @break
+                    @case('paye_superficie')   {{ number_format($payeSuperficie,0,',',' ') }} @break
+                    @case('paye_technique')    {{ number_format($payeTechnique,0,',',' ') }} @break
+                    @case('paye_logistique')   {{ number_format($payeLogistique,0,',',' ') }} @break
+                    @case('paye_morcellement') {{ number_format($payeMorcellement,0,',',' ') }} @break
+                    @case('total_paye')        <strong style="color:#16a34a;">{{ number_format($totalPaye,0,',',' ') }}</strong> @break
+
+                    {{-- ✅ Paiement période --}}
+                    @case('paiement_periode')
+                        @if($payePeriode > 0)
+                            <span class="periode-cell">{{ number_format($payePeriode,0,',',' ') }}</span>
+                        @else
+                            <span class="periode-vide">—</span>
+                        @endif
+                        @break
+
+                    @case('total_reste')       <strong style="color:#dc3545;">{{ number_format($totalReste,0,',',' ') }}</strong> @break
+                    @case('progression')
+                        <span class="progress-wrap">
+                            <span class="progress-bar" style="width:{{ $progression }}%;background:{{ $progColor }};"></span>
+                        </span>
+                        <span style="font-size:6.5px;color:{{ $progColor }};font-weight:bold;">{{ $progression }}%</span>
+                        @break
+
+                    {{-- 📅 DATES --}}
+                    @case('date_implantation') {{ $d->date_implantation_prevue?->format('d/m/Y') ?? '-' }} @break
+                    @case('date_dossier_tech') {{ $d->date_dossier_technique?->format('d/m/Y') ?? '-' }} @break
+                    @case('date_morcellement') {{ $d->date_morcellement?->format('d/m/Y') ?? '-' }} @break
+
+                    @default —
                 @endswitch
             </td>
             @endforeach
@@ -380,19 +338,26 @@ tfoot td { padding:4px 3px; font-size:7px; font-weight:bold; }
             @foreach($colonnesChoisies as $col)
             <td>
                 @switch($col)
-                    @case('lot')                {{ $totaux['nb_dossiers'] }} @break
-                    @case('superficie')         {{ number_format($totaux['superficie_totale'],0,',',' ') }} @break
-                    @case('prix_superficie')    {{ number_format($totaux['prix_superficie_total'],0,',',' ') }} @break
-                    @case('prix_technique')     {{ number_format($totaux['prix_technique_total'],0,',',' ') }} @break
-                    @case('prix_logistique')    {{ number_format($totaux['prix_logistique_total'],0,',',' ') }} @break
-                    @case('prix_morcellement')  {{ number_format($totaux['prix_morcellement_total'],0,',',' ') }} @break
-                    @case('paye_superficie')    {{ number_format($totaux['paye_superficie_total'],0,',',' ') }} @break
-                    @case('paye_technique')     {{ number_format($totaux['paye_technique_total'],0,',',' ') }} @break
-                    @case('paye_logistique')    {{ number_format($totaux['paye_logistique_total'],0,',',' ') }} @break
-                    @case('paye_morcellement')  {{ number_format($totaux['paye_morcellement_total'],0,',',' ') }} @break
-                    @case('total_paye')         {{ number_format($totaux['total_paye'],0,',',' ') }} @break
-                    @case('total_reste')        {{ number_format($totaux['total_reste'],0,',',' ') }} @break
-                    @case('progression')        {{ $totaux['avg_progression'] }}% @break
+                    @case('lot')               {{ $totaux['nb_dossiers'] }} dossiers @break
+                    @case('superficie')        {{ number_format($totaux['superficie_totale'],0,',',' ') }} m² @break
+                    @case('prix_superficie')   {{ number_format($totaux['prix_superficie_total'],0,',',' ') }} @break
+                    @case('prix_technique')    {{ number_format($totaux['prix_technique_total'],0,',',' ') }} @break
+                    @case('prix_logistique')   {{ number_format($totaux['prix_logistique_total'],0,',',' ') }} @break
+                    @case('prix_morcellement') {{ number_format($totaux['prix_morcellement_total'],0,',',' ') }} @break
+                    @case('paye_superficie')   {{ number_format($totaux['paye_superficie_total'],0,',',' ') }} @break
+                    @case('paye_technique')    {{ number_format($totaux['paye_technique_total'],0,',',' ') }} @break
+                    @case('paye_logistique')   {{ number_format($totaux['paye_logistique_total'],0,',',' ') }} @break
+                    @case('paye_morcellement') {{ number_format($totaux['paye_morcellement_total'],0,',',' ') }} @break
+                    @case('total_paye')        {{ number_format($totaux['total_paye'],0,',',' ') }} @break
+                    @case('paiement_periode')
+                        @if(($totaux['paiement_periode_total'] ?? 0) > 0)
+                            {{ number_format($totaux['paiement_periode_total'],0,',',' ') }}
+                        @else
+                            —
+                        @endif
+                        @break
+                    @case('total_reste')       {{ number_format($totaux['total_reste'],0,',',' ') }} @break
+                    @case('progression')       {{ $totaux['avg_progression'] }}% moy. @break
                     @default —
                 @endswitch
             </td>

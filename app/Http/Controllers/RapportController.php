@@ -10,11 +10,29 @@ use App\Models\Lot;
 use App\Models\Client;
 use App\Models\DossierClient;
 use App\Models\Rapport;
+use App\Models\PaiementDossier;
+use App\Models\PaiementTechnique;
+use App\Models\PaiementLogistique;
+use App\Models\PaiementMorcellement;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class RapportController extends Controller
 {
+
+private const COLONNES_EXCLUES_PDF = [
+        'statut_dossier',
+        'commercial',
+        'facilitateur',
+        'chauffeur',
+        'agent',
+        'grand_site',
+        'progression',
+        'grand_site_dossier',   
+    'telephone',  
+    ];
+
     private function getOptions(): array
     {
         return [
@@ -26,8 +44,7 @@ class RapportController extends Controller
             'statuts'     => ['none', 'en_cours', 'complet'],
 
             // ═══════════════════════════════════════════════════════════════
-            // ✅ COLONNES RÉORGANISÉES
-            // Ordre : Client → Dossier → Acteurs → Affectations → Paiements → Dates
+            // ✅ COLONNES (informations client en premier)
             // ═══════════════════════════════════════════════════════════════
             'colonnes'    => [
 
@@ -66,6 +83,7 @@ class RapportController extends Controller
                 'paye_logistique'    => 'Payé Logistique',
                 'paye_morcellement'  => 'Payé Morcellement',
                 'total_paye'         => 'Total Payé',
+                'paiement_periode'   => '💵 Paiement période',   // ✅ NOUVELLE COLONNE
                 'total_reste'        => 'Total Reste',
                 'progression'        => 'Progression',
 
@@ -95,10 +113,6 @@ class RapportController extends Controller
             'affectations.lot',
             'bons',
         ]);
-
-        // ═══════════════════════════════════════════════════════════════
-        // ✅ FILTRES : appliqués UNIQUEMENT si une valeur est sélectionnée
-        // ═══════════════════════════════════════════════════════════════
 
         // ── Filtre clients ──
         if ($request->filled('clients_ids') && is_array($request->clients_ids) && count($request->clients_ids) > 0) {
@@ -135,18 +149,10 @@ class RapportController extends Controller
             $query->whereHas('affectations', function($q) use ($request) {
                 $q->whereHas('lot', function($q2) use ($request) {
                     $q2->where(function($subQ) use ($request) {
-                        if (in_array('disponible', $request->types)) {
-                            $subQ->orWhere('disponible', true);
-                        }
-                        if (in_array('indisponible', $request->types)) {
-                            $subQ->orWhere('disponible', false);
-                        }
-                        if (in_array('actif', $request->types)) {
-                            $subQ->orWhere('actif', true);
-                        }
-                        if (in_array('inactif', $request->types)) {
-                            $subQ->orWhere('actif', false);
-                        }
+                        if (in_array('disponible', $request->types))   $subQ->orWhere('disponible', true);
+                        if (in_array('indisponible', $request->types)) $subQ->orWhere('disponible', false);
+                        if (in_array('actif', $request->types))        $subQ->orWhere('actif', true);
+                        if (in_array('inactif', $request->types))      $subQ->orWhere('actif', false);
                     });
                 });
             });
@@ -172,20 +178,20 @@ class RapportController extends Controller
         // ── Filtre date début ──
         if ($request->filled('date_debut')) {
             $query->where(function($q) use ($request) {
-                $q->whereHas('paiements', fn($q2) => $q2->where('date_paiement', '>=', $request->date_debut))
+                $q->whereHas('paiements',             fn($q2) => $q2->where('date_paiement', '>=', $request->date_debut))
                   ->orWhereHas('paiementsTechniques', fn($q2) => $q2->where('date_paiement', '>=', $request->date_debut))
                   ->orWhereHas('paiementsMorcellements', fn($q2) => $q2->where('date_paiement', '>=', $request->date_debut))
-                  ->orWhereHas('paiementsLogistiques', fn($q2) => $q2->where('date_paiement', '>=', $request->date_debut));
+                  ->orWhereHas('paiementsLogistiques',   fn($q2) => $q2->where('date_paiement', '>=', $request->date_debut));
             });
         }
 
         // ── Filtre date fin ──
         if ($request->filled('date_fin')) {
             $query->where(function($q) use ($request) {
-                $q->whereHas('paiements', fn($q2) => $q2->where('date_paiement', '<=', $request->date_fin))
+                $q->whereHas('paiements',             fn($q2) => $q2->where('date_paiement', '<=', $request->date_fin))
                   ->orWhereHas('paiementsTechniques', fn($q2) => $q2->where('date_paiement', '<=', $request->date_fin))
                   ->orWhereHas('paiementsMorcellements', fn($q2) => $q2->where('date_paiement', '<=', $request->date_fin))
-                  ->orWhereHas('paiementsLogistiques', fn($q2) => $q2->where('date_paiement', '<=', $request->date_fin));
+                  ->orWhereHas('paiementsLogistiques',   fn($q2) => $q2->where('date_paiement', '<=', $request->date_fin));
             });
         }
 
@@ -193,9 +199,96 @@ class RapportController extends Controller
     }
 
     // =============================================
+    // ✅ PAIEMENTS SUR LA PÉRIODE DEMANDÉE
+    // Retourne : [ dossier_id => total_paye_periode ]
+    // =============================================
+    private function getPaiementsPeriode(Request $request, $dossiers): array
+    {
+        $dateDebut = $request->filled('date_debut') ? $request->date_debut : null;
+        $dateFin   = $request->filled('date_fin')   ? $request->date_fin   : null;
+
+        // Aucune période → aucun calcul
+        if (!$dateDebut && !$dateFin) {
+            return [];
+        }
+
+        $dossierIds = $dossiers->pluck('id')->toArray();
+        if (empty($dossierIds)) return [];
+
+        $totaux = array_fill_keys($dossierIds, 0);
+
+        // ✅ Liste des modèles de paiement à interroger
+        $modeles = [
+            PaiementDossier::class,
+            PaiementTechnique::class,
+            PaiementLogistique::class,
+            PaiementMorcellement::class,
+        ];
+
+        foreach ($modeles as $modele) {
+            $resultats = $modele::query()
+                ->whereIn('dossier_client_id', $dossierIds)
+                ->when($dateDebut, fn($q) => $q->where('date_paiement', '>=', $dateDebut))
+                ->when($dateFin,   fn($q) => $q->where('date_paiement', '<=', $dateFin))
+                ->selectRaw('dossier_client_id, SUM(montant) as total')
+                ->groupBy('dossier_client_id')
+                ->pluck('total', 'dossier_client_id');
+
+            foreach ($resultats as $dossierId => $total) {
+                $totaux[$dossierId] = ($totaux[$dossierId] ?? 0) + (float) $total;
+            }
+        }
+
+        return $totaux;
+    }
+
+    // =============================================
+    // ✅ DÉTAIL DES PAIEMENTS SUR LA PÉRIODE
+    // Retourne : [ dossier_id => [ ['montant' => x, 'date' => y, 'type' => z], ... ] ]
+    // =============================================
+    private function getDetailsPaiementsPeriode(Request $request, $dossiers): array
+    {
+        $dateDebut = $request->filled('date_debut') ? $request->date_debut : null;
+        $dateFin   = $request->filled('date_fin')   ? $request->date_fin   : null;
+
+        if (!$dateDebut && !$dateFin) return [];
+
+        $dossierIds = $dossiers->pluck('id')->toArray();
+        if (empty($dossierIds)) return [];
+
+        $details = [];
+
+        $sources = [
+            ['modele' => PaiementDossier::class,      'label' => 'Superficie'],
+            ['modele' => PaiementTechnique::class,    'label' => 'Technique'],
+            ['modele' => PaiementLogistique::class,   'label' => 'Logistique'],
+            ['modele' => PaiementMorcellement::class, 'label' => 'Morcellement'],
+        ];
+
+        foreach ($sources as $source) {
+            $rows = $source['modele']::query()
+                ->whereIn('dossier_client_id', $dossierIds)
+                ->when($dateDebut, fn($q) => $q->where('date_paiement', '>=', $dateDebut))
+                ->when($dateFin,   fn($q) => $q->where('date_paiement', '<=', $dateFin))
+                ->orderBy('date_paiement')
+                ->get(['dossier_client_id', 'montant', 'date_paiement']);
+
+            foreach ($rows as $row) {
+                $details[$row->dossier_client_id][] = [
+                    'montant' => $row->montant,
+                    'date'    => $row->date_paiement,
+                    'type'    => $source['label'],
+                ];
+            }
+        }
+
+        return $details;
+    }
+
+    // =============================================
     // CALCUL DES TOTAUX RÉELS
     // =============================================
-    private function getTotaux($dossiers): array
+    private function getTotaux($dossiers, array $paiementsPeriode = []): array
     {
         $totalPrixSuperficie = 0;
         $totalPrixTechnique = 0;
@@ -211,25 +304,19 @@ class RapportController extends Controller
         $nbAvecAffectation = 0;
 
         foreach ($dossiers as $d) {
-            // Prix
             $totalPrixSuperficie   += $d->prix_superficie   ?? 0;
             $totalPrixTechnique    += $d->prix_technique    ?? 0;
             $totalPrixLogistique   += $d->prix_logistique   ?? 0;
             $totalPrixMorcellement += $d->prix_morcellement ?? 0;
 
-            // Paiements réels
             $totalPayeSuperficie   += $d->paiements->sum('montant');
             $totalPayeTechnique    += $d->paiementsTechniques->sum('montant');
             $totalPayeLogistique   += $d->paiementsLogistiques?->sum('montant') ?? 0;
             $totalPayeMorcellement += $d->paiementsMorcellements->sum('montant');
 
-            // Superficie
             $totalSuperficie += $d->superficie_voulue ?? 0;
 
-            // Affectations
-            if ($d->affectations->count() > 0) {
-                $nbAvecAffectation++;
-            }
+            if ($d->affectations->count() > 0) $nbAvecAffectation++;
         }
 
         $totalPrix = $totalPrixSuperficie + $totalPrixTechnique + $totalPrixLogistique + $totalPrixMorcellement;
@@ -253,60 +340,84 @@ class RapportController extends Controller
             'paye_morcellement_total'  => $totalPayeMorcellement,
             'total_paye'               => $totalPaye,
             'total_reste'              => max(0, $totalPrix - $totalPaye),
-            'avg_progression'          => $totalPrix > 0
-                ? round(($totalPaye / $totalPrix) * 100)
-                : 0,
+            'avg_progression'          => $totalPrix > 0 ? round(($totalPaye / $totalPrix) * 100) : 0,
+
+            // ✅ NOUVEAU : total payé sur la période
+            'paiement_periode_total'   => array_sum($paiementsPeriode),
         ];
     }
 
     public function index(Request $request)
     {
         $options          = $this->getOptions();
-        $dossiers         = collect();
-        $totaux           = null;
         $colonnes         = $options['colonnes'];
         $colonnesChoisies = $request->colonnes ?? array_keys($colonnes);
 
-        // ✅ TOUJOURS charger les dossiers (avec ou sans filtres)
-        $dossiers = $this->getDossiers($request);
-        $totaux   = $this->getTotaux($dossiers);
+        if (($request->filled('date_debut') || $request->filled('date_fin'))
+    && !in_array('paiement_periode', $colonnesChoisies)) {
+    $colonnesChoisies[] = 'paiement_periode';
+}
+
+        $dossiers         = $this->getDossiers($request);
+
+        // ✅ Calculs période
+        $paiementsPeriode         = $this->getPaiementsPeriode($request, $dossiers);
+        $detailsPaiementsPeriode  = $this->getDetailsPaiementsPeriode($request, $dossiers);
+
+        $totaux = $this->getTotaux($dossiers, $paiementsPeriode);
 
         return view('admin.rapport.index', compact(
             'options', 'dossiers', 'totaux',
-            'colonnes', 'colonnesChoisies'
+            'colonnes', 'colonnesChoisies',
+            'paiementsPeriode', 'detailsPaiementsPeriode'
         ));
     }
 
     public function sauvegarder(Request $request)
-    {
-        $request->validate([
-            'titre'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
+{
+    $request->validate([
+        'titre'       => 'required|string|max:255',
+        'description' => 'nullable|string',
+    ]);
 
-        $dossiers            = $this->getDossiers($request);
-        $totaux              = $this->getTotaux($dossiers);
-        $colonnesChoisies    = $request->colonnes ?? array_keys($this->getOptions()['colonnes']);
-        $rapport_titre       = $request->titre;
-        $rapport_description = $request->description ?? '';
+    $dossiers                = $this->getDossiers($request);
+    $paiementsPeriode        = $this->getPaiementsPeriode($request, $dossiers);
+    $detailsPaiementsPeriode = $this->getDetailsPaiementsPeriode($request, $dossiers);
+    $totaux                  = $this->getTotaux($dossiers, $paiementsPeriode);
+    $colonnesChoisies        = $request->colonnes ?? array_keys($this->getOptions()['colonnes']);
+    $rapport_titre           = $request->titre;
+    $rapport_description     = $request->description ?? '';
 
-        $pdf = Pdf::loadView('admin.rapport.pdf', compact(
-            'dossiers', 'totaux', 'colonnesChoisies', 'rapport_titre', 'rapport_description'
-        ))->setPaper('a4', 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
+    // ✅ Filtrer les colonnes pour le PDF
+    $colonnesPdf = array_values(array_diff($colonnesChoisies, self::COLONNES_EXCLUES_PDF));
 
-        $filename = 'rapport_' . now()->format('Y-m-d_His') . '.pdf';
-        $path     = 'rapports/' . $filename;
-        Storage::disk('public')->put($path, $pdf->output());
+    // ✅ Format dynamique
+    $nbColonnes = count($colonnesPdf);
+    $format     = $nbColonnes > 15 ? 'a3' : 'a4';
 
-        Rapport::create([
-            'titre'       => $request->titre,
-            'description' => $request->description,
-            'filtres'     => $request->except(['_token', 'titre', 'description']),
-            'fichier_pdf' => $path,
-        ]);
+    $pdf = Pdf::loadView('admin.rapport.pdf', [
+        'dossiers'                => $dossiers,
+        'totaux'                  => $totaux,
+        'rapport_titre'           => $rapport_titre,
+        'rapport_description'     => $rapport_description,
+        'paiementsPeriode'        => $paiementsPeriode,
+        'detailsPaiementsPeriode' => $detailsPaiementsPeriode,
+        'colonnesChoisies'        => $colonnesPdf,   // ✅ version filtrée
+    ])->setPaper($format, 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
 
-        return redirect()->route('rapport.liste')->with('success', 'Rapport sauvegardé');
-    }
+    $filename = 'rapport_' . now()->format('Y-m-d_His') . '.pdf';
+    $path     = 'rapports/' . $filename;
+    Storage::disk('public')->put($path, $pdf->output());
+
+    Rapport::create([
+        'titre'       => $request->titre,
+        'description' => $request->description,
+        'filtres'     => $request->except(['_token', 'titre', 'description']),
+        'fichier_pdf' => $path,
+    ]);
+
+    return redirect()->route('rapport.liste')->with('success', 'Rapport sauvegardé');
+}
 
     public function liste()
     {
@@ -323,39 +434,55 @@ class RapportController extends Controller
     }
 
     public function export(Request $request)
-    {
-        $dossiers            = $this->getDossiers($request);
-        $totaux              = $this->getTotaux($dossiers);
-        $colonnesChoisies    = $request->colonnes ?? array_keys($this->getOptions()['colonnes']);
-        $type                = $request->get('type', 'pdf');
-        $rapport_titre       = $request->titre ?? 'Rapport EDEN GROUP';
-        $rapport_description = $request->description ?? '';
+{
+    $dossiers                = $this->getDossiers($request);
+    $paiementsPeriode        = $this->getPaiementsPeriode($request, $dossiers);
+    $detailsPaiementsPeriode = $this->getDetailsPaiementsPeriode($request, $dossiers);
+    $totaux                  = $this->getTotaux($dossiers, $paiementsPeriode);
+    $colonnesChoisies        = $request->colonnes ?? array_keys($this->getOptions()['colonnes']);
+    $type                    = $request->get('type', 'pdf');
+    $rapport_titre           = $request->titre ?? 'Rapport EDEN GROUP';
+    $rapport_description     = $request->description ?? '';
 
-        if ($type === 'pdf') {
-            $pdf = Pdf::loadView('admin.rapport.pdf', compact(
-                'dossiers', 'totaux', 'colonnesChoisies', 'rapport_titre', 'rapport_description'
-            ))->setPaper('a4', 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
-            return $pdf->download('rapport_' . now()->format('Y-m-d') . '.pdf');
-        }
+    if ($type === 'pdf') {
+        // ✅ Filtrer les colonnes pour le PDF
+        $colonnesPdf = array_values(array_diff($colonnesChoisies, self::COLONNES_EXCLUES_PDF));
 
-        if ($type === 'excel') return $this->exportCsv($dossiers, $totaux, $colonnesChoisies);
+        // ✅ Format dynamique
+        $nbColonnes = count($colonnesPdf);
+        $format     = $nbColonnes > 15 ? 'a3' : 'a4';
+
+        $pdf = Pdf::loadView('admin.rapport.pdf', [
+            'dossiers'                => $dossiers,
+            'totaux'                  => $totaux,
+            'rapport_titre'           => $rapport_titre,
+            'rapport_description'     => $rapport_description,
+            'paiementsPeriode'        => $paiementsPeriode,
+            'detailsPaiementsPeriode' => $detailsPaiementsPeriode,
+            'colonnesChoisies'        => $colonnesPdf,   // ✅ version filtrée
+        ])->setPaper($format, 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
+
+        return $pdf->download('rapport_' . now()->format('Y-m-d') . '.pdf');
     }
 
+    if ($type === 'excel') {
+        return $this->exportCsv($dossiers, $totaux, $colonnesChoisies, $paiementsPeriode);
+    }
+}
     // =============================================
     // EXPORT CSV AVEC VRAIES DONNÉES
     // =============================================
-    private function exportCsv($dossiers, $totaux, $colonnesChoisies)
+    private function exportCsv($dossiers, $totaux, $colonnesChoisies, array $paiementsPeriode = [])
     {
         $allColonnes = $this->getOptions()['colonnes'];
         $headers     = array_values(array_intersect_key($allColonnes, array_flip($colonnesChoisies)));
 
-        $callback = function() use ($dossiers, $headers, $colonnesChoisies) {
+        $callback = function() use ($dossiers, $headers, $colonnesChoisies, $paiementsPeriode) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($file, $headers, ';');
 
             foreach ($dossiers as $d) {
-                // Calculs réels
                 $payeSuperficie   = $d->paiements->sum('montant');
                 $payeTechnique    = $d->paiementsTechniques->sum('montant');
                 $payeLogistique   = $d->paiementsLogistiques?->sum('montant') ?? 0;
@@ -370,10 +497,9 @@ class RapportController extends Controller
                 $totalReste       = max(0, $totalPrix - $totalPaye);
                 $progression      = $totalPrix > 0 ? round(($totalPaye / $totalPrix) * 100) : 0;
 
-                // ✅ TOUTES les affectations
-                $affectations = $d->affectations;
+                $payePeriode      = $paiementsPeriode[$d->id] ?? 0;
 
-                // ✅ Concaténation de tous les lots
+                $affectations = $d->affectations;
                 $lots = $affectations->filter(fn($a) => $a->lot)
                                      ->map(fn($a) => strtoupper($a->lot->numero))
                                      ->implode(', ');
@@ -409,6 +535,7 @@ class RapportController extends Controller
                         'paye_logistique'    => $payeLogistique,
                         'paye_morcellement'  => $payeMorcellement,
                         'total_paye'         => $totalPaye,
+                        'paiement_periode'   => $payePeriode,        // ✅
                         'total_reste'        => $totalReste,
                         'progression'        => $progression . '%',
                         'date_implantation'  => $d->date_implantation_prevue?->format('d/m/Y') ?? '-',

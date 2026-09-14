@@ -42,26 +42,14 @@
 @media (max-width:576px) { .recap-grid { grid-template-columns:1fr; } }
 
 /* ═══ BADGES LOTS ═══ */
-.lot-badge {
-    display:inline-block;
-    background:#dbeafe;
-    color:#1d4ed8;
-    padding:2px 8px;
-    border-radius:4px;
-    font-size:10px;
-    font-weight:700;
-    margin:1px;
-}
-.lot-count {
-    display:inline-block;
-    background:#1d4ed8;
-    color:white;
-    padding:1px 6px;
-    border-radius:10px;
-    font-size:9px;
-    font-weight:700;
-    margin-left:4px;
-}
+.lot-badge { display:inline-block; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; margin:1px; }
+.lot-count { display:inline-block; background:#1d4ed8; color:white; padding:1px 6px; border-radius:10px; font-size:9px; font-weight:700; margin-left:4px; }
+
+/* ✅ Badge période + détail dépliable */
+.periode-badge { display:inline-block; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:6px; font-weight:700; font-size:11px; }
+.periode-details summary { cursor:pointer; color:#0d6efd; font-size:10px; user-select:none; }
+.periode-details ul { margin:4px 0; padding-left:16px; font-size:10px; }
+.periode-details li { color:#475569; }
 </style>
 
 <div class="rapport-header">
@@ -138,14 +126,81 @@
         </div>
         <div class="col-md-9">
             <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📋 Colonnes à afficher</label>
+
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
-                @foreach($colonnes as $key => $label)
-                    <label style="font-size:11px; background:#f1f5f9; padding:3px 8px; border-radius:6px; cursor:pointer;">
-                        <input type="checkbox" name="colonnes[]" value="{{ $key }}"
-                            {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
-                        {{ $label }}
-                    </label>
+
+                {{-- 👤 Infos client --}}
+                <div style="width:100%;font-size:10px;font-weight:700;color:#1d4ed8;margin-top:6px;">👤 Informations client</div>
+                @foreach(['client','telephone','sexe'] as $key)
+                    @if(isset($colonnes[$key]))
+                        <label style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px;cursor:pointer;">
+                            <input type="checkbox" name="colonnes[]" value="{{ $key }}"
+                                {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
+                            {{ $colonnes[$key] }}
+                        </label>
+                    @endif
                 @endforeach
+
+                {{-- 📁 Dossier --}}
+                <div style="width:100%;font-size:10px;font-weight:700;color:#0d6efd;margin-top:6px;">📁 Dossier</div>
+                @foreach(['nom_dossier','grand_site_dossier','superficie','direction','statut_dossier'] as $key)
+                    @if(isset($colonnes[$key]))
+                        <label style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px;cursor:pointer;">
+                            <input type="checkbox" name="colonnes[]" value="{{ $key }}"
+                                {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
+                            {{ $colonnes[$key] }}
+                        </label>
+                    @endif
+                @endforeach
+
+                {{-- 👥 Acteurs --}}
+                <div style="width:100%;font-size:10px;font-weight:700;color:#7c3aed;margin-top:6px;">👥 Acteurs</div>
+                @foreach(['commercial','facilitateur','chauffeur','agent'] as $key)
+                    @if(isset($colonnes[$key]))
+                        <label style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px;cursor:pointer;">
+                            <input type="checkbox" name="colonnes[]" value="{{ $key }}"
+                                {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
+                            {{ $colonnes[$key] }}
+                        </label>
+                    @endif
+                @endforeach
+
+                {{-- 🗺️ Affectations --}}
+                <div style="width:100%;font-size:10px;font-weight:700;color:#16a34a;margin-top:6px;">🗺️ Affectations</div>
+                @foreach(['grand_site','site','tf','bloc','lot'] as $key)
+                    @if(isset($colonnes[$key]))
+                        <label style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px;cursor:pointer;">
+                            <input type="checkbox" name="colonnes[]" value="{{ $key }}"
+                                {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
+                            {{ $colonnes[$key] }}
+                        </label>
+                    @endif
+                @endforeach
+
+                {{-- 💰 Paiements --}}
+                <div style="width:100%;font-size:10px;font-weight:700;color:#ca8a04;margin-top:6px;">💰 Paiements</div>
+                @foreach(['prix_superficie','prix_technique','prix_logistique','prix_morcellement','paye_superficie','paye_technique','paye_logistique','paye_morcellement','total_paye','paiement_periode','total_reste','progression'] as $key)
+                    @if(isset($colonnes[$key]))
+                        <label style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px;cursor:pointer;{{ $key==='paiement_periode' ? 'border:1px solid #0d6efd;' : '' }}">
+                            <input type="checkbox" name="colonnes[]" value="{{ $key }}"
+                                {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
+                            {{ $colonnes[$key] }}
+                        </label>
+                    @endif
+                @endforeach
+
+                {{-- 📅 Dates --}}
+                <div style="width:100%;font-size:10px;font-weight:700;color:#dc2626;margin-top:6px;">📅 Dates</div>
+                @foreach(['date_implantation','date_dossier_tech','date_morcellement'] as $key)
+                    @if(isset($colonnes[$key]))
+                        <label style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px;cursor:pointer;">
+                            <input type="checkbox" name="colonnes[]" value="{{ $key }}"
+                                {{ in_array($key, $colonnesChoisies) ? 'checked' : '' }}>
+                            {{ $colonnes[$key] }}
+                        </label>
+                    @endif
+                @endforeach
+
             </div>
         </div>
     </div>
@@ -155,10 +210,6 @@
     </div>
 </div>
 </form>
-
-{{-- ═══════════════════════════════════════════════════════════════════ --}}
-{{-- ✅ AFFICHAGE TOUJOURS ACTIF (avec ou sans filtres) --}}
-{{-- ═══════════════════════════════════════════════════════════════════ --}}
 
 @if($dossiers->count() > 0)
 
@@ -170,6 +221,15 @@
     <div class="kpi-box"><div class="val" style="color:var(--danger)">{{ $totaux['nb_sans_lot'] }}</div><div class="lbl">Sans lot</div></div>
     <div class="kpi-box"><div class="val" style="color:var(--success)">{{ number_format($totaux['prix_total'],0,',',' ') }}</div><div class="lbl">Prix total FCFA</div></div>
     <div class="kpi-box"><div class="val" style="color:var(--accent)">{{ number_format($totaux['total_paye'],0,',',' ') }}</div><div class="lbl">Payé FCFA</div></div>
+
+    {{-- ✅ KPI période (affiché uniquement si période sélectionnée) --}}
+    @if(request('date_debut') || request('date_fin'))
+        <div class="kpi-box" style="border-top-color:#0d6efd;">
+            <div class="val" style="color:#0d6efd;">{{ number_format($totaux['paiement_periode_total'],0,',',' ') }}</div>
+            <div class="lbl">Payé période FCFA</div>
+        </div>
+    @endif
+
     <div class="kpi-box"><div class="val" style="color:var(--danger)">{{ number_format($totaux['total_reste'],0,',',' ') }}</div><div class="lbl">Reste FCFA</div></div>
     <div class="kpi-box"><div class="val">{{ $totaux['avg_progression'] }}%</div><div class="lbl">Moy. paiement</div></div>
 </div>
@@ -179,97 +239,48 @@
     <h5 style="font-weight:800;color:#1e3a5f;margin-bottom:16px;">💰 Récapitulatif des paiements</h5>
     <div class="recap-grid">
 
-        {{-- Paiement Parcelle --}}
         <div class="recap-card superficie">
             <h6 style="color:#0d6efd;">📁 Paiement Parcelle</h6>
-            <div class="recap-row">
-                <span class="lbl">Référence</span>
-                <span class="val">{{ number_format($totaux['prix_superficie_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Payé</span>
-                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_superficie_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Reste</span>
-                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_superficie_total'] - $totaux['paye_superficie_total']),0,',',' ') }} FCFA</span>
-            </div>
+            <div class="recap-row"><span class="lbl">Référence</span><span class="val">{{ number_format($totaux['prix_superficie_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Payé</span><span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_superficie_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Reste</span><span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_superficie_total'] - $totaux['paye_superficie_total']),0,',',' ') }} FCFA</span></div>
             @php $pctSup = $totaux['prix_superficie_total'] > 0 ? min(100, round(($totaux['paye_superficie_total']/$totaux['prix_superficie_total'])*100)) : 0; @endphp
-            <div class="recap-progress">
-                <div class="recap-progress-bar" style="width:{{ $pctSup }}%;background:#0d6efd;"></div>
-            </div>
+            <div class="recap-progress"><div class="recap-progress-bar" style="width:{{ $pctSup }}%;background:#0d6efd;"></div></div>
             <div style="font-size:11px;text-align:right;color:#0d6efd;font-weight:700;">{{ $pctSup }}%</div>
         </div>
 
-        {{-- Paiement Technique --}}
         <div class="recap-card technique">
             <h6 style="color:#ea580c;">🛠️ Paiement Technique</h6>
-            <div class="recap-row">
-                <span class="lbl">Référence</span>
-                <span class="val">{{ number_format($totaux['prix_technique_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Payé</span>
-                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_technique_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Reste</span>
-                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_technique_total'] - $totaux['paye_technique_total']),0,',',' ') }} FCFA</span>
-            </div>
+            <div class="recap-row"><span class="lbl">Référence</span><span class="val">{{ number_format($totaux['prix_technique_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Payé</span><span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_technique_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Reste</span><span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_technique_total'] - $totaux['paye_technique_total']),0,',',' ') }} FCFA</span></div>
             @php $pctTech = $totaux['prix_technique_total'] > 0 ? min(100, round(($totaux['paye_technique_total']/$totaux['prix_technique_total'])*100)) : 0; @endphp
-            <div class="recap-progress">
-                <div class="recap-progress-bar" style="width:{{ $pctTech }}%;background:#ea580c;"></div>
-            </div>
+            <div class="recap-progress"><div class="recap-progress-bar" style="width:{{ $pctTech }}%;background:#ea580c;"></div></div>
             <div style="font-size:11px;text-align:right;color:#ea580c;font-weight:700;">{{ $pctTech }}%</div>
         </div>
 
-        {{-- Paiement Logistique --}}
         <div class="recap-card logistique">
             <h6 style="color:#7c3aed;">🚗 Paiement Logistique</h6>
-            <div class="recap-row">
-                <span class="lbl">Référence</span>
-                <span class="val">{{ number_format($totaux['prix_logistique_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Payé</span>
-                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_logistique_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Reste</span>
-                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_logistique_total'] - $totaux['paye_logistique_total']),0,',',' ') }} FCFA</span>
-            </div>
+            <div class="recap-row"><span class="lbl">Référence</span><span class="val">{{ number_format($totaux['prix_logistique_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Payé</span><span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_logistique_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Reste</span><span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_logistique_total'] - $totaux['paye_logistique_total']),0,',',' ') }} FCFA</span></div>
             @php $pctLog = $totaux['prix_logistique_total'] > 0 ? min(100, round(($totaux['paye_logistique_total']/$totaux['prix_logistique_total'])*100)) : 0; @endphp
-            <div class="recap-progress">
-                <div class="recap-progress-bar" style="width:{{ $pctLog }}%;background:#7c3aed;"></div>
-            </div>
+            <div class="recap-progress"><div class="recap-progress-bar" style="width:{{ $pctLog }}%;background:#7c3aed;"></div></div>
             <div style="font-size:11px;text-align:right;color:#7c3aed;font-weight:700;">{{ $pctLog }}%</div>
         </div>
 
-        {{-- Paiement Morcellement --}}
         <div class="recap-card morcellement">
             <h6 style="color:#ca8a04;">✂️ Paiement Morcellement</h6>
-            <div class="recap-row">
-                <span class="lbl">Référence</span>
-                <span class="val">{{ number_format($totaux['prix_morcellement_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Payé</span>
-                <span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_morcellement_total'],0,',',' ') }} FCFA</span>
-            </div>
-            <div class="recap-row">
-                <span class="lbl">Reste</span>
-                <span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_morcellement_total'] - $totaux['paye_morcellement_total']),0,',',' ') }} FCFA</span>
-            </div>
+            <div class="recap-row"><span class="lbl">Référence</span><span class="val">{{ number_format($totaux['prix_morcellement_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Payé</span><span class="val" style="color:#16a34a;">{{ number_format($totaux['paye_morcellement_total'],0,',',' ') }} FCFA</span></div>
+            <div class="recap-row"><span class="lbl">Reste</span><span class="val" style="color:#dc2626;">{{ number_format(max(0, $totaux['prix_morcellement_total'] - $totaux['paye_morcellement_total']),0,',',' ') }} FCFA</span></div>
             @php $pctMor = $totaux['prix_morcellement_total'] > 0 ? min(100, round(($totaux['paye_morcellement_total']/$totaux['prix_morcellement_total'])*100)) : 0; @endphp
-            <div class="recap-progress">
-                <div class="recap-progress-bar" style="width:{{ $pctMor }}%;background:#ca8a04;"></div>
-            </div>
+            <div class="recap-progress"><div class="recap-progress-bar" style="width:{{ $pctMor }}%;background:#ca8a04;"></div></div>
             <div style="font-size:11px;text-align:right;color:#ca8a04;font-weight:700;">{{ $pctMor }}%</div>
         </div>
 
     </div>
 
-    {{-- Total général --}}
     <div class="recap-total">
         <div style="font-size:12px;opacity:0.8;margin-bottom:6px;">TOTAL GÉNÉRAL</div>
         <div>{{ number_format($totaux['total_paye'],0,',',' ') }} FCFA payé / {{ number_format($totaux['prix_total'],0,',',' ') }} FCFA</div>
@@ -279,6 +290,25 @@
                 {{ $totaux['avg_progression'] }}%
             </span>
         </div>
+
+        {{-- ✅ Bandeau période --}}
+        @if(request('date_debut') || request('date_fin'))
+            <div style="margin-top:12px;background:rgba(255,255,255,0.15);padding:10px;border-radius:8px;">
+                <div style="font-size:12px;opacity:0.9;">
+                    💵 Payé sur la période
+                    @if(request('date_debut') && request('date_fin'))
+                        (du {{ \Carbon\Carbon::parse(request('date_debut'))->format('d/m/Y') }} au {{ \Carbon\Carbon::parse(request('date_fin'))->format('d/m/Y') }})
+                    @elseif(request('date_debut'))
+                        (à partir du {{ \Carbon\Carbon::parse(request('date_debut'))->format('d/m/Y') }})
+                    @elseif(request('date_fin'))
+                        (jusqu'au {{ \Carbon\Carbon::parse(request('date_fin'))->format('d/m/Y') }})
+                    @endif
+                </div>
+                <div style="font-size:20px;font-weight:900;margin-top:4px;">
+                    {{ number_format($totaux['paiement_periode_total'],0,',',' ') }} FCFA
+                </div>
+            </div>
+        @endif
     </div>
 </div>
 
@@ -319,9 +349,7 @@
         <input type="hidden" name="type" value="pdf">
         <input type="hidden" name="titre" id="pdf-titre">
         <input type="hidden" name="description" id="pdf-desc">
-        <button type="submit" style="background:#dc3545;color:white;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;cursor:pointer;">
-            📄 PDF
-        </button>
+        <button type="submit" style="background:#dc3545;color:white;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;cursor:pointer;">📄 PDF</button>
     </form>
     <form method="POST" action="{{ route('rapport.export') }}">
         @csrf
@@ -333,13 +361,10 @@
             @endif
         @endforeach
         <input type="hidden" name="type" value="excel">
-        <button type="submit" style="background:#28a745;color:white;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;cursor:pointer;">
-            📊 Excel (CSV)
-        </button>
+        <button type="submit" style="background:#28a745;color:white;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;cursor:pointer;">📊 Excel (CSV)</button>
     </form>
 </div>
 
-{{-- ═══ TABLEAU ═══ --}}
 {{-- ═══ TABLEAU ═══ --}}
 <div class="rapport-table-wrap">
 <table class="rapport-table">
@@ -354,7 +379,6 @@
     <tbody>
     @foreach($dossiers as $i => $d)
         @php
-            // ✅ Calculs réels
             $payeSuperficie   = $d->paiements->sum('montant');
             $payeTechnique    = $d->paiementsTechniques->sum('montant');
             $payeLogistique   = $d->paiementsLogistiques?->sum('montant') ?? 0;
@@ -370,9 +394,12 @@
             $progression      = $totalPrix > 0 ? round(($totalPaye / $totalPrix) * 100) : 0;
             $progColor        = $progression < 40 ? '#dc3545' : ($progression < 75 ? '#fd7e14' : '#28a745');
 
-            // ✅ TOUTES les affectations
             $affectations = $d->affectations;
             $nbLots = $affectations->count();
+
+            // ✅ Paiement période + détails
+            $payePeriode = $paiementsPeriode[$d->id] ?? 0;
+            $detailsPeriode = $detailsPaiementsPeriode[$d->id] ?? [];
         @endphp
         <tr>
             <td>{{ $i + 1 }}</td>
@@ -380,17 +407,9 @@
             <td>
                 @switch($col)
 
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    {{-- 👤 1. INFORMATIONS PERSONNELLES DU CLIENT               --}}
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    @case('client')
-                        <strong>{{ $d->client?->name ?? '-' }}</strong>
-                        @break
-
-                    @case('telephone')
-                        {{ $d->client?->phone ?? '-' }}
-                        @break
-
+                    {{-- 👤 CLIENT --}}
+                    @case('client') <strong>{{ $d->client?->name ?? '-' }}</strong> @break
+                    @case('telephone') {{ $d->client?->phone ?? '-' }} @break
                     @case('sexe')
                         @if($d->client?->sexe === 'masculin') 👨 Masculin
                         @elseif($d->client?->sexe === 'feminin') 👩 Féminin
@@ -398,30 +417,18 @@
                         @endif
                         @break
 
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    {{-- 📁 2. INFORMATIONS DU DOSSIER                          --}}
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    @case('nom_dossier')
-                        {{ $d->nom_dossier ?? '-' }}
-                        @break
-
-                    @case('grand_site_dossier')
-                        {{ $d->grandSite?->nom ?? '-' }}
-                        @break
-
-                    @case('superficie')
-                        {{ $d->superficie_voulue ? number_format($d->superficie_voulue,0,',',' ') . ' m²' : '-' }}
-                        @break
-
+                    {{-- 📁 DOSSIER --}}
+                    @case('nom_dossier')        {{ $d->nom_dossier ?? '-' }} @break
+                    @case('grand_site_dossier') {{ $d->grandSite?->nom ?? '-' }} @break
+                    @case('superficie')         {{ $d->superficie_voulue ? number_format($d->superficie_voulue,0,',',' ') . ' m²' : '-' }} @break
                     @case('direction')
                         {{ match($d->direction) {
-                            'baffoussam'         => 'Baffoussam',
-                            'bagante'            => 'Bagante',
+                            'baffoussam' => 'Baffoussam',
+                            'bagante'    => 'Bagante',
                             'direction_generale' => 'Dir. Générale',
-                            default              => $d->direction ?? '-'
+                            default => $d->direction ?? '-'
                         } }}
                         @break
-
                     @case('statut_dossier')
                         @php
                             $statut = $d->etape_actuelle ?? 'none';
@@ -445,78 +452,37 @@
                         </span>
                         @break
 
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    {{-- 👥 3. ACTEURS (commercial, facilitateur, etc.)         --}}
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    @case('commercial')
-                        {{ $d->commercial?->name ?? '-' }}
-                        @break
+                    {{-- 👥 ACTEURS --}}
+                    @case('commercial')   {{ $d->commercial?->name ?? '-' }} @break
+                    @case('facilitateur') {{ $d->facilitateur?->nom ?? '-' }} @break
+                    @case('chauffeur')    {{ $d->conducteur?->nom ?? '-' }} @break
+                    @case('agent')        {{ $d->agentCommercial?->nom ?? '-' }} @break
 
-                    @case('facilitateur')
-                        {{ $d->facilitateur?->nom ?? '-' }}
-                        @break
-
-                    @case('chauffeur')
-                        {{ $d->conducteur?->nom ?? '-' }}
-                        @break
-
-                    @case('agent')
-                        {{ $d->agentCommercial?->nom ?? '-' }}
-                        @break
-
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    {{-- 🗺️ 4. AFFECTATIONS (grand site, TF, bloc, lot)         --}}
-                    {{-- ═══════════════════════════════════════════════════════ --}}
+                    {{-- 🗺️ AFFECTATIONS --}}
                     @case('grand_site')
-                        @if($nbLots > 0)
-                            {{ $affectations->pluck('grandSite.nom')->filter()->unique()->implode(', ') }}
-                        @else
-                            —
-                        @endif
+                        @if($nbLots > 0) {{ $affectations->pluck('grandSite.nom')->filter()->unique()->implode(', ') }} @else — @endif
                         @break
-
                     @case('site')
-                        @if($nbLots > 0)
-                            {{ $affectations->pluck('grandSite.nom')->filter()->unique()->implode(', ') }}
-                        @else
-                            —
-                        @endif
+                        @if($nbLots > 0) {{ $affectations->pluck('grandSite.nom')->filter()->unique()->implode(', ') }} @else — @endif
                         @break
-
                     @case('tf')
-                        @if($nbLots > 0)
-                            {{ $affectations->pluck('bloc.tf.title')->filter()->unique()->implode(', ') }}
-                        @else
-                            —
-                        @endif
+                        @if($nbLots > 0) {{ $affectations->pluck('bloc.tf.title')->filter()->unique()->implode(', ') }} @else — @endif
                         @break
-
                     @case('bloc')
-                        @if($nbLots > 0)
-                            {{ $affectations->pluck('bloc.code')->filter()->unique()->implode(', ') }}
-                        @else
-                            —
-                        @endif
+                        @if($nbLots > 0) {{ $affectations->pluck('bloc.code')->filter()->unique()->implode(', ') }} @else — @endif
                         @break
-
                     @case('lot')
                         @if($nbLots > 0)
                             @foreach($affectations as $aff)
-                                @if($aff->lot)
-                                    <span class="lot-badge">{{ strtoupper($aff->lot->numero) }}</span>
-                                @endif
+                                @if($aff->lot) <span class="lot-badge">{{ strtoupper($aff->lot->numero) }}</span> @endif
                             @endforeach
-                            @if($nbLots > 1)
-                                <span class="lot-count">{{ $nbLots }} lots</span>
-                            @endif
+                            @if($nbLots > 1) <span class="lot-count">{{ $nbLots }} lots</span> @endif
                         @else
                             <span style="color:#94a3b8;font-style:italic;">Sans lot</span>
                         @endif
                         @break
 
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    {{-- 💰 5. PAIEMENTS                                        --}}
-                    {{-- ═══════════════════════════════════════════════════════ --}}
+                    {{-- 💰 PAIEMENTS --}}
                     @case('prix_superficie')    <span style="color:#0d6efd;">{{ number_format($prixSuperficie,0,',',' ') }}</span> @break
                     @case('prix_technique')     <span style="color:#ea580c;">{{ number_format($prixTechnique,0,',',' ') }}</span> @break
                     @case('prix_logistique')    <span style="color:#7c3aed;">{{ number_format($prixLogistique,0,',',' ') }}</span> @break
@@ -526,8 +492,31 @@
                     @case('paye_logistique')    <span style="color:#16a34a;font-weight:600;">{{ number_format($payeLogistique,0,',',' ') }}</span> @break
                     @case('paye_morcellement')  <span style="color:#16a34a;font-weight:600;">{{ number_format($payeMorcellement,0,',',' ') }}</span> @break
                     @case('total_paye')         <span style="color:#16a34a;font-weight:700;">{{ number_format($totalPaye,0,',',' ') }}</span> @break
-                    @case('total_reste')        <span style="color:#dc3545;font-weight:700;">{{ number_format($totalReste,0,',',' ') }}</span> @break
 
+                    {{-- ✅ Paiement période --}}
+                    @case('paiement_periode')
+                        @if($payePeriode > 0)
+                            <span class="periode-badge">{{ number_format($payePeriode,0,',',' ') }} FCFA</span>
+                            @if(!empty($detailsPeriode))
+                                <details class="periode-details" style="margin-top:2px;">
+                                    <summary>{{ count($detailsPeriode) }} paiement(s)</summary>
+                                    <ul>
+                                        @foreach($detailsPeriode as $p)
+                                            <li>
+                                                {{ \Carbon\Carbon::parse($p['date'])->format('d/m/Y') }} —
+                                                {{ number_format($p['montant'],0,',',' ') }} FCFA
+                                                <em style="color:#94a3b8;">({{ $p['type'] }})</em>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </details>
+                            @endif
+                        @else
+                            <span style="color:#94a3b8;">—</span>
+                        @endif
+                        @break
+
+                    @case('total_reste') <span style="color:#dc3545;font-weight:700;">{{ number_format($totalReste,0,',',' ') }}</span> @break
                     @case('progression')
                         <div style="display:flex;align-items:center;gap:4px;">
                             <div style="width:50px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
@@ -537,12 +526,10 @@
                         </div>
                         @break
 
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    {{-- 📅 6. DATES                                            --}}
-                    {{-- ═══════════════════════════════════════════════════════ --}}
-                    @case('date_implantation')  {{ $d->date_implantation_prevue?->format('d/m/Y') ?? '-' }} @break
-                    @case('date_dossier_tech')  {{ $d->date_dossier_technique?->format('d/m/Y') ?? '-' }} @break
-                    @case('date_morcellement')  {{ $d->date_morcellement?->format('d/m/Y') ?? '-' }} @break
+                    {{-- 📅 DATES --}}
+                    @case('date_implantation') {{ $d->date_implantation_prevue?->format('d/m/Y') ?? '-' }} @break
+                    @case('date_dossier_tech') {{ $d->date_dossier_technique?->format('d/m/Y') ?? '-' }} @break
+                    @case('date_morcellement') {{ $d->date_morcellement?->format('d/m/Y') ?? '-' }} @break
 
                 @endswitch
             </td>
@@ -567,6 +554,13 @@
                     @case('paye_logistique')    {{ number_format($totaux['paye_logistique_total'],0,',',' ') }} @break
                     @case('paye_morcellement')  {{ number_format($totaux['paye_morcellement_total'],0,',',' ') }} @break
                     @case('total_paye')         {{ number_format($totaux['total_paye'],0,',',' ') }} @break
+                    @case('paiement_periode')
+                        @if($totaux['paiement_periode_total'] > 0)
+                            {{ number_format($totaux['paiement_periode_total'],0,',',' ') }} FCFA
+                        @else
+                            —
+                        @endif
+                        @break
                     @case('total_reste')        {{ number_format($totaux['total_reste'],0,',',' ') }} @break
                     @case('progression')        {{ $totaux['avg_progression'] }}% moy. @break
                     @default —
@@ -579,7 +573,6 @@
 </div>
 
 @else
-    {{-- Message si aucun dossier --}}
     <div class="alert alert-info" style="text-align:center;padding:40px;background:white;border-radius:12px;">
         <div style="font-size:3rem;margin-bottom:12px;">📭</div>
         <h4 style="color:#1e3a5f;font-weight:800;margin-bottom:8px;">Aucun dossier trouvé</h4>
@@ -593,7 +586,6 @@
 
 @section('scripts')
 <script>
-// Synchronise le titre/description vers le PDF avant soumission
 document.getElementById('form-pdf')?.addEventListener('submit', function() {
     document.getElementById('pdf-titre').value = document.getElementById('input-titre')?.value ?? '';
     document.getElementById('pdf-desc').value  = document.getElementById('input-desc')?.value  ?? '';
