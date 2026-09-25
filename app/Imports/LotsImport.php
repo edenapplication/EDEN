@@ -7,6 +7,7 @@ use App\Models\GrandSite;
 use App\Models\LotAffectation;
 use App\Models\Site;
 use App\Models\Tf;
+use Illuminate\Database\Eloquent\Model;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
@@ -26,7 +27,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
     protected $cacheTfs        = [];
     protected $cacheBlocs      = [];
 
-    public function model(array $row)
+    public function model(array $row): ?Model
     {
         $grandSiteNom = trim($row['grand_site'] ?? '');
         $siteNom      = trim($row['site'] ?? '');
@@ -53,7 +54,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
         }
         $grandSite = $this->cacheGrandSites[$grandSiteNom];
 
-        // Site (optionnel)
+        // Site
         $site = null;
         if (!empty($siteNom)) {
             $key = $grandSite->id . '|' . $siteNom;
@@ -65,7 +66,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
             $site = $this->cacheSites[$key];
         }
 
-        // TF (optionnel)
+        // TF
         $tf = null;
         if (!empty($tfRef)) {
             if (!isset($this->cacheTfs[$tfRef])) {
@@ -139,9 +140,12 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
         return null;
     }
 
-    public function onError(Throwable $e) { $this->errors[] = $e->getMessage(); }
+    public function onError(Throwable $e): void
+    {
+        $this->errors[] = $e->getMessage();
+    }
 
-    public function onFailure(Failure ...$failures)
+    public function onFailure(Failure ...$failures): void
     {
         foreach ($failures as $failure) {
             $this->errors[] = "Ligne {$failure->row()} : " . implode(', ', $failure->errors());
