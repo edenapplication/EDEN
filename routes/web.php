@@ -141,6 +141,10 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::put('lots/{id}',            [AffectationController::class, 'updateLot'])->name('affectations.lots.update');
         Route::delete('lots/{id}',         [AffectationController::class, 'destroyLot'])->name('affectations.lots.destroy');
         Route::post('lots/superficie-multiple', [AffectationController::class, 'updateSuperficieMultiple'])->name('affectations.lots.superficie-multiple');
+        // ✅ IMPORT / EXPORT EXCEL DES LOTS
+Route::get('/affectations/lots/export',   [AffectationController::class, 'exportLots'])      ->name('affectations.lots.export');
+Route::get('/affectations/lots/template', [AffectationController::class, 'downloadTemplate'])->name('affectations.lots.template');
+Route::post('/affectations/lots/import',  [AffectationController::class, 'importLots'])      ->name('affectations.lots.import');
         Route::post('/affectations/affecter/{dossier}',[AffectationController::class, 'affecter'])->name('affectations.affecter');
         Route::delete('/affectations/{affectation}',   [AffectationController::class, 'annuler'])->name('affectations.annuler');
 

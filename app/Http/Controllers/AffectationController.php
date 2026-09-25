@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Bloc;
@@ -9,10 +10,16 @@ use App\Models\GrandSite;
 use App\Models\Site;
 use App\Models\Tf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\LotsImport;
+use App\Exports\LotsExport;
+use App\Exports\LotsTemplateExport;
 
 class AffectationController extends Controller
 {
-    // Dashboard
+    // ============================================================
+    // DASHBOARD
+    // ============================================================
     public function index()
     {
         $grandSites = GrandSite::orderBy('nom')->get();
@@ -108,8 +115,8 @@ class AffectationController extends Controller
         $query = LotAffectation::with(['grandSite','site','tf','bloc','affectation.client'])
                                ->orderBy('numero');
 
-        if ($request->filled('bloc_id'))     $query->where('bloc_id', $request->bloc_id);
-        if ($request->filled('disponible'))  $query->where('disponible', $request->disponible === '1');
+        if ($request->filled('bloc_id'))       $query->where('bloc_id', $request->bloc_id);
+        if ($request->filled('disponible'))    $query->where('disponible', $request->disponible === '1');
         if ($request->filled('grand_site_id')) $query->where('grand_site_id', $request->grand_site_id);
 
         $lots       = $query->get();
@@ -178,17 +185,16 @@ class AffectationController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // ✅ Mise à jour de la superficie pour plusieurs lots
     public function updateSuperficieMultiple(Request $request)
     {
         $request->validate([
-            'lot_ids' => 'required|array|min:1',
-            'lot_ids.*' => 'exists:lots_affectation,id',
+            'lot_ids'    => 'required|array|min:1',
+            'lot_ids.*'  => 'exists:lots_affectation,id',
             'superficie' => 'required|numeric|min:0'
         ]);
 
         $updated = LotAffectation::whereIn('id', $request->lot_ids)
-            ->where('disponible', true) // ✅ Uniquement les lots disponibles
+            ->where('disponible', true)
             ->update(['superficie' => $request->superficie]);
 
         if ($updated === 0) {
@@ -203,6 +209,91 @@ class AffectationController extends Controller
             'message' => $updated . ' lot(s) mis à jour',
             'updated' => $updated
         ]);
+    }
+
+    // ============================================================
+    // ✅ IMPORT / EXPORT EXCEL
+    // ============================================================
+
+    /**
+     * ✅ EXPORT — Télécharge les lots en Excel
+     */
+    public function exportLots(Request $request)
+    {
+        $filters = [
+            'grand_site_id' => $request->grand_site_id,
+            'bloc_id'       => $request->bloc_id,
+            'disponible'    => $request->disponible,
+        ];
+
+        $filename = 'lots_' . date('Y-m-d_H-i') . '.xlsx';
+
+        return Excel::download(new LotsExport($filters), $filename);
+    }
+
+    /**
+     * ✅ TEMPLATE — Télécharge un fichier Excel vide pré-rempli
+     */
+    public function downloadTemplate()
+    {
+        $filename = 'modele_import_lots.xlsx';
+        return Excel::download(new LotsTemplateExport(), $filename);
+    }
+
+    /**
+     * ✅ IMPORT — Importe un fichier Excel
+     */
+    public function importLots(Request $request)
+    {
+        $request->validate([
+            'fichier' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            $import = new LotsImport();
+            Excel::import($import, $request->file('fichier'));
+
+            $parts = [];
+
+            if ($import->imported > 0) {
+                $parts[] = "✅ {$import->imported} lot(s) importé(s)";
+            }
+            if ($import->blocsCreated > 0) {
+                $parts[] = "🏗️ {$import->blocsCreated} bloc(s) créé(s)";
+            }
+            if ($import->skipped > 0) {
+                $parts[] = "⚠ {$import->skipped} bloc(s) ignoré(s)";
+            }
+
+            $msg = empty($parts) ? "Aucune donnée importée." : implode(' — ', $parts);
+
+            $response = [
+                'success'       => true,
+                'message'       => $msg,
+                'imported'      => $import->imported,
+                'blocs_created' => $import->blocsCreated,
+                'skipped'       => $import->skipped,
+                'errors'        => array_slice($import->errors, 0, 20),
+            ];
+
+            if ($request->wantsJson()) {
+                return response()->json($response);
+            }
+
+            return back()->with('success', $msg);
+
+        } catch (\Exception $e) {
+            $error = "Erreur d'import : " . $e->getMessage();
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $error
+                ], 422);
+            }
+
+            return back()->withErrors($error);
+        }
     }
 
     // ============================================================
@@ -228,19 +319,18 @@ class AffectationController extends Controller
             }
 
             Affectation::create([
-                'grand_site_id'     => $lot->grand_site_id,
-                'site_id'           => $lot->site_id,
-                'tf_id'             => $lot->tf_id,
-                'bloc_id'           => $lot->bloc_id,
-                'lot_affectation_id'=> $lot->id,
-                'client_id'         => $dossier->client_id,
-                'dossier_client_id' => $dossier->id,
-                'date_affectation'  => $request->date_affectation,
-                'statut'            => 'actif',
-                'notes'             => $request->notes,
+                'grand_site_id'      => $lot->grand_site_id,
+                'site_id'            => $lot->site_id,
+                'tf_id'              => $lot->tf_id,
+                'bloc_id'            => $lot->bloc_id,
+                'lot_affectation_id' => $lot->id,
+                'client_id'          => $dossier->client_id,
+                'dossier_client_id'  => $dossier->id,
+                'date_affectation'   => $request->date_affectation,
+                'statut'             => 'actif',
+                'notes'              => $request->notes,
             ]);
 
-            // Marquer le lot comme non disponible
             $lot->update(['disponible' => false]);
             $affectes++;
         }
@@ -253,7 +343,6 @@ class AffectationController extends Controller
 
     public function annuler(Affectation $affectation)
     {
-        // Rendre le lot disponible à nouveau
         $affectation->lot?->update(['disponible' => true]);
         $affectation->update(['statut' => 'annule']);
         return response()->json(['success' => true]);

@@ -9,7 +9,7 @@
 .lot-checkbox { width:18px;height:18px;cursor:pointer;accent-color:#1d4ed8; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <a href="{{ route('affectations.blocs') }}" class="btn btn-outline-secondary btn-sm mb-2">← Blocs</a>
         <h2 style="color:#1e3a5f;font-weight:800;margin:0;">📦 Gestion des Lots</h2>
@@ -20,7 +20,24 @@
             </span>
         </div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <!-- ✅ EXPORT EXCEL -->
+        <a href="{{ route('affectations.lots.export', request()->query()) }}"
+           class="btn btn-outline-success btn-sm">
+            📥 Exporter Excel
+        </a>
+
+        <!-- ✅ IMPORT EXCEL -->
+        <button onclick="openImportModal()" class="btn btn-outline-primary btn-sm">
+            📤 Importer Excel
+        </button>
+
+        <!-- ✅ TÉLÉCHARGER LE MODÈLE -->
+        <a href="{{ route('affectations.lots.template') }}"
+           class="btn btn-outline-secondary btn-sm">
+            📄 Modèle
+        </a>
+
         <button onclick="ouvrirModifSuperficie()" class="btn btn-outline-primary btn-sm" id="btnModifSuperficie" style="display:none;">
             📐 Modifier superficie
         </button>
@@ -78,7 +95,7 @@
     @forelse($lots as $lot)
     <tr id="lot-row-{{ $lot->id }}">
         <td class="px-3">
-            <input type="checkbox" class="lot-checkbox lot-select" 
+            <input type="checkbox" class="lot-checkbox lot-select"
                    data-id="{{ $lot->id }}"
                    data-superficie="{{ $lot->superficie }}"
                    onchange="majSelection()"
@@ -183,6 +200,43 @@
     </form>
 </div>
 
+{{-- MODAL IMPORT EXCEL --}}
+<div class="modal-overlay" id="overlayImport" onclick="closeImportModal()"></div>
+<div class="modal-box" id="importModal">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 style="color:#1e3a5f;font-weight:800;">📤 Importer des lots</h5>
+        <button onclick="closeImportModal()" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="background:#fef3c7;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#92400e;">
+        ⚠️ Le fichier doit être au format <strong>XLSX, XLS ou CSV</strong>.
+        Utilisez le <a href="{{ route('affectations.lots.template') }}" style="color:#1d4ed8;font-weight:700;">modèle Excel</a> comme référence.
+        <br><br>
+        <strong>Format :</strong> 1 ligne = 1 bloc. Les numéros de lots sont dans <strong>une seule cellule</strong>, séparés par des <strong>point-virgules (;)</strong>.
+        <br>
+        <em>Exemple : </em> <code style="background:#fff;padding:2px 6px;border-radius:4px;">01;02;03;04;05</code>
+    </div>
+
+    <form id="importForm" enctype="multipart/form-data">
+        @csrf
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Fichier Excel *</label>
+            <input type="file" name="fichier" id="import-fichier"
+                   accept=".xlsx,.xls,.csv"
+                   class="form-control" required>
+        </div>
+
+        <div id="import-result" style="display:none;margin-bottom:16px;"></div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" onclick="closeImportModal()" class="btn btn-light">Annuler</button>
+            <button type="submit" class="btn btn-primary" id="btn-import-submit">
+                📤 Importer
+            </button>
+        </div>
+    </form>
+</div>
+
 {{-- MODAL MODIFICATION SUPERFICIE MULTIPLE --}}
 <div class="modal-overlay" id="overlaySuperficie" onclick="fermerModalSuperficie()"></div>
 <div class="modal-box" id="modalSuperficie">
@@ -219,11 +273,15 @@
 </div>
 
 @endsection
+
 @section('scripts')
 <script>
 const CSRF = '{{ csrf_token() }}';
 let lotsSelectionnes = [];
 
+// ═══════════════════════════════════════════
+// MODALS GÉNÉRAUX
+// ═══════════════════════════════════════════
 function openModal(id) {
     document.getElementById('overlayAdd').style.display = 'block';
     document.getElementById(id).style.display = 'block';
@@ -261,14 +319,14 @@ function sauvegarderLot(e, id) {
     e.preventDefault();
     fetch(`/admin/affectations/lots/${id}`, {
         method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body: JSON.stringify({ 
-            numero: document.getElementById('el-num').value, 
-            superficie: document.getElementById('el-sup').value, 
-            actif: document.getElementById('el-actif').value 
+        body: JSON.stringify({
+            numero: document.getElementById('el-num').value,
+            superficie: document.getElementById('el-sup').value,
+            actif: document.getElementById('el-actif').value
         }),
-    }).then(r=>r.json()).then(d=>{ 
-        if(d.success) location.reload(); 
-        else alert(d.message); 
+    }).then(r=>r.json()).then(d=>{
+        if(d.success) location.reload();
+        else alert(d.message);
     });
 }
 
@@ -276,9 +334,9 @@ function supprimerLot(id) {
     if (!confirm('Supprimer ce lot ?')) return;
     fetch(`/admin/affectations/lots/${id}`, {
         method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Content-Type':'application/json'}
-    }).then(r=>r.json()).then(d=>{ 
-        if(d.success) location.reload(); 
-        else alert(d.message); 
+    }).then(r=>r.json()).then(d=>{
+        if(d.success) location.reload();
+        else alert(d.message);
     });
 }
 
@@ -313,18 +371,18 @@ function chargerBlocs(tfId,suf){
     });
 }
 
-// ============================================================
+// ═══════════════════════════════════════════
 // SÉLECTION MULTIPLE DES LOTS
-// ============================================================
+// ═══════════════════════════════════════════
 function majSelection() {
     const checkboxes = document.querySelectorAll('.lot-select:checked');
     const nb = checkboxes.length;
     const info = document.getElementById('selection-info');
     const nbEl = document.getElementById('nb-selectionnes');
     const btnModif = document.getElementById('btnModifSuperficie');
-    
+
     lotsSelectionnes = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
-    
+
     if (nb > 0) {
         info.style.display = 'inline';
         nbEl.textContent = nb;
@@ -333,8 +391,7 @@ function majSelection() {
         info.style.display = 'none';
         btnModif.style.display = 'none';
     }
-    
-    // Mettre à jour le select all
+
     const total = document.querySelectorAll('.lot-select:not(:disabled)').length;
     const checked = document.querySelectorAll('.lot-select:checked').length;
     document.getElementById('select-all').checked = total > 0 && checked === total;
@@ -348,10 +405,7 @@ function toggleTousLesLots(checkbox) {
 
 function ouvrirModifSuperficie() {
     const nb = lotsSelectionnes.length;
-    if (nb === 0) {
-        alert('Veuillez sélectionner au moins un lot.');
-        return;
-    }
+    if (nb === 0) { alert('Veuillez sélectionner au moins un lot.'); return; }
     document.getElementById('modal-nb-lots').textContent = nb;
     document.getElementById('modal-nb-lots2').textContent = nb;
     document.getElementById('nouvelle-superficie').value = '';
@@ -370,14 +424,12 @@ function appliquerSuperficie() {
         alert('Veuillez entrer une superficie valide.');
         return;
     }
-    
     if (lotsSelectionnes.length === 0) {
         alert('Aucun lot sélectionné.');
         return;
     }
-    
     if (!confirm(`Appliquer ${superficie} m² à ${lotsSelectionnes.length} lot(s) ?`)) return;
-    
+
     fetch('/admin/affectations/lots/superficie-multiple', {
         method: 'POST',
         headers: {
@@ -393,27 +445,97 @@ function appliquerSuperficie() {
     .then(data => {
         if (data.success) {
             fermerModalSuperficie();
-            // Mettre à jour l'affichage
             lotsSelectionnes.forEach(id => {
                 const td = document.getElementById('sup-' + id);
                 if (td) {
                     td.textContent = parseFloat(superficie).toLocaleString('fr-FR') + ' m²';
                 }
-                // Décocher les cases
                 const cb = document.querySelector(`.lot-select[data-id="${id}"]`);
                 if (cb) cb.checked = false;
             });
             lotsSelectionnes = [];
             majSelection();
-            // Recharger la page pour mettre à jour
             setTimeout(() => location.reload(), 500);
         } else {
             alert(data.message || 'Erreur lors de la mise à jour');
         }
     })
-    .catch(e => {
-        alert('Erreur réseau : ' + e.message);
-    });
+    .catch(e => { alert('Erreur réseau : ' + e.message); });
 }
+
+// ═══════════════════════════════════════════
+// IMPORT EXCEL
+// ═══════════════════════════════════════════
+function openImportModal() {
+    document.getElementById('overlayImport').style.display = 'block';
+    document.getElementById('importModal').style.display = 'block';
+    document.getElementById('import-result').style.display = 'none';
+    document.getElementById('importForm').reset();
+}
+
+function closeImportModal() {
+    document.getElementById('overlayImport').style.display = 'none';
+    document.getElementById('importModal').style.display = 'none';
+}
+
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const btn = document.getElementById('btn-import-submit');
+    const result = document.getElementById('import-result');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Import en cours...';
+    result.style.display = 'none';
+
+    fetch('{{ route('affectations.lots.import') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.textContent = '📤 Importer';
+        result.style.display = 'block';
+
+        if (data.success) {
+            let html = `<div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:14px;color:#166534;font-size:13px;">
+                <strong>${data.message}</strong>
+            </div>`;
+
+            if (data.errors && data.errors.length > 0) {
+                html += `<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:14px;color:#92400e;font-size:12px;margin-top:10px;max-height:200px;overflow-y:auto;">
+                    <strong>⚠ Détails :</strong><br>
+                    ${data.errors.map(e => '• ' + e).join('<br>')}
+                </div>`;
+            }
+
+            result.innerHTML = html;
+
+            setTimeout(() => {
+                if (data.imported > 0 || data.blocs_created > 0) {
+                    location.reload();
+                }
+            }, 2500);
+        } else {
+            result.innerHTML = `<div style="background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px;color:#dc2626;font-size:13px;">
+                <strong>❌ ${data.message}</strong>
+            </div>`;
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.textContent = '📤 Importer';
+        result.style.display = 'block';
+        result.innerHTML = `<div style="background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px;color:#dc2626;font-size:13px;">
+            <strong>❌ Erreur réseau :</strong> ${err.message}
+        </div>`;
+    });
+});
 </script>
 @endsection
