@@ -13,9 +13,9 @@ class LotsTemplateExport implements FromArray, WithHeadings, WithStyles, ShouldA
     public function array(): array
     {
         return [
-            ['EDEN Yaoundé', 'NTOUESSONG 5', 'TF-2024-001', 'A', '01;02;03;04;05', '500', 'Vue sur route principale'],
-            ['EDEN Yaoundé', 'NTOUESSONG 5', 'TF-2024-001', 'B', '01;02;03', '600', 'Zone nord'],
-            ['EDEN Bafoussam', '', '', 'C', '15A;15B;16', '400', 'Lot d\'angle'],
+            ['EDEN Yaoundé', 'NTOUESSONG 5', 'TF-2024-001', 'A', '01;02;03;04;05', '500'],
+            ['EDEN Yaoundé', 'NTOUESSONG 5', 'TF-2024-001', 'B', '01;02;03', '600'],
+            ['EDEN Bafoussam', '', '', 'C', '15A;15B;16', '400'],
         ];
     }
 
@@ -28,7 +28,6 @@ class LotsTemplateExport implements FromArray, WithHeadings, WithStyles, ShouldA
             'bloc',
             'numeros',
             'superficie',
-            'description',
         ];
     }
 

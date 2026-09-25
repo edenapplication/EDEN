@@ -53,7 +53,6 @@ class LotsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             'Statut',
             'Client affecté',
             'Date affectation',
-            'Description',
         ];
     }
 
@@ -70,7 +69,6 @@ class LotsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             $lot->disponible ? 'Disponible' : 'Affecté',
             $lot->affectation?->client?->name ?? '',
             $lot->affectation?->date_affectation?->format('d/m/Y') ?? '',
-            $lot->description ?? '',
         ];
     }
 

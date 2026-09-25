@@ -34,7 +34,6 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
         $blocCode     = strtoupper(trim($row['bloc'] ?? ''));
         $numerosRaw   = trim($row['numeros'] ?? '');
         $superficie   = $row['superficie'] ?? null;
-        $description  = trim($row['description'] ?? '');
 
         if (empty($grandSiteNom) || empty($blocCode) || empty($numerosRaw)) {
             $this->errors[] = "Ligne ignorée : grand_site, bloc et numeros sont obligatoires.";
@@ -54,7 +53,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
         }
         $grandSite = $this->cacheGrandSites[$grandSiteNom];
 
-        // Site
+        // Site (optionnel)
         $site = null;
         if (!empty($siteNom)) {
             $key = $grandSite->id . '|' . $siteNom;
@@ -66,7 +65,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
             $site = $this->cacheSites[$key];
         }
 
-        // TF
+        // TF (optionnel)
         $tf = null;
         if (!empty($tfRef)) {
             if (!isset($this->cacheTfs[$tfRef])) {
@@ -88,7 +87,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
                     'site_id'       => $site->id ?? null,
                     'tf_id'         => $tf->id ?? null,
                     'code'          => $blocCode,
-                    'description'   => $description ?: 'Créé automatiquement par import Excel',
+                    'description'   => 'Créé automatiquement par import Excel',
                     'actif'         => true,
                 ]);
                 $this->blocsCreated++;
@@ -106,7 +105,7 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
             return null;
         }
 
-        $nbCrees = 0;
+        $nbCrees   = 0;
         $nbIgnores = 0;
 
         foreach ($numeros as $numero) {
@@ -124,7 +123,6 @@ class LotsImport implements ToModel, WithHeadingRow, SkipsOnError, SkipsOnFailur
                 'bloc_id'       => $bloc->id,
                 'numero'        => $numero,
                 'superficie'    => !empty($superficie) ? floatval($superficie) : null,
-                'description'   => $description ?: null,
                 'disponible'    => true,
                 'actif'         => true,
             ]);

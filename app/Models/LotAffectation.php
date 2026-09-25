@@ -13,7 +13,7 @@ class LotAffectation extends Model
     public function grandSite()  { return $this->belongsTo(GrandSite::class, 'grand_site_id'); }
     public function site()       { return $this->belongsTo(Site::class, 'site_id'); }
     public function tf()         { return $this->belongsTo(Tf::class, 'tf_id'); }
-    public function affectation(){ return $this->hasOne(Affectation::class, 'lot_affectation_id')->where('statut','actif'); }
+    public function affectation(){ return $this->hasOne(Affectation::class, 'lot_affectation_id')->where('statut','actif')->latest(); }
 
     public function getLabelAttribute(): string
     {
