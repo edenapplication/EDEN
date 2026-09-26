@@ -22,7 +22,8 @@ use App\Http\Controllers\PaiementTechniqueController;
 use App\Http\Controllers\PaiementMorcellementController;
 use App\Http\Controllers\DossierClientController;
 use App\Http\Controllers\AffectationController;
-use App\Http\Controllers\BonPaiementController;
+use App\Http\Controllers\BonPaiementController; 
+use App\Http\Controllers\BeneficiaireController;
 
 use App\Http\Controllers\RH\DashboardRHController;
 use App\Http\Controllers\RH\EmployeController;
@@ -455,6 +456,38 @@ Route::post('/affectations/lots/import',  [AffectationController::class, 'import
             Route::delete('/trousses/{id}', [SanteController::class, 'destroyTrousse'])->name('trousses.destroy');
         });
     });
+});
+
+// ════════════════════════════════════════════════════════════════
+// BÉNÉFICIAIRES (répartition de dossier)
+// ════════════════════════════════════════════════════════════════
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::post  ('dossiers/{dossier}/beneficiaires',
+                  [BeneficiaireController::class, 'store'])
+                  ->name('beneficiaires.store');
+    Route::put   ('beneficiaires/{beneficiaire}',
+                  [BeneficiaireController::class, 'update'])
+                  ->name('beneficiaires.update');
+    Route::delete('beneficiaires/{beneficiaire}',
+                  [BeneficiaireController::class, 'destroy'])
+                  ->name('beneficiaires.destroy');
+     Route::delete('affectations/{affectation}',
+                  [AffectationController::class, 'destroy'])
+                  ->name('affectations.destroy');
+
+    // ✅ Historique d'un dossier (API)
+    Route::get('dossiers/{dossier}/historique',
+               [AffectationController::class, 'historique'])
+               ->name('dossiers.historique');
+    // ✅ Étapes d'un bénéficiaire
+    Route::post('beneficiaires/{beneficiaire}/maj-etape',
+                [BeneficiaireController::class, 'majEtape'])
+                ->name('beneficiaires.maj-etape');
+
+    // ✅ Affectation de lots à un bénéficiaire
+    Route::post('beneficiaires/{beneficiaire}/affecter-lots',
+                [AffectationController::class, 'affecterBeneficiaire'])
+                ->name('beneficiaires.affecter-lots');
 });
 
 // ═══════════════════════════════════════════════════════════════════

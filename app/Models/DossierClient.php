@@ -170,4 +170,61 @@ class DossierClient extends Model
         if (!$champ || !$this->$champ) return null;
         return $this->$champ->format('d/m/Y');
     }
+
+    // app/Models/DossierClient.php
+
+// ════════════════════════════════════════════════════════════════
+// RELATION : BÉNÉFICIAIRES
+// ════════════════════════════════════════════════════════════════
+public function beneficiaires()
+{
+    return $this->hasMany(Beneficiaire::class, 'dossier_client_id');
+}
+
+// ════════════════════════════════════════════════════════════════
+// SUPERFICIE : RÉPARTITION
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * Superficie totale du dossier (référence principale).
+ * Utilise superficie_voulue comme superficie du dossier principal.
+ */
+public function getSuperficieDossierAttribute(): float
+{
+    return (float) ($this->superficie_voulue ?? 0);
+}
+
+/**
+ * Somme des superficies attribuées aux bénéficiaires.
+ */
+public function getSuperficieAttribueeAttribute(): float
+{
+    return (float) $this->beneficiaires()->sum('superficie_attribuee');
+}
+
+/**
+ * Superficie restante disponible pour de nouveaux bénéficiaires.
+ */
+public function getSuperficieRestanteAttribute(): float
+{
+    return max(0, $this->superficie_dossier - $this->superficie_attribuee);
+}
+
+/**
+ * Pourcentage attribué (0-100).
+ */
+public function getPourcentageAttribueAttribute(): float
+{
+    $total = $this->superficie_dossier;
+    if ($total <= 0) return 0;
+    return min(100, round(($this->superficie_attribuee / $total) * 100, 1));
+}
+// app/Models/DossierClient.php
+
+public function historiques()
+{
+    return $this->hasMany(HistoriqueAffectation::class, 'dossier_client_id')
+                ->orderByDesc('created_at');
+}
+
 }

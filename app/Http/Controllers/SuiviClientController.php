@@ -11,11 +11,15 @@ use App\Models\Facilitateur;
 use App\Models\AgentCommercial;
 use App\Models\GrandSite;
 use App\Models\User;
+use App\Models\Beneficiaire;
+use App\Models\HistoriqueAffectation;
+use App\Services\HistoriqueService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use ZipArchive;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class SuiviClientController extends Controller
 {
@@ -55,9 +59,15 @@ class SuiviClientController extends Controller
             'dossiers.paiements',
             'dossiers.paiementsTechniques',
             'dossiers.paiementsMorcellements',
+            'dossiers.paiementsLogistiques',
             'dossiers.affectations.grandSite',
             'dossiers.affectations.bloc',
             'dossiers.affectations.lot',
+            'dossiers.affectations.beneficiaire',        // ✅ AJOUT
+            'dossiers.beneficiaires',
+            'dossiers.beneficiaires.affectations.grandSite',
+            'dossiers.beneficiaires.affectations.bloc',
+            'dossiers.beneficiaires.affectations.lot',
         ])->orderByDesc('created_at');
 
         // 🔍 Recherche
@@ -99,6 +109,15 @@ class SuiviClientController extends Controller
                 $query->where('is_new', true);
             } elseif ($request->status == 'old') {
                 $query->where('is_new', false);
+            }
+        }
+
+        // ✅ NOUVEAU : Filtre par lots affectés
+        if ($request->filled('lots')) {
+            if ($request->lots == 'avec') {
+                $query->whereHas('dossiers.affectations');
+            } elseif ($request->lots == 'sans') {
+                $query->whereDoesntHave('dossiers.affectations');
             }
         }
 
@@ -179,10 +198,13 @@ class SuiviClientController extends Controller
             'dossiers.affectations.grandSite',
             'dossiers.affectations.bloc',
             'dossiers.affectations.lot',
+            'dossiers.affectations.beneficiaire',     // ✅ AJOUT
             'dossiers.paiementsTechniques',
             'dossiers.paiementsMorcellements',
             'dossiers.paiements',
             'dossiers.paiementsLogistiques',
+            'dossiers.beneficiaires',
+            'dossiers.historiques.user',
         ]);
 
         // Appliquer les filtres
@@ -215,6 +237,15 @@ class SuiviClientController extends Controller
                 $query->where('sexe', 'masculin');
             } elseif ($request->sexe == 'feminin') {
                 $query->where('sexe', 'feminin');
+            }
+        }
+
+        // ✅ NOUVEAU : Filtre par lots affectés
+        if ($request->filled('lots')) {
+            if ($request->lots == 'avec') {
+                $query->whereHas('dossiers.affectations');
+            } elseif ($request->lots == 'sans') {
+                $query->whereDoesntHave('dossiers.affectations');
             }
         }
 
@@ -302,10 +333,13 @@ class SuiviClientController extends Controller
                 'dossiers.affectations.grandSite',
                 'dossiers.affectations.bloc',
                 'dossiers.affectations.lot',
+                'dossiers.affectations.beneficiaire',     // ✅ AJOUT
                 'dossiers.paiementsTechniques',
                 'dossiers.paiementsMorcellements',
                 'dossiers.paiements',
                 'dossiers.paiementsLogistiques',
+                'dossiers.beneficiaires',
+                'dossiers.historiques.user',
             ])->whereIn('id', $ids)->get();
 
             $data = [
@@ -333,10 +367,9 @@ class SuiviClientController extends Controller
     public function exportDocuments($clientId)
     {
         try {
-            $client = Client::with('dossiers')->findOrFail($clientId);
+            $client = Client::with(['dossiers.beneficiaires'])->findOrFail($clientId);
             $documents = [];
 
-            // Récupérer les CNI du client
             foreach ($client->dossiers as $dossier) {
                 if ($dossier->cni_images) {
                     foreach ($dossier->cni_images as $cni) {
@@ -347,6 +380,20 @@ class SuiviClientController extends Controller
                                 'path' => $path,
                                 'url' => asset('storage/' . $cni),
                                 'type' => 'cni',
+                            ];
+                        }
+                    }
+                }
+
+                foreach ($dossier->beneficiaires as $b) {
+                    if ($b->cni_path) {
+                        $path = storage_path('app/public/' . $b->cni_path);
+                        if (file_exists($path)) {
+                            $documents[] = [
+                                'name' => 'CNI_BENEF_' . $b->nom . '_' . basename($b->cni_path),
+                                'path' => $path,
+                                'url'  => asset('storage/' . $b->cni_path),
+                                'type' => 'cni_beneficiaire',
                             ];
                         }
                     }
@@ -520,6 +567,11 @@ class SuiviClientController extends Controller
                 'dossiers.paiementsMorcellements',
                 'dossiers.paiementsLogistiques',
                 'dossiers.bons',
+                'dossiers.beneficiaires',
+                'dossiers.beneficiaires.affectations.grandSite',   // ✅ AJOUT
+                'dossiers.beneficiaires.affectations.bloc',        // ✅ AJOUT
+                'dossiers.beneficiaires.affectations.lot',         // ✅ AJOUT
+                'dossiers.historiques.user',
                 'dossiers.affectations.grandSite',
                 'dossiers.affectations.bloc',
                 'dossiers.affectations.lot',
@@ -712,10 +764,17 @@ class SuiviClientController extends Controller
                 }
             }
         }
+
+        foreach ($dossier->beneficiaires as $b) {
+            if ($b->cni_path) {
+                Storage::disk('public')->delete($b->cni_path);
+            }
+        }
         
         $dossier->paiements()->delete();
         $dossier->paiementsTechniques()->delete();
         $dossier->paiementsMorcellements()->delete();
+        $dossier->beneficiaires()->delete();
         $dossier->delete();
 
         return redirect()
@@ -733,7 +792,8 @@ class SuiviClientController extends Controller
         return response()->json($client->dossiers);
     }
 
-    // ════════════════════════════════════════════════════════════════    // ✅ MAJ ÉTAPE
+    // ════════════════════════════════════════════════════════════════
+    // ✅ MAJ ÉTAPE
     // ════════════════════════════════════════════════════════════════
 
     public function majEtape(Request $request, DossierClient $dossier)
@@ -885,7 +945,6 @@ class SuiviClientController extends Controller
                     
                 case 'delete':
                     foreach ($clients as $client) {
-                        // Supprimer les CNI
                         foreach ($client->dossiers as $dossier) {
                             if ($dossier->cni_images) {
                                 foreach ($dossier->cni_images as $cni) {
@@ -893,6 +952,11 @@ class SuiviClientController extends Controller
                                     if (file_exists($path)) {
                                         unlink($path);
                                     }
+                                }
+                            }
+                            foreach ($dossier->beneficiaires as $b) {
+                                if ($b->cni_path) {
+                                    Storage::disk('public')->delete($b->cni_path);
                                 }
                             }
                         }

@@ -20,4 +20,11 @@ class Affectation extends Model
     public function lot()       { return $this->belongsTo(LotAffectation::class, 'lot_affectation_id'); }
     public function client()    { return $this->belongsTo(Client::class, 'client_id'); }
     public function dossier()   { return $this->belongsTo(DossierClient::class, 'dossier_client_id'); }
+
+    // app/Models/Affectation.php
+
+public function beneficiaire()
+{
+    return $this->belongsTo(Beneficiaire::class, 'beneficiaire_id');
+}
 }

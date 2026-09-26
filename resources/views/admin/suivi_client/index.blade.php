@@ -178,6 +178,142 @@
     margin-right: 8px;
     flex-shrink: 0;
 }
+
+/* ═══ BADGES LOTS AFFECTÉS ═══ */
+.lots-badge-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+    align-items: center;
+}
+.lot-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #86efac;
+    white-space: nowrap;
+}
+.lot-badge.benef {
+    background: #faf5ff;
+    color: #7c3aed;
+    border-color: #c4b5fd;
+}
+.lot-badge.dossier {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+.lots-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #15803d;
+    border: 1.5px solid #86efac;
+}
+
+/* ═══ BÉNÉFICIAIRES DANS L'INDEX ═══ */
+.benef-list {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 8px;
+}
+.benef-list-header {
+    font-size: 10px;
+    font-weight: 700;
+    color: #7c3aed;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.benef-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: white;
+    border: 1.5px solid #c4b5fd;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #7c3aed;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    transition: all 0.2s;
+}
+.benef-pill:hover {
+    background: #f5f3ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
+}
+.benef-pill .benef-nom {
+    color: #5b21b6;
+    font-weight: 700;
+}
+.benef-pill .benef-sup {
+    background: #ede9fe;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    color: #6d28d9;
+    font-weight: 700;
+}
+.benef-pill .benef-lots {
+    background: #dcfce7;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    color: #15803d;
+    font-weight: 700;
+}
+.benef-pill .benef-etape {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #16a34a;
+    display: inline-block;
+    box-shadow: 0 0 0 2px #dcfce7;
+}
+.benef-pill .benef-etape.vide {
+    background: #cbd5e1;
+    box-shadow: 0 0 0 2px #f1f5f9;
+}
+.benef-superficie-bar {
+    margin-top: 6px;
+    height: 6px;
+    background: #e9d5ff;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.benef-superficie-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #a855f7);
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+.benef-superficie-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #7c3aed;
+    font-weight: 700;
+    margin-top: 4px;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -348,6 +484,16 @@
             </select>
         </div>
 
+        {{-- ✅ FILTRE LOTS AFFECTÉS --}}
+        <div class="col-md-1">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">📦 Lots</label>
+            <select id="filtre-lots" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
+                <option value="">Tous</option>
+                <option value="avec" {{ request('lots') == 'avec' ? 'selected' : '' }}>✅ Avec lots</option>
+                <option value="sans" {{ request('lots') == 'sans' ? 'selected' : '' }}>⭕ Sans lots</option>
+            </select>
+        </div>
+
         <div class="col-md-1 d-flex gap-1">
             <button onclick="appliquerFiltresServeur()" class="btn btn-primary btn-sm">🔍</button>
             <a href="{{ route('suivi-client.index') }}" class="btn btn-outline-secondary btn-sm">✖</a>
@@ -417,7 +563,9 @@
                         &nbsp;·&nbsp; 📅 {{ $client->created_at?->format('d/m/Y') ?? '-' }}
                     </div>
 
-                    {{-- Dossiers sous forme de pills --}}
+                    {{-- ═══════════════════════════════════════════════════════════
+                         DOSSIERS + LOTS AFFECTÉS + BÉNÉFICIAIRES
+                         ═══════════════════════════════════════════════════════════ --}}
                     <div style="margin-top:6px;" id="dossiers-pills-{{ $client->id }}">
                         @foreach($client->dossiers as $d)
                         @php
@@ -449,10 +597,25 @@
                                           ($statutL === 'solde' || $tL == 0) && 
                                           ($statutM === 'solde' || $tM == 0);
                             $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
+
+                            // ✅ LOTS DOSSIER VS BÉNÉFICIAIRES
+                            $lotsDossier = $d->affectations->whereNull('beneficiaire_id');
+                            $lotsBenef   = $d->affectations->whereNotNull('beneficiaire_id');
+                            $totalLotsDossier = $lotsDossier->count();
+                            $totalLotsBenef   = $lotsBenef->count();
+
+                            // ✅ BÉNÉFICIAIRES DU DOSSIER
+                            $beneficiaires = $d->beneficiaires ?? collect();
+                            $supDossier    = $d->superficie_voulue ?? 0;
+                            $supAttribuee  = $beneficiaires->sum('superficie_attribuee');
+                            $supRestante   = max(0, $supDossier - $supAttribuee);
+                            $pctAttribue   = $supDossier > 0 ? min(100, round(($supAttribuee / $supDossier) * 100)) : 0;
                         @endphp
 
                         <div class="dossier-pill" id="pill-dossier-{{ $d->id }}" style="display:inline-block;margin-bottom:8px;">
                             <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;border:1px solid #e2e8f0;">
+                                
+                                {{-- En-tête --}}
                                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                     <span class="site" style="font-weight:700;color:#1e3a5f;">
                                         {{ $d->grandSite?->nom ?? $d->nom_dossier }}
@@ -465,6 +628,136 @@
                                     </span>
                                 </div>
 
+                                {{-- 📦 LOTS AFFECTÉS AU DOSSIER --}}
+                                @if($totalLotsDossier > 0)
+                                <div class="lots-badge-container" style="margin-top:6px;">
+                                    <span style="font-size:9px;color:#1d4ed8;font-weight:700;">📦 Dossier :</span>
+
+                                    @php
+                                        $groupesDossier = $lotsDossier->groupBy(function($aff) {
+                                            return $aff->bloc_id . '-' . $aff->date_affectation?->format('Y-m-d');
+                                        });
+                                    @endphp
+
+                                    @foreach($groupesDossier as $grp)
+                                        @php
+                                            $premier  = $grp->first();
+                                            $nbLots   = $grp->count();
+                                            $lotsList = $grp->pluck('lot.numero')->implode(', ');
+                                        @endphp
+                                        <span class="lot-badge dossier" title="{{ $premier->grandSite?->nom }} — Bloc {{ $premier->bloc?->code }} — 📅 {{ $premier->date_affectation?->format('d/m/Y') }}">
+                                            🏷️ {{ $lotsList }}
+                                            @if($nbLots > 1)
+                                                <span style="background:#1d4ed822;padding:0 4px;border-radius:6px;">{{ $nbLots }}</span>
+                                            @endif
+                                        </span>
+                                    @endforeach
+                                </div>
+                                @endif
+
+                                {{-- ═══════════════════════════════════════════════════════════
+                                     👥 BÉNÉFICIAIRES DU DOSSIER
+                                     ═══════════════════════════════════════════════════════════ --}}
+                                @if($beneficiaires->count() > 0)
+                                <div class="benef-list">
+                                    <div class="benef-list-header">
+                                        <span>👥 Bénéficiaires ({{ $beneficiaires->count() }})</span>
+                                        <span style="color:{{ $supRestante > 0 ? '#16a34a' : '#dc2626' }};font-size:9px;">
+                                            📐 {{ number_format($supRestante, 0, ',', ' ') }} m² restants
+                                        </span>
+                                    </div>
+
+                                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                                        @foreach($beneficiaires as $b)
+                                            @php
+                                                $benefAffs   = $b->affectations ?? collect();
+                                                $nbLotsB     = $benefAffs->count();
+                                                $lotsBList   = $benefAffs->pluck('lot.numero')->filter()->implode(', ');
+                                                $etapeActive = $b->etape_actuelle ?? null;
+                                            @endphp
+
+                                            <span class="benef-pill" 
+                                                  title="👤 {{ $b->nom }}&#10;📐 {{ number_format($b->superficie_attribuee, 0, ',', ' ') }} m²&#10;{{ $nbLotsB > 0 ? '📦 Lots : ' . $lotsBList : '⭕ Aucun lot affecté' }}&#10;{{ $etapeActive ? '📊 Étape : ' . str_replace('_', ' ', $etapeActive) : '📊 Aucune étape' }}">
+                                                <span class="benef-etape {{ $etapeActive ? '' : 'vide' }}"></span>
+                                                <span class="benef-nom">👤 {{ $b->nom }}</span>
+                                                <span class="benef-sup">{{ number_format($b->superficie_attribuee, 0, ',', ' ') }} m²</span>
+                                                @if($nbLotsB > 0)
+                                                    <span class="benef-lots">📦 {{ $nbLotsB }}</span>
+                                                @endif
+                                            </span>
+                                        @endforeach
+                                    </div>
+
+                                    {{-- Barre de répartition --}}
+                                    @if($supDossier > 0)
+                                    <div class="benef-superficie-bar">
+                                        <div class="benef-superficie-fill" style="width:{{ $pctAttribue }}%;"></div>
+                                    </div>
+                                    <div class="benef-superficie-info">
+                                        <span>📐 {{ number_format($supAttribuee, 0, ',', ' ') }} / {{ number_format($supDossier, 0, ',', ' ') }} m²</span>
+                                        <span>{{ $pctAttribue }}% attribué</span>
+                                    </div>
+                                    @endif
+                                </div>
+                                @endif
+
+                                {{-- ═══════════════════════════════════════════════════════════
+                                     👥 LOTS AFFECTÉS AUX BÉNÉFICIAIRES (vue groupée)
+                                     ═══════════════════════════════════════════════════════════ --}}
+                                @if($totalLotsBenef > 0)
+                                <div class="lots-badge-container" style="margin-top:6px;">
+                                    <span style="font-size:9px;color:#7c3aed;font-weight:700;">📦 Lots bénéf. :</span>
+
+                                    @php
+                                        $groupesBenef = $lotsBenef->groupBy('beneficiaire_id');
+                                    @endphp
+
+                                    @foreach($groupesBenef as $benefId => $affsBenef)
+                                        @php
+                                            $premier  = $affsBenef->first();
+                                            $benefNom = $premier->beneficiaire?->nom ?? 'Bénéf. #' . $benefId;
+                                            $nbLots   = $affsBenef->count();
+                                            $lotsList = $affsBenef->pluck('lot.numero')->implode(', ');
+                                        @endphp
+                                        <span class="lot-badge benef" title="{{ $benefNom }} — {{ $premier->grandSite?->nom ?? '-' }} — Bloc {{ $premier->bloc?->code ?? '-' }} — 📅 {{ $premier->date_affectation?->format('d/m/Y') }}">
+                                            👤 {{ $benefNom }}
+                                            <span style="background:#7c3aed22;padding:0 4px;border-radius:6px;">
+                                                {{ $lotsList }}
+                                            </span>
+                                            @if($nbLots > 1)
+                                                <span style="background:#7c3aed22;padding:0 4px;border-radius:6px;">
+                                                    {{ $nbLots }} lots
+                                                </span>
+                                            @endif
+                                        </span>
+                                    @endforeach
+                                </div>
+                                @endif
+
+                                {{-- ═══════════════════════════════════════════════════════════
+                                     RÉCAPITULATIF LOTS
+                                     ═══════════════════════════════════════════════════════════ --}}
+                                @if($totalLotsDossier + $totalLotsBenef > 0)
+                                <div class="lots-badge-container" style="margin-top:6px;">
+                                    <span class="lots-count-badge">
+                                        📦 {{ $totalLotsDossier + $totalLotsBenef }} lot(s) au total
+                                    </span>
+                                    @if($totalLotsDossier > 0)
+                                        <span class="lot-badge dossier" style="font-size:8px;">
+                                            Dossier : {{ $totalLotsDossier }}
+                                        </span>
+                                    @endif
+                                    @if($totalLotsBenef > 0)
+                                        <span class="lot-badge benef" style="font-size:8px;">
+                                            Bénéf. : {{ $totalLotsBenef }}
+                                        </span>
+                                    @endif
+                                </div>
+                                @endif
+
+                                {{-- ═══════════════════════════════════════════════════════════
+                                     STATUTS DE PAIEMENT
+                                     ═══════════════════════════════════════════════════════════ --}}
                                 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
                                     @if($tD > 0 || $rD > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
@@ -636,6 +929,7 @@ function exporterPdf() {
     const morcellement = document.getElementById('filtre-morcellement')?.value || '';
     const dossier = document.getElementById('filtre-dossier')?.value || '';
     const logistique = document.getElementById('filtre-logistique')?.value || '';
+    const lots = document.getElementById('filtre-lots')?.value || '';
     
     let url = '{{ route("suivi-client.export-pdf") }}?';
     if (q) url += 'q=' + encodeURIComponent(q) + '&';
@@ -648,6 +942,7 @@ function exporterPdf() {
     if (morcellement) url += 'morcellement_solde=' + morcellement + '&';
     if (dossier) url += 'dossier_solde=' + dossier + '&';
     if (logistique) url += 'logistique_solde=' + logistique + '&';
+    if (lots) url += 'lots=' + lots + '&';
     
     window.open(url, '_blank');
 }
@@ -896,7 +1191,6 @@ function exporterPdfSelection(ids) {
 // ════════════════════════════════════════════════════════════════
 
 function exporterDocuments(ids) {
-    // Afficher la modal de progression
     document.getElementById('modalProgressOverlay').style.display = 'block';
     document.getElementById('modalProgress').style.display = 'block';
     document.getElementById('progressResult').style.display = 'none';
@@ -1179,6 +1473,7 @@ function appliquerFiltresServeur() {
     const morcellement = document.getElementById('filtre-morcellement')?.value;
     const dossier = document.getElementById('filtre-dossier')?.value;
     const logistique = document.getElementById('filtre-logistique')?.value;
+    const lots = document.getElementById('filtre-lots')?.value;
     const q = document.getElementById('search-live')?.value;
     const url = new URL(window.location.href);
     du ? url.searchParams.set('du', du) : url.searchParams.delete('du');
@@ -1190,6 +1485,7 @@ function appliquerFiltresServeur() {
     morcellement ? url.searchParams.set('morcellement_solde', morcellement) : url.searchParams.delete('morcellement_solde');
     dossier ? url.searchParams.set('dossier_solde', dossier) : url.searchParams.delete('dossier_solde');
     logistique ? url.searchParams.set('logistique_solde', logistique) : url.searchParams.delete('logistique_solde');
+    lots ? url.searchParams.set('lots', lots) : url.searchParams.delete('lots');
     q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
     window.location.href = url.toString();
 }

@@ -9,7 +9,10 @@ use App\Models\DossierClient;
 use App\Models\GrandSite;
 use App\Models\Site;
 use App\Models\Tf;
+use App\Services\HistoriqueService;      // ✅ AJOUT
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;      // ✅ AJOUT
+use Illuminate\Support\Facades\Log;       // ✅ AJOUT
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\LotsImport;
 use App\Exports\LotsExport;
@@ -297,7 +300,7 @@ class AffectationController extends Controller
     }
 
     // ============================================================
-    // AFFECTATION À UN DOSSIER
+    // ✅ AFFECTATION À UN DOSSIER (avec historique)
     // ============================================================
     public function affecter(Request $request, DossierClient $dossier)
     {
@@ -308,11 +311,13 @@ class AffectationController extends Controller
             'notes'            => 'nullable|string',
         ]);
 
-        $affectes = 0;
-        $errors   = [];
+        $affectes     = 0;
+        $errors       = [];
+        $lotsAffectes = [];
 
         foreach ($request->lot_ids as $lotId) {
-            $lot = LotAffectation::find($lotId);
+            $lot = LotAffectation::with('bloc')->find($lotId);
+
             if (!$lot || !$lot->disponible) {
                 $errors[] = 'Lot ' . ($lot?->numero ?? $lotId) . ' non disponible.';
                 continue;
@@ -332,7 +337,36 @@ class AffectationController extends Controller
             ]);
 
             $lot->update(['disponible' => false]);
+
+            $lotsAffectes[] = [
+                'lot_id'   => $lot->id,
+                'numero'   => $lot->numero,
+                'bloc'     => $lot->bloc?->code,
+                'superficie' => $lot->superficie,
+            ];
+
             $affectes++;
+        }
+
+        // ✅ HISTORIQUE : une seule entrée pour l'ensemble de l'affectation
+        if ($affectes > 0) {
+            $resumeLots = collect($lotsAffectes)
+                ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
+                ->implode(', ');
+
+            HistoriqueService::log(
+                $dossier->id,
+                'affectation_lot',
+                "Affectation de {$affectes} lot(s) — {$resumeLots}",
+                'lot',
+                null,
+                null,
+                [
+                    'lots'             => $lotsAffectes,
+                    'date_affectation' => $request->date_affectation,
+                    'notes'            => $request->notes,
+                ]
+            );
         }
 
         $msg = $affectes . ' lot(s) affecté(s).';
@@ -341,11 +375,114 @@ class AffectationController extends Controller
         return response()->json(['success' => true, 'message' => $msg]);
     }
 
+    // ============================================================
+    // ✅ ANNULER UNE AFFECTATION (avec historique)
+    // ============================================================
     public function annuler(Affectation $affectation)
     {
+        $affectation->load(['lot', 'bloc', 'dossier']);
+
+        $dossier = $affectation->dossier;
+
+        $avant = [
+            'affectation_id' => $affectation->id,
+            'lot_id'         => $affectation->lot_affectation_id,
+            'lot_num'        => $affectation->lot?->numero,
+            'bloc'           => $affectation->bloc?->code,
+            'date'           => $affectation->date_affectation?->format('d/m/Y'),
+            'notes'          => $affectation->notes,
+        ];
+
         $affectation->lot?->update(['disponible' => true]);
         $affectation->update(['statut' => 'annule']);
+
+        // ✅ HISTORIQUE
+        if ($dossier) {
+            HistoriqueService::log(
+                $dossier->id,
+                'annulation_affectation',
+                "Annulation du lot {$avant['lot_num']}"
+                    . ($avant['bloc'] ? " (Bloc {$avant['bloc']})" : '')
+                    . " — affecté le {$avant['date']}",
+                'lot',
+                $avant['lot_id'],
+                $avant,
+                null
+            );
+        }
+
         return response()->json(['success' => true]);
+    }
+
+    // ============================================================
+    // ✅ SUPPRIMER DÉFINITIVEMENT UNE AFFECTATION (avec historique)
+    // ============================================================
+    public function destroy(Affectation $affectation)
+    {
+        $affectation->load(['lot', 'bloc', 'dossier']);
+
+        $dossier = $affectation->dossier;
+
+        $avant = [
+            'affectation_id' => $affectation->id,
+            'lot_id'         => $affectation->lot_affectation_id,
+            'lot_num'        => $affectation->lot?->numero,
+            'bloc'           => $affectation->bloc?->code,
+            'date'           => $affectation->date_affectation?->format('d/m/Y'),
+            'statut'         => $affectation->statut,
+            'notes'          => $affectation->notes,
+        ];
+
+        // Libérer le lot
+        $affectation->lot?->update(['disponible' => true]);
+
+        // Supprimer définitivement
+        $affectation->delete();
+
+        // ✅ HISTORIQUE
+        if ($dossier) {
+            HistoriqueService::log(
+                $dossier->id,
+                'annulation_affectation',
+                "Suppression définitive du lot {$avant['lot_num']}"
+                    . ($avant['bloc'] ? " (Bloc {$avant['bloc']})" : '')
+                    . " — affecté le {$avant['date']}",
+                'lot',
+                $avant['lot_id'],
+                $avant,
+                null
+            );
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    // ============================================================
+    // ✅ HISTORIQUE D'UN DOSSIER (API)
+    // ============================================================
+    public function historique(DossierClient $dossier)
+    {
+        $historiques = $dossier->historiques()
+            ->with('user:id,name')
+            ->get()
+            ->map(function ($h) {
+                return [
+                    'id'          => $h->id,
+                    'type_action' => $h->type_action,
+                    'icone'       => $h->icone,
+                    'couleur'     => $h->couleur,
+                    'resume'      => $h->resume,
+                    'user'        => $h->user?->name,
+                    'date'        => $h->created_at->format('d/m/Y H:i'),
+                    'avant'       => $h->donnees_avant,
+                    'apres'       => $h->donnees_apres,
+                ];
+            });
+
+        return response()->json([
+            'success'    => true,
+            'historiques' => $historiques,
+        ]);
     }
 
     // ============================================================
@@ -385,4 +522,85 @@ class AffectationController extends Controller
                 ->get(['id','numero','superficie'])
         );
     }
+
+    // ============================================================
+// ✅ AFFECTATION À UN BÉNÉFICIAIRE
+// ============================================================
+public function affecterBeneficiaire(Request $request, \App\Models\Beneficiaire $beneficiaire)
+{
+    $request->validate([
+        'lot_ids'          => 'required|array|min:1',
+        'lot_ids.*'        => 'exists:lots_affectation,id',
+        'date_affectation' => 'required|date',
+        'notes'            => 'nullable|string',
+    ]);
+
+    $dossier      = $beneficiaire->dossier;
+    $affectes     = 0;
+    $errors       = [];
+    $lotsAffectes = [];
+
+    foreach ($request->lot_ids as $lotId) {
+        $lot = LotAffectation::with('bloc')->find($lotId);
+
+        if (!$lot || !$lot->disponible) {
+            $errors[] = 'Lot ' . ($lot?->numero ?? $lotId) . ' non disponible.';
+            continue;
+        }
+
+        Affectation::create([
+            'grand_site_id'      => $lot->grand_site_id,
+            'site_id'            => $lot->site_id,
+            'tf_id'              => $lot->tf_id,
+            'bloc_id'            => $lot->bloc_id,
+            'lot_affectation_id' => $lot->id,
+            'client_id'          => $dossier->client_id,
+            'dossier_client_id'  => $dossier->id,
+            'beneficiaire_id'    => $beneficiaire->id,   // ✅
+            'date_affectation'   => $request->date_affectation,
+            'statut'             => 'actif',
+            'notes'              => $request->notes,
+        ]);
+
+        $lot->update(['disponible' => false]);
+
+        $lotsAffectes[] = [
+            'lot_id'     => $lot->id,
+            'numero'     => $lot->numero,
+            'bloc'       => $lot->bloc?->code,
+            'superficie' => $lot->superficie,
+        ];
+
+        $affectes++;
+    }
+
+    // ✅ HISTORIQUE
+    if ($affectes > 0) {
+        $resumeLots = collect($lotsAffectes)
+            ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
+            ->implode(', ');
+
+        HistoriqueService::log(
+            $dossier->id,
+            'affectation_lot',
+            "Affectation de {$affectes} lot(s) au bénéficiaire « {$beneficiaire->nom} » — {$resumeLots}",
+            'lot',
+            null,
+            null,
+            [
+                'beneficiaire_id'   => $beneficiaire->id,
+                'beneficiaire_nom'  => $beneficiaire->nom,
+                'lots'              => $lotsAffectes,
+                'date_affectation'  => $request->date_affectation,
+                'notes'             => $request->notes,
+            ]
+        );
+    }
+
+    $msg = $affectes . ' lot(s) affecté(s) au bénéficiaire.';
+    if (!empty($errors)) $msg .= ' Erreurs : ' . implode(', ', $errors);
+
+    return response()->json(['success' => true, 'message' => $msg]);
+}
+
 }
