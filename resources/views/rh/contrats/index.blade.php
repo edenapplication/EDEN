@@ -259,18 +259,37 @@
 
 @section('scripts')
 <script>
+// ════════════════════════════════════════════════════════════════
+// ✅ URLs générées par Laravel (préfixe admin/ inclus automatiquement)
+// ════════════════════════════════════════════════════════════════
+const ROUTES = {
+    resilierContrat:   "{{ route('rh.contrats.resilier', ':id') }}",
+    renouvelerContrat: "{{ route('rh.contrats.renouveler', ':id') }}",
+};
+
+// ════════════════════════════════════════════════════════════════
+// MODAL RÉSILIATION
+// ════════════════════════════════════════════════════════════════
 function openResilierModal(id, num, nom) {
-    document.getElementById('resilierForm').action = '/rh/contrats/' + id + '/resilier';
+    const url = ROUTES.resilierContrat.replace(':id', id);
+
+    document.getElementById('resilierForm').action = url;
     document.getElementById('resilierContratNum').textContent = num;
     document.getElementById('resilierEmployeNom').textContent = nom;
+
     new bootstrap.Modal(document.getElementById('resilierModal')).show();
 }
 
+// ════════════════════════════════════════════════════════════════
+// MODAL RENOUVELLEMENT
+// ════════════════════════════════════════════════════════════════
 function openRenouvelerModal(id, num, nom) {
-    document.getElementById('renouvelerForm').action = '/rh/contrats/' + id + '/renouveler';
+    const url = ROUTES.renouvelerContrat.replace(':id', id);
+
+    document.getElementById('renouvelerForm').action = url;
     document.getElementById('renouvelerContratNum').textContent = num;
     document.getElementById('renouvelerEmployeNom').textContent = nom;
-    // Date de début par défaut = lendemain de la date de fin
+
     new bootstrap.Modal(document.getElementById('renouvelerModal')).show();
 }
 </script>
