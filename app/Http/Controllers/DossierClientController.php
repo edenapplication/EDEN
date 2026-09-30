@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DossierClient;
 use App\Models\Client;
+use App\Models\Beneficiaire;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -11,14 +12,15 @@ use Illuminate\Support\Facades\Log;
 
 class DossierClientController extends Controller
 {
-    // ✅ Supprimer un dossier (sans supprimer le client)
+    // ════════════════════════════════════════════════════════════════
+    // ✅ SUPPRIMER UN DOSSIER
+    // ════════════════════════════════════════════════════════════════
     public function supprimerDossier($dossierId)
     {
         try {
             $dossier = DossierClient::findOrFail($dossierId);
             $clientId = $dossier->client_id;
 
-            // Supprimer les paiements liés
             $dossier->paiements()->delete();
             if (method_exists($dossier, 'paiementsTechniques'))
                 $dossier->paiementsTechniques()->delete();
@@ -36,7 +38,9 @@ class DossierClientController extends Controller
         }
     }
 
-    // ✅ Mise à jour prix — avec log pour debug
+    // ════════════════════════════════════════════════════════════════
+    // ✅ MISE À JOUR PRIX
+    // ════════════════════════════════════════════════════════════════
     public function majPrix(Request $request, $dossierId)
     {
         try {
@@ -70,41 +74,94 @@ class DossierClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ EXPORT EXCEL (avec sélection et sexe correct)
+    // ✅ EXPORT EXCEL (Sélection stricte)
+    // ════════════════════════════════════════════════════════════════
+    // Règles :
+    //   - Rien coché                → TOUT (clients + bénéficiaires)
+    //   - Clients cochés            → CES clients + LEURS bénéficiaires
+    //   - Bénéficiaires cochés      → CES bénéficiaires uniquement
+    //   - Clients + Bénéf. cochés   → CES clients + CES bénéf. + bénéf. des clients
     // ════════════════════════════════════════════════════════════════
 
     public function exportExcel(Request $request)
     {
         try {
-            // ✅ Récupérer les IDs sélectionnés
-            $ids = $request->input('ids', []);
-            
-            $query = DossierClient::with([
-                'client',
-                'grandSite',
-                'paiements' => fn($q) => $q->orderBy('date_paiement')->limit(1),
-            ]);
+            // ✅ Récupérer les IDs sélectionnés séparément
+            $clientIds = $request->input('client_ids', []);
+            $benefIds  = $request->input('beneficiaire_ids', []);
 
-            // ✅ Si des IDs sont sélectionnés, filtrer uniquement ces dossiers
-            if (!empty($ids)) {
-                // Récupérer les clients correspondants aux IDs
-                $clientsIds = Client::whereIn('id', $ids)->pluck('id')->toArray();
-                if (!empty($clientsIds)) {
-                    $query->whereIn('client_id', $clientsIds);
-                } else {
-                    // Aucun client trouvé, retourner un fichier vide
-                    return $this->generateEmptyExcel();
-                }
+            // ✅ Compatibilité ancien format (ids[]) → traités comme clients
+            $legacyIds = $request->input('ids', []);
+            if (!empty($legacyIds)) {
+                $clientIds = array_merge($clientIds, $legacyIds);
             }
 
-            // Appliquer les filtres
-            if ($request->filled('du'))           $query->whereDate('created_at', '>=', $request->du);
-            if ($request->filled('au'))           $query->whereDate('created_at', '<=', $request->au);
-            if ($request->filled('grand_site_id'))$query->where('grand_site_id', $request->grand_site_id);
+            $hasClientSelection = !empty($clientIds);
+            $hasBenefSelection  = !empty($benefIds);
+            $hasAnySelection    = $hasClientSelection || $hasBenefSelection;
 
-            $dossiers    = $query->orderByDesc('created_at')->get();
-            
-            return $this->generateExcel($dossiers);
+            $dossiers      = collect();
+            $beneficiaires = collect();
+
+            // ═══════════════════════════════════════════════════════════
+            // 1. CLIENTS
+            // ═══════════════════════════════════════════════════════════
+            if ($hasClientSelection) {
+                // ✅ Uniquement les clients sélectionnés
+                $dossiers = $this->getDossiersQuery($request)
+                    ->whereIn('client_id', $clientIds)
+                    ->orderByDesc('created_at')
+                    ->get();
+            } elseif (!$hasAnySelection) {
+                // ✅ Aucune sélection → tous les clients
+                $dossiers = $this->getDossiersQuery($request)
+                    ->orderByDesc('created_at')
+                    ->get();
+            }
+            // Sinon (bénéfs cochés sans clients) → $dossiers reste vide
+
+            // ═══════════════════════════════════════════════════════════
+            // 2. BÉNÉFICIAIRES
+            // ═══════════════════════════════════════════════════════════
+            if ($hasBenefSelection && !$hasClientSelection) {
+                // ✅ Bénéficiaires cochés SANS clients → UNIQUEMENT ces bénéfs
+                $beneficiaires = $this->getBeneficiairesQuery($request)
+                    ->whereIn('id', $benefIds)
+                    ->orderByDesc('created_at')
+                    ->get();
+
+            } elseif ($hasBenefSelection && $hasClientSelection) {
+                // ✅ Clients + bénéfs cochés → les bénéfs cochés + bénéfs des clients
+                $beneficiaires = $this->getBeneficiairesQuery($request)
+                    ->where(function ($q) use ($benefIds, $clientIds) {
+                        $q->whereIn('id', $benefIds)
+                          ->orWhereHas('dossier', fn($sub) => $sub->whereIn('client_id', $clientIds));
+                    })
+                    ->orderByDesc('created_at')
+                    ->get();
+
+            } elseif ($hasClientSelection && !$hasBenefSelection) {
+                // ✅ Clients cochés SANS bénéfs → bénéfs de ces clients
+                $beneficiaires = $this->getBeneficiairesQuery($request)
+                    ->whereHas('dossier', fn($q) => $q->whereIn('client_id', $clientIds))
+                    ->orderByDesc('created_at')
+                    ->get();
+
+            } else {
+                // ✅ Aucune sélection → tous les bénéfs
+                $beneficiaires = $this->getBeneficiairesQuery($request)
+                    ->orderByDesc('created_at')
+                    ->get();
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // 3. GÉNÉRER L'EXCEL
+            // ═══════════════════════════════════════════════════════════
+            if ($dossiers->isEmpty() && $beneficiaires->isEmpty()) {
+                return $this->generateEmptyExcel();
+            }
+
+            return $this->generateExcel($dossiers, $beneficiaires);
 
         } catch (\Throwable $e) {
             Log::error('Erreur exportExcel: ' . $e->getMessage());
@@ -113,14 +170,55 @@ class DossierClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ GÉNÉRER LE FICHIER EXCEL
+    // ✅ HELPERS : Requêtes avec relations + filtres
     // ════════════════════════════════════════════════════════════════
 
-    private function generateExcel($dossiers)
+    private function getDossiersQuery(Request $request)
     {
+        $query = DossierClient::with([
+            'client',
+            'grandSite',
+            'paiements' => fn($q) => $q->orderBy('date_paiement')->limit(1),
+            'affectations.lot',
+            'affectations.grandSite',
+        ]);
+
+        if ($request->filled('du'))            $query->whereDate('created_at', '>=', $request->du);
+        if ($request->filled('au'))            $query->whereDate('created_at', '<=', $request->au);
+        if ($request->filled('grand_site_id')) $query->where('grand_site_id', $request->grand_site_id);
+
+        return $query;
+    }
+
+    private function getBeneficiairesQuery(Request $request)
+    {
+        $query = Beneficiaire::with([
+            'dossier.client',
+            'dossier.grandSite',
+            'dossier.paiements' => fn($q) => $q->orderBy('date_paiement')->limit(1),
+            'affectations.lot',
+            'affectations.grandSite',
+            'client',
+        ]);
+
+        if ($request->filled('du'))            $query->whereDate('created_at', '>=', $request->du);
+        if ($request->filled('au'))            $query->whereDate('created_at', '<=', $request->au);
+        if ($request->filled('grand_site_id')) $query->whereHas('dossier', fn($q) => $q->where('grand_site_id', $request->grand_site_id));
+
+        return $query;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ GÉNÉRATION DU FICHIER EXCEL
+    // ════════════════════════════════════════════════════════════════
+
+    private function generateExcel($dossiers, $beneficiaires = null)
+    {
+        $beneficiaires = $beneficiaires ?? collect();
+
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Dossiers Clients');
+        $sheet->setTitle('Clients & Bénéficiaires');
 
         // ═══ EN-TÊTES ═══
         $headers = [
@@ -140,44 +238,144 @@ class DossierClientController extends Controller
             $sheet->getStyle($col.'1')->getFont()->getColor()->setRGB('FFFFFF');
         }
 
-        // ═══ DONNÉES ═══
         $row = 2;
+
+        // ═══════════════════════════════════════════════════════════
+        // 1. CLIENTS
+        // ═══════════════════════════════════════════════════════════
         foreach ($dossiers as $dossier) {
-            $client          = $dossier->client;
-            $nom             = $client?->name ?? '';
-            $telephone       = $client?->phone ?? '';
-            $sexe            = $client?->sexe ?? 'non_renseigne';
-            $grandSiteNom    = $dossier->grandSite?->nom ?? $dossier->nom_dossier ?? '';
-            $superficie      = $dossier->superficie_voulue ?? '';
+            $client = $dossier->client;
+            if (!$client) continue;
+
+            $nom       = $client->name ?? '';
+            $telephone = $client->phone ?? '';
+            $sexe      = $client->sexe ?? 'non_renseigne';
+
+            // Intitulé = Grand Site(s) de ses lots
+            $grandsSites = $dossier->affectations
+                ->pluck('grandSite.nom')
+                ->filter()
+                ->unique();
+
+            if ($grandsSites->isEmpty() && $dossier->grandSite) {
+                $grandsSites = collect([$dossier->grandSite->nom]);
+            }
+
+            $intitule = $grandsSites->implode(', ') ?: ($dossier->nom_dossier ?? '-');
+
+            // Superficie = somme des superficies des lots
+            $superficieTotale = $dossier->affectations->sum(
+                fn($aff) => $aff->lot?->superficie ?? 0
+            );
+
+            if ($superficieTotale === 0 && $dossier->superficie_voulue) {
+                $superficieTotale = $dossier->superficie_voulue;
+            }
+
+            // Date paiement
             $premierPaiement = $dossier->paiements->first();
-            $datePaiement    = $premierPaiement
+            $datePaiement = $premierPaiement
                 ? \Carbon\Carbon::parse($premierPaiement->date_paiement)->format('d/m/Y')
                 : '';
-            
-            // Génération de l'email
+
+            // Email généré
             $emailGen = $nom
                 ? strtolower(str_replace([' ',"'"], ['.',''],
                     iconv('UTF-8','ASCII//TRANSLIT',$nom))).'@edengroup.cm'
                 : '';
 
-            // ✅ Sexe correct
+            // Sexe
             $sexeLabel = match($sexe) {
                 'masculin' => 'Masculin',
-                'feminin' => 'Féminin',
-                default => 'Non renseigné',
+                'feminin'  => 'Féminin',
+                default    => 'Non renseigné',
             };
 
-            $sheet->setCellValue('A'.$row, $nom);
+            // Identifiant
+            $identifiant = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nom));
+            $identifiant = substr($identifiant, 0, 15) ?: 'user';
+
+            $sheet->setCellValue('A'.$row, $identifiant);
             $sheet->setCellValue('B'.$row, 'eden');
             $sheet->setCellValue('C'.$row, $nom);
             $sheet->setCellValue('D'.$row, $emailGen);
             $sheet->setCellValue('E'.$row, $telephone);
             $sheet->setCellValue('F'.$row, 'Yaoundé');
-            $sheet->setCellValue('G'.$row, $sexeLabel);  // ✅ Sexe correct
+            $sheet->setCellValue('G'.$row, $sexeLabel);
             $sheet->setCellValue('H'.$row, 'client');
             $sheet->setCellValue('I'.$row, 'Oui');
-            $sheet->setCellValue('J'.$row, $grandSiteNom);
-            $sheet->setCellValue('K'.$row, $superficie);
+            $sheet->setCellValue('J'.$row, $intitule);
+            $sheet->setCellValue('K'.$row, $superficieTotale ?: '');
+            $sheet->setCellValue('L'.$row, $datePaiement);
+            $sheet->setCellValue('M'.$row, 'EDEN GROUP');
+            $sheet->setCellValue('N'.$row, '');
+            $sheet->setCellValue('O'.$row, '');
+            $sheet->setCellValue('P'.$row, '');
+            $row++;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 2. BÉNÉFICIAIRES
+        // ═══════════════════════════════════════════════════════════
+        foreach ($beneficiaires as $benef) {
+            $dossier = $benef->dossier;
+            $client  = $benef->client ?? $dossier?->client;
+
+            $nom       = $benef->nom ?? '';
+            $telephone = $benef->telephone ?? ($client?->phone ?? '');
+
+            // Intitulé = Grand Site(s) de ses lots
+            $grandsSites = $benef->affectations
+                ->pluck('grandSite.nom')
+                ->filter()
+                ->unique();
+
+            if ($grandsSites->isEmpty() && $dossier?->grandSite) {
+                $grandsSites = collect([$dossier->grandSite->nom]);
+            }
+
+            $intitule = $grandsSites->implode(', ') ?: '-';
+
+            // Superficie = somme des superficies des lots
+            $superficieTotale = $benef->affectations->sum(
+                fn($aff) => $aff->lot?->superficie ?? 0
+            );
+
+            // Date paiement
+            $premierPaiement = $dossier?->paiements->first();
+            $datePaiement = $premierPaiement
+                ? \Carbon\Carbon::parse($premierPaiement->date_paiement)->format('d/m/Y')
+                : '';
+
+            // Email généré
+            $emailGen = $nom
+                ? strtolower(str_replace([' ',"'"], ['.',''],
+                    iconv('UTF-8','ASCII//TRANSLIT',$nom))).'@edengroup.cm'
+                : '';
+
+            // Sexe
+            $sexe = $client?->sexe ?? 'non_renseigne';
+            $sexeLabel = match($sexe) {
+                'masculin' => 'Masculin',
+                'feminin'  => 'Féminin',
+                default    => 'Non renseigné',
+            };
+
+            // Identifiant
+            $identifiant = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nom));
+            $identifiant = substr($identifiant, 0, 15) ?: 'user';
+
+            $sheet->setCellValue('A'.$row, $identifiant);
+            $sheet->setCellValue('B'.$row, 'eden');
+            $sheet->setCellValue('C'.$row, $nom);
+            $sheet->setCellValue('D'.$row, $emailGen);
+            $sheet->setCellValue('E'.$row, $telephone);
+            $sheet->setCellValue('F'.$row, 'Yaoundé');
+            $sheet->setCellValue('G'.$row, $sexeLabel);
+            $sheet->setCellValue('H'.$row, 'client');
+            $sheet->setCellValue('I'.$row, 'Oui');
+            $sheet->setCellValue('J'.$row, $intitule);
+            $sheet->setCellValue('K'.$row, $superficieTotale ?: '');
             $sheet->setCellValue('L'.$row, $datePaiement);
             $sheet->setCellValue('M'.$row, 'EDEN GROUP');
             $sheet->setCellValue('N'.$row, '');
@@ -191,9 +389,9 @@ class DossierClientController extends Controller
             $sheet->getColumnDimension($col)->setAutoSize(true);
 
         // ═══ TÉLÉCHARGEMENT ═══
-        $fileName = 'dossiers_clients_'.now()->format('Y-m-d').'.xlsx';
+        $fileName = 'clients_beneficiaires_'.now()->format('Y-m-d_H-i').'.xlsx';
         $writer   = new Xlsx($spreadsheet);
-        
+
         return response()->stream(function() use ($writer) {
             $writer->save('php://output');
         }, 200, [
@@ -204,14 +402,14 @@ class DossierClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ GÉNÉRER UN EXCEL VIDE (si aucun client sélectionné)
+    // ✅ EXCEL VIDE
     // ════════════════════════════════════════════════════════════════
 
     private function generateEmptyExcel()
     {
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Dossiers Clients');
+        $sheet->setTitle('Clients & Bénéficiaires');
 
         $headers = [
             'A'=>'Identifiant','B'=>'Mot de passe','C'=>'Nom','D'=>'Email',
@@ -233,11 +431,11 @@ class DossierClientController extends Controller
         foreach (range('A','P') as $col)
             $sheet->getColumnDimension($col)->setAutoSize(true);
 
-        $sheet->setCellValue('A2', 'Aucun dossier trouvé');
+        $sheet->setCellValue('A2', 'Aucun élément trouvé');
 
-        $fileName = 'dossiers_clients_vide_'.now()->format('Y-m-d').'.xlsx';
+        $fileName = 'clients_beneficiaires_vide_'.now()->format('Y-m-d').'.xlsx';
         $writer   = new Xlsx($spreadsheet);
-        
+
         return response()->stream(function() use ($writer) {
             $writer->save('php://output');
         }, 200, [

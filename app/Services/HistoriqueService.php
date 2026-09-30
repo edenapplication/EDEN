@@ -19,11 +19,13 @@ class HistoriqueService
         ?string $cibleType = null,
         ?int $cibleId = null,
         ?array $avant = null,
-        ?array $apres = null
+        ?array $apres = null,
+        $beneficiaireId = null
     ): void {
         try {
             HistoriqueAffectation::create([
                 'dossier_client_id' => $dossierId,
+                'beneficiaire_id'   => $beneficiaireId,
                 'type_action'       => $typeAction,
                 'user_id'           => Auth::id(),
                 'cible_type'        => $cibleType,

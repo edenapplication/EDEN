@@ -17,7 +17,7 @@ class Beneficiaire extends Model
         'lots_texte',
         'superficie_attribuee',
         'notes',
-        // ✅ Étapes
+        'client_id',
         'implantation_prevue',
         'deja_implante',
         'dossier_technique',
@@ -41,7 +41,11 @@ class Beneficiaire extends Model
         return $this->belongsTo(DossierClient::class, 'dossier_client_id');
     }
 
-    // ✅ Affectations de lots liées au bénéficiaire
+    public function client()
+    {
+        return $this->belongsTo(Client::class, 'client_id');
+    }
+
     public function affectations()
     {
         return $this->hasMany(Affectation::class, 'beneficiaire_id');
@@ -61,7 +65,7 @@ class Beneficiaire extends Model
     }
 
     // ════════════════════════════════════════════════════════════
-    // ÉTAPES — mêmes méthodes que DossierClient
+    // ÉTAPES
     // ════════════════════════════════════════════════════════════
     public static function etapesConfig(): array
     {

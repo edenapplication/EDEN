@@ -22,51 +22,34 @@
 #search-live:focus { border-color:#1d4ed8; outline:none; }
 .highlight { background:#fef9c3; border-radius:3px; padding:0 2px; }
 
-/* ═══ BADGE NOUVEAU ═══ */
+/* BADGE NOUVEAU */
 .badge-new {
-    background: #10b981;
-    color: #fff;
-    padding: 4px 12px;
-    border-radius: 50px;
-    font-size: 11px;
-    font-weight: 700;
+    background: #10b981; color: #fff;
+    padding: 4px 12px; border-radius: 50px;
+    font-size: 11px; font-weight: 700;
     text-transform: uppercase;
     animation: pulse-new 2s ease-in-out infinite;
-    display: inline-block;
-    margin-left: 8px;
+    display: inline-block; margin-left: 8px;
 }
-
 .badge-old {
-    background: #e2e8f0;
-    color: #64748b;
-    padding: 4px 12px;
-    border-radius: 50px;
-    font-size: 11px;
-    font-weight: 600;
-    display: inline-block;
-    margin-left: 8px;
+    background: #e2e8f0; color: #64748b;
+    padding: 4px 12px; border-radius: 50px;
+    font-size: 11px; font-weight: 600;
+    display: inline-block; margin-left: 8px;
 }
 
-/* ═══ BADGE SEXE ═══ */
+/* BADGE SEXE */
 .badge-sex-masculin {
-    background: #dbeafe;
-    color: #1d4ed8;
-    padding: 2px 10px;
-    border-radius: 50px;
-    font-size: 10px;
-    font-weight: 600;
-    display: inline-block;
-    margin-left: 4px;
+    background: #dbeafe; color: #1d4ed8;
+    padding: 2px 10px; border-radius: 50px;
+    font-size: 10px; font-weight: 600;
+    display: inline-block; margin-left: 4px;
 }
 .badge-sex-feminin {
-    background: #fce4ec;
-    color: #dc2626;
-    padding: 2px 10px;
-    border-radius: 50px;
-    font-size: 10px;
-    font-weight: 600;
-    display: inline-block;
-    margin-left: 4px;
+    background: #fce4ec; color: #dc2626;
+    padding: 2px 10px; border-radius: 50px;
+    font-size: 10px; font-weight: 600;
+    display: inline-block; margin-left: 4px;
 }
 
 @keyframes pulse-new {
@@ -75,247 +58,281 @@
 }
 
 .btn-toggle-new {
-    font-size: 11px;
-    padding: 4px 12px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 600;
+    font-size: 11px; padding: 4px 12px;
+    border-radius: 6px; border: 1px solid #e2e8f0;
+    background: #f8fafc; cursor: pointer;
+    transition: all 0.2s; font-weight: 600;
 }
 .btn-toggle-new:hover { background: #f1f5f9; }
 .btn-toggle-new.is-new {
-    background: #10b981;
-    color: #fff;
-    border-color: #10b981;
+    background: #10b981; color: #fff; border-color: #10b981;
 }
-.btn-toggle-new.is-new:hover { background: #059669; }
 
-/* ═══ BARRE D'ACTIONS GROUPÉES ═══ */
+/* BARRE D'ACTIONS GROUPÉES */
 .action-bar {
-    background: white;
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
+    background: white; border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    display: none;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    border: 2px solid #16a34a;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    display: none; align-items: center; gap: 12px;
+    flex-wrap: wrap; border: 2px solid #16a34a;
+    position: sticky; top: 0; z-index: 100;
 }
-.action-bar.visible {
-    display: flex;
-}
-.action-bar .count {
-    font-weight: 700;
-    color: #16a34a;
-    font-size: 14px;
-}
-.action-bar .btn-group {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
+.action-bar.visible { display: flex; }
+.action-bar .count { font-weight: 700; color: #16a34a; font-size: 14px; }
+.action-bar .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .action-bar .btn {
-    font-size: 12px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
+    font-size: 12px; padding: 6px 14px;
+    border-radius: 6px; font-weight: 600;
+    border: none; cursor: pointer;
     transition: all 0.2s;
 }
 .action-bar .btn-primary { background: #1d4ed8; color: #fff; }
-.action-bar .btn-primary:hover { background: #1e40af; }
 .action-bar .btn-success { background: #16a34a; color: #fff; }
-.action-bar .btn-success:hover { background: #15803d; }
 .action-bar .btn-danger { background: #dc2626; color: #fff; }
-.action-bar .btn-danger:hover { background: #b91c1c; }
 .action-bar .btn-warning { background: #f59e0b; color: #fff; }
-.action-bar .btn-warning:hover { background: #d97706; }
+.action-bar .btn-info { background: #0891b2; color: #fff; }
 .action-bar .btn-outline { background: transparent; border: 1.5px solid #e2e8f0; color: #64748b; }
-.action-bar .btn-outline:hover { background: #f1f5f9; }
-.action-bar .dropdown-menu .dropdown-item { font-size: 12px; padding: 6px 16px; }
 
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
 .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:500px; max-width:95%; }
 
-/* Toast notification */
 .toast-notification {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #1f2937;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 9999;
-    max-width: 400px;
+    position: fixed; bottom: 20px; right: 20px;
+    background: #1f2937; color: #fff;
+    padding: 12px 20px; border-radius: 8px;
+    font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 9999; max-width: 400px;
     animation: slideInToast 0.3s ease;
 }
 .toast-notification.success { background: #16a34a; }
 .toast-notification.error { background: #dc2626; }
 .toast-notification.warning { background: #f59e0b; }
+.toast-notification.info { background: #0891b2; }
 
 @keyframes slideInToast {
     from { transform: translateY(20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* ═══ CHECKBOX PERSONNALISÉ ═══ */
 .client-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #1d4ed8;
-    margin-right: 8px;
-    flex-shrink: 0;
+    width: 18px; height: 18px; cursor: pointer;
+    accent-color: #1d4ed8; margin-right: 8px; flex-shrink: 0;
 }
 
-/* ═══ BADGES LOTS AFFECTÉS ═══ */
+/* BADGES LOTS AFFECTÉS */
 .lots-badge-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-    align-items: center;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-top: 6px; align-items: center;
 }
 .lot-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 9px;
-    font-weight: 700;
-    background: #f0fdf4;
-    color: #15803d;
-    border: 1px solid #86efac;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 9px; font-weight: 700;
+    background: #f0fdf4; color: #15803d;
+    border: 1px solid #86efac; white-space: nowrap;
 }
-.lot-badge.benef {
-    background: #faf5ff;
-    color: #7c3aed;
-    border-color: #c4b5fd;
-}
-.lot-badge.dossier {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border-color: #93c5fd;
-}
+.lot-badge.benef { background: #faf5ff; color: #7c3aed; border-color: #c4b5fd; }
+.lot-badge.dossier { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
 .lots-count-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 9px;
-    font-weight: 700;
-    background: #dcfce7;
-    color: #15803d;
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 9px; font-weight: 700;
+    background: #dcfce7; color: #15803d;
     border: 1.5px solid #86efac;
 }
 
-/* ═══ BÉNÉFICIAIRES DANS L'INDEX ═══ */
-.benef-list {
-    margin-top: 8px;
-    padding: 8px 10px;
-    background: #faf5ff;
-    border: 1px solid #e9d5ff;
-    border-radius: 8px;
+/* ═══════════════════════════════════════════════════════════════
+   BÉNÉFICIAIRES INDÉPENDANTS
+   ═══════════════════════════════════════════════════════════════ */
+.benef-section {
+    margin-top: 10px; padding: 12px;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border: 1.5px solid #e9d5ff; border-radius: 10px;
 }
-.benef-list-header {
-    font-size: 10px;
-    font-weight: 700;
-    color: #7c3aed;
+.benef-section-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 8px;
+}
+.benef-section-title {
+    font-size: 11px; font-weight: 700; color: #7c3aed;
     text-transform: uppercase;
-    margin-bottom: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex; align-items: center; gap: 6px;
 }
-.benef-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    background: white;
-    border: 1.5px solid #c4b5fd;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 600;
-    color: #7c3aed;
-    margin-right: 4px;
-    margin-bottom: 4px;
-    transition: all 0.2s;
+.benef-section-count {
+    background: #7c3aed; color: white;
+    padding: 1px 8px; border-radius: 10px;
+    font-size: 9px; font-weight: 700;
 }
-.benef-pill:hover {
-    background: #f5f3ff;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
+.benef-bulk-actions { display: flex; gap: 4px; }
+.benef-bulk-btn {
+    font-size: 9px; padding: 2px 8px; border-radius: 5px;
+    border: 1px solid #c4b5fd; background: white;
+    color: #7c3aed; cursor: pointer; font-weight: 600;
 }
-.benef-pill .benef-nom {
-    color: #5b21b6;
-    font-weight: 700;
+.benef-bulk-btn:hover { background: #ede9fe; }
+
+/* CARTE BÉNÉFICIAIRE */
+.benef-card {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 10px 12px; background: white;
+    border: 1.5px solid #c4b5fd; border-radius: 8px;
+    margin-bottom: 8px; transition: all 0.2s;
+    cursor: pointer;
 }
-.benef-pill .benef-sup {
+.benef-card:hover {
+    border-color: #7c3aed;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12);
+    transform: translateX(2px);
+}
+.benef-card.selected {
     background: #ede9fe;
-    padding: 1px 6px;
-    border-radius: 10px;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.benef-checkbox {
+    width: 16px; height: 16px; cursor: pointer;
+    accent-color: #7c3aed; flex-shrink: 0; margin-top: 8px;
+}
+
+.benef-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white; display: flex; align-items: center;
+    justify-content: center; font-weight: 700;
+    font-size: 13px; flex-shrink: 0;
+}
+
+.benef-info { flex: 1; min-width: 0; }
+
+.benef-nom {
+    font-size: 13px; font-weight: 700; color: #1e3a5f;
+    display: flex; align-items: center; gap: 5px;
+    flex-wrap: wrap;
+}
+
+/* BADGES DÉTAIL DU BÉNÉFICIAIRE */
+.benef-detail-badges {
+    display: flex; flex-wrap: wrap;
+    gap: 4px; margin-top: 6px;
+}
+.benef-detail-badges .badge-site {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1d4ed8; padding: 2px 8px;
+    border-radius: 6px; font-weight: 700;
+    border: 1px solid #93c5fd;
+    display: inline-flex; align-items: center; gap: 3px;
     font-size: 9px;
-    color: #6d28d9;
-    font-weight: 700;
 }
-.benef-pill .benef-lots {
-    background: #dcfce7;
-    padding: 1px 6px;
-    border-radius: 10px;
+.benef-detail-badges .badge-tf {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e; padding: 2px 8px;
+    border-radius: 6px; font-weight: 700;
+    border: 1px solid #fcd34d;
+    display: inline-flex; align-items: center; gap: 3px;
     font-size: 9px;
-    color: #15803d;
-    font-weight: 700;
 }
-.benef-pill .benef-etape {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #16a34a;
-    display: inline-block;
-    box-shadow: 0 0 0 2px #dcfce7;
+.benef-detail-badges .badge-bloc {
+    background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+    color: #9d174d; padding: 2px 8px;
+    border-radius: 6px; font-weight: 700;
+    border: 1px solid #f9a8d4;
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 9px;
 }
-.benef-pill .benef-etape.vide {
+.benef-detail-badges .badge-lot {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534; padding: 2px 6px;
+    border-radius: 6px; font-weight: 700;
+    border: 1px solid #86efac;
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 9px;
+}
+.benef-detail-badges .badge-superficie {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white; padding: 3px 10px;
+    border-radius: 8px; font-weight: 800;
+    font-size: 10px;
+    box-shadow: 0 2px 6px rgba(124,58,237,0.3);
+    display: inline-flex; align-items: center; gap: 3px;
+}
+.benef-detail-badges .badge-count {
+    background: #f1f5f9; color: #64748b;
+    padding: 2px 6px; border-radius: 6px;
+    font-weight: 600; font-size: 9px;
+    display: inline-flex; align-items: center; gap: 2px;
+}
+
+.benef-meta {
+    font-size: 10px; color: #64748b;
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 4px;
+}
+.benef-meta-item {
+    display: inline-flex; align-items: center; gap: 3px;
+}
+.benef-meta-item strong { color: #7c3aed; }
+
+.benef-actions {
+    display: flex; gap: 3px; flex-shrink: 0;
+    margin-top: 4px;
+}
+.benef-action-btn {
+    width: 26px; height: 26px; border-radius: 6px;
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; transition: all 0.2s;
+}
+.benef-action-btn.whatsapp { background: #dcfce7; color: #16a34a; }
+.benef-action-btn.whatsapp:hover { background: #16a34a; color: white; transform: scale(1.1); }
+.benef-action-btn.view { background: #dbeafe; color: #1d4ed8; }
+.benef-action-btn.view:hover { background: #1d4ed8; color: white; transform: scale(1.1); }
+
+.benef-etape-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #16a34a; display: inline-block;
+    box-shadow: 0 0 0 2px #dcfce7; flex-shrink: 0;
+}
+.benef-etape-dot.vide {
     background: #cbd5e1;
     box-shadow: 0 0 0 2px #f1f5f9;
 }
-.benef-superficie-bar {
-    margin-top: 6px;
-    height: 6px;
-    background: #e9d5ff;
-    border-radius: 3px;
-    overflow: hidden;
+
+.benef-etape-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 6px; border-radius: 8px;
+    font-size: 9px; font-weight: 700;
 }
-.benef-superficie-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #7c3aed, #a855f7);
-    border-radius: 3px;
-    transition: width 0.3s;
+
+/* Barre de sélection */
+.selection-summary {
+    display: flex; gap: 12px; align-items: center;
+    font-size: 11px; color: #64748b;
+    padding: 6px 12px; background: #f8fafc;
+    border-radius: 8px; margin-bottom: 8px;
 }
-.benef-superficie-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 9px;
-    color: #7c3aed;
-    font-weight: 700;
-    margin-top: 4px;
+.selection-summary .badge-count {
+    background: #dbeafe; color: #1d4ed8;
+    padding: 2px 8px; border-radius: 10px;
+    font-weight: 700; font-size: 10px;
+}
+.selection-summary .badge-count.benef {
+    background: #faf5ff; color: #7c3aed;
+}
+
+/* MODAL ÉTAPE GROUPÉE */
+.etape-groupee-label {
+    display:inline-flex; align-items:center; gap:6px;
+    background:white; border:2px solid #e2e8f0;
+    border-radius:8px; padding:8px 14px;
+    cursor:pointer; font-size:12px; font-weight:700;
+    color:#64748b; transition:all 0.2s;
 }
 </style>
 
+{{-- ═══════════════════════════════════════════════════════════
+     EN-TÊTE
+     ═══════════════════════════════════════════════════════════ --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 style="color:#1e3a5f;font-weight:800;margin:0;">👤 Suivi Clients</h2>
@@ -326,7 +343,7 @@
             </span>
         </div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
         <button onclick="selectionnerTout()" class="btn btn-outline-secondary btn-sm">
             ☑ Sélectionner tout
         </button>
@@ -334,7 +351,7 @@
             ☐ Désélectionner
         </button>
         <a href="{{ route('dossiers.export-excel', request()->all()) }}" class="btn btn-success btn-sm">
-            📥 Export Excel
+            📥 Export Excel (filtres)
         </a>
         <button onclick="exporterPdf()" class="btn btn-danger btn-sm" title="Exporter en PDF">
             📄 PDF
@@ -349,19 +366,17 @@
     </div>
 @endif
 
-{{-- ═══ BARRE D'ACTIONS GROUPÉES ═══ --}}
+{{-- ═══════════════════════════════════════════════════════════
+     BARRE D'ACTIONS GROUPÉES
+     ═══════════════════════════════════════════════════════════ --}}
 <div class="action-bar" id="actionBar">
     <span class="count" id="selectedCount">0</span>
-    <span style="font-size:13px;color:#64748b;">client(s) sélectionné(s)</span>
+    <span style="font-size:13px;color:#64748b;">élément(s) sélectionné(s)</span>
     <div class="btn-group">
-        <button class="btn btn-success" onclick="actionGroupee('mark_as_new')">
-            🆕 Marquer nouveaux
-        </button>
-        <button class="btn btn-warning" onclick="actionGroupee('mark_as_old')">
-            📌 Marquer anciens
-        </button>
+        <span style="font-size:10px;color:#94a3b8;align-self:center;margin-right:4px;">Clients :</span>
+        <button class="btn btn-success" onclick="actionGroupee('mark_as_new')">🆕 Nouveaux</button>
+        <button class="btn btn-warning" onclick="actionGroupee('mark_as_old')">📌 Anciens</button>
         
-        {{-- ✅ ACTIONS SEXE --}}
         <div class="btn-group" role="group">
             <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" 
                     data-bs-toggle="dropdown" aria-expanded="false">
@@ -373,30 +388,30 @@
             </ul>
         </div>
         
-        <button class="btn btn-primary" onclick="actionGroupee('export_whatsapp')">
-            💬 WhatsApp
+        {{-- ✅ ÉTAPE D'AVANCEMENT --}}
+        <button class="btn" style="background:#f59e0b;color:white;" onclick="ouvrirModalEtapeGroupee()">
+            📊 Étape
         </button>
-        
-        {{-- ✅ EXPORT PDF DES SÉLECTIONNÉS --}}
-        <button class="btn btn-danger" onclick="actionGroupee('export_pdf_selected')">
-            📄 PDF sélection
-        </button>
-        
-        {{-- ✅ RÉCUPÉRER TOUS LES DOCUMENTS --}}
-        <button class="btn btn-info" onclick="actionGroupee('export_documents')">
-            📁 Tous les docs
-        </button>
-        
-        <button class="btn btn-danger" onclick="actionGroupee('delete')">
-            🗑 Supprimer
-        </button>
-        <button class="btn btn-outline" onclick="deselectionnerTout()">
-            ✖ Annuler
-        </button>
+
+        <button class="btn btn-primary" onclick="actionGroupee('export_whatsapp')">💬 WhatsApp</button>
+        <button class="btn btn-success" onclick="actionGroupee('export_excel_selected')">📥 Excel sélection</button>
+        <button class="btn btn-danger" onclick="actionGroupee('export_pdf_selected')">📄 PDF sélection</button>
+        <button class="btn btn-info" onclick="actionGroupee('export_documents')">📁 Docs</button>
+        <button class="btn btn-danger" onclick="actionGroupee('delete')">🗑 Supprimer</button>
+        <button class="btn btn-outline" onclick="deselectionnerTout()">✖ Annuler</button>
     </div>
 </div>
 
-{{-- ✅ FILTRES avec recherche dynamique --}}
+{{-- RÉSUMÉ SÉLECTION --}}
+<div class="selection-summary" id="selectionSummary" style="display:none;">
+    <span>📊 Sélection :</span>
+    <span class="badge-count" id="count-clients">0 client(s)</span>
+    <span class="badge-count benef" id="count-benefs">0 bénéficiaire(s)</span>
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════
+     FILTRES
+     ═══════════════════════════════════════════════════════════ --}}
 <div class="filtre-box">
     <div class="row g-2 align-items-end">
         <div class="col-md-2">
@@ -433,8 +448,6 @@
                 @endforeach
             </select>
         </div>
-
-        {{-- ✅ FILTRE SEXE --}}
         <div class="col-md-1">
             <label style="font-size:11px;font-weight:700;color:#64748b;">👤 Sexe</label>
             <select id="filtre-sexe" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
@@ -443,8 +456,6 @@
                 <option value="feminin" {{ request('sexe') == 'feminin' ? 'selected' : '' }}>👩 Féminin</option>
             </select>
         </div>
-
-        {{-- ✅ FILTRE PAIEMENT TECHNIQUE SOLDÉ --}}
         <div class="col-md-1">
             <label style="font-size:11px;font-weight:700;color:#64748b;">🛠️ Technique</label>
             <select id="filtre-technique" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
@@ -453,18 +464,14 @@
                 <option value="non_solde" {{ request('technique_solde') == 'non_solde' ? 'selected' : '' }}>⏳ Non soldé</option>
             </select>
         </div>
-
-        {{-- ✅ FILTRE PAIEMENT MORCELLEMENT SOLDÉ --}}
         <div class="col-md-1">
-            <label style="font-size:11px;font-weight:700;color:#64748b;">✂️ Morcellement</label>
+            <label style="font-size:11px;font-weight:700;color:#64748b;">✂️ Morcel.</label>
             <select id="filtre-morcellement" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
                 <option value="">Tous</option>
                 <option value="solde" {{ request('morcellement_solde') == 'solde' ? 'selected' : '' }}>✅ Soldé</option>
                 <option value="non_solde" {{ request('morcellement_solde') == 'non_solde' ? 'selected' : '' }}>⏳ Non soldé</option>
             </select>
         </div>
-
-        {{-- ✅ FILTRE PAIEMENT DOSSIER SOLDÉ --}}
         <div class="col-md-1">
             <label style="font-size:11px;font-weight:700;color:#64748b;">📁 Dossier</label>
             <select id="filtre-dossier" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
@@ -473,18 +480,14 @@
                 <option value="non_solde" {{ request('dossier_solde') == 'non_solde' ? 'selected' : '' }}>⏳ Non soldé</option>
             </select>
         </div>
-
-        {{-- ✅ FILTRE PAIEMENT LOGISTIQUE SOLDÉ --}}
         <div class="col-md-1">
-            <label style="font-size:11px;font-weight:700;color:#64748b;">🚗 Logistique</label>
+            <label style="font-size:11px;font-weight:700;color:#64748b;">🚗 Logi.</label>
             <select id="filtre-logistique" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
                 <option value="">Tous</option>
                 <option value="solde" {{ request('logistique_solde') == 'solde' ? 'selected' : '' }}>✅ Soldé</option>
                 <option value="non_solde" {{ request('logistique_solde') == 'non_solde' ? 'selected' : '' }}>⏳ Non soldé</option>
             </select>
         </div>
-
-        {{-- ✅ FILTRE LOTS AFFECTÉS --}}
         <div class="col-md-1">
             <label style="font-size:11px;font-weight:700;color:#64748b;">📦 Lots</label>
             <select id="filtre-lots" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
@@ -493,7 +496,6 @@
                 <option value="sans" {{ request('lots') == 'sans' ? 'selected' : '' }}>⭕ Sans lots</option>
             </select>
         </div>
-
         <div class="col-md-1 d-flex gap-1">
             <button onclick="appliquerFiltresServeur()" class="btn btn-primary btn-sm">🔍</button>
             <a href="{{ route('suivi-client.index') }}" class="btn btn-outline-secondary btn-sm">✖</a>
@@ -501,7 +503,9 @@
     </div>
 </div>
 
-{{-- LISTE --}}
+{{-- ═══════════════════════════════════════════════════════════
+     LISTE DES CLIENTS
+     ═══════════════════════════════════════════════════════════ --}}
 <div id="liste-clients">
     @forelse($clients as $client)
     <div class="client-card"
@@ -512,13 +516,11 @@
          data-id="{{ $client->id }}">
         <div class="d-flex justify-content-between align-items-start">
             <div style="flex:1;display:flex;align-items:flex-start;gap:8px;">
-                {{-- ═══ CHECKBOX DE SÉLECTION ═══ --}}
                 <input type="checkbox" class="client-checkbox" 
                        onchange="toggleSelection(this, {{ $client->id }})"
                        data-client-id="{{ $client->id }}">
                        
                 <div style="flex:1;">
-                    {{-- Nom modifiable + Badge "Nouveau" --}}
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <div style="font-weight:700;font-size:15px;color:#1e3a5f;"
                              id="nom-{{ $client->id }}" class="client-nom">
@@ -526,16 +528,11 @@
                         </div>
                         
                         @if($client->is_new)
-                            <span class="badge-new" id="badge-{{ $client->id }}">
-                                🆕 Nouveau
-                            </span>
+                            <span class="badge-new" id="badge-{{ $client->id }}">🆕 Nouveau</span>
                         @else
-                            <span class="badge-old" id="badge-{{ $client->id }}">
-                                Ancien
-                            </span>
+                            <span class="badge-old" id="badge-{{ $client->id }}">Ancien</span>
                         @endif
                         
-                        {{-- ═══ BADGE SEXE ═══ --}}
                         @if($client->sexe == 'masculin')
                             <span class="badge-sex-masculin">👨 Masculin</span>
                         @elseif($client->sexe == 'feminin')
@@ -549,11 +546,14 @@
                         <button class="btn-toggle-new {{ $client->is_new ? 'is-new' : '' }}"
                                 onclick="toggleNew({{ $client->id }})"
                                 id="btn-new-{{ $client->id }}">
-                            @if($client->is_new)
-                                ✅ Nouveau
-                            @else
-                                🔄 Marquer nouveau
-                            @endif
+                            @if($client->is_new) ✅ Nouveau @else 🔄 Marquer nouveau @endif
+                        </button>
+
+                        <button onclick="envoyerWhatsAppClient({{ $client->id }})"
+                                class="btn btn-sm"
+                                style="background:#dcfce7;color:#16a34a;font-size:11px;padding:3px 10px;border:none;border-radius:6px;font-weight:600;"
+                                title="Envoyer WhatsApp">
+                            💬 WhatsApp
                         </button>
                     </div>
                     
@@ -563,278 +563,205 @@
                         &nbsp;·&nbsp; 📅 {{ $client->created_at?->format('d/m/Y') ?? '-' }}
                     </div>
 
-                    {{-- ═══════════════════════════════════════════════════════════
-                         DOSSIERS + LOTS AFFECTÉS + BÉNÉFICIAIRES
-                         ═══════════════════════════════════════════════════════════ --}}
-                    <div style="margin-top:6px;" id="dossiers-pills-{{ $client->id }}">
-                        @foreach($client->dossiers as $d)
-                        @php
-                            $tD = $d->paiements->sum('montant');
-                            $tT = $d->paiementsTechniques->sum('montant');
-                            $tM = $d->paiementsMorcellements->sum('montant');
-                            $tL = $d->paiementsLogistiques?->sum('montant') ?? 0;
+                    @php
+                        $lotsDossierTotal = 0;
+                        $lotsBenefTotal = 0;
+                        foreach ($client->dossiers as $d) {
+                            $lotsDossierTotal += $d->affectations->whereNull('beneficiaire_id')->count();
+                            $lotsBenefTotal   += $d->affectations->whereNotNull('beneficiaire_id')->count();
+                        }
+                    @endphp
 
-                            $rD = $d->prix_superficie   ?? 0;
-                            $rT = $d->prix_technique    ?? 0;
-                            $rM = $d->prix_morcellement ?? 0;
-                            $rL = $d->prix_logistique   ?? 0;
+                    @if($lotsDossierTotal + $lotsBenefTotal > 0)
+                    <div class="lots-badge-container" style="margin-top:6px;">
+                        <span class="lots-count-badge">
+                            📦 {{ $lotsDossierTotal + $lotsBenefTotal }} lot(s) au total
+                        </span>
+                        @if($lotsDossierTotal > 0)
+                            <span class="lot-badge dossier" style="font-size:8px;">
+                                Dossier : {{ $lotsDossierTotal }}
+                            </span>
+                        @endif
+                        @if($lotsBenefTotal > 0)
+                            <span class="lot-badge benef" style="font-size:8px;">
+                                Bénéf. : {{ $lotsBenefTotal }}
+                            </span>
+                        @endif
+                    </div>
+                    @endif
 
-                            $statutD = $rD > 0 ? ($tD >= $rD ? 'solde' : ($tD > 0 ? 'en_cours' : 'vide')) : ($tD > 0 ? 'en_cours' : 'vide');
-                            $statutT = $rT > 0 ? ($tT >= $rT ? 'solde' : ($tT > 0 ? 'en_cours' : 'vide')) : ($tT > 0 ? 'en_cours' : 'vide');
-                            $statutM = $rM > 0 ? ($tM >= $rM ? 'solde' : ($tM > 0 ? 'en_cours' : 'vide')) : ($tM > 0 ? 'en_cours' : 'vide');
-                            $statutL = $rL > 0 ? ($tL >= $rL ? 'solde' : ($tL > 0 ? 'en_cours' : 'vide')) : ($tL > 0 ? 'en_cours' : 'vide');
+                    @php
+                        $tousBeneficiaires = collect();
+                        foreach ($client->dossiers as $d) {
+                            foreach ($d->beneficiaires as $b) {
+                                $tousBeneficiaires->push([
+                                    'benef' => $b,
+                                    'dossier' => $d,
+                                ]);
+                            }
+                        }
+                    @endphp
 
-                            $couleurs = [
-                                'solde' => ['bg' => '#dcfce7', 'border' => '#86efac', 'text' => '#15803d', 'icone' => '✅'],
-                                'en_cours' => ['bg' => '#fef3c7', 'border' => '#fcd34d', 'text' => '#b45309', 'icone' => '⏳'],
-                                'vide' => ['bg' => '#f1f5f9', 'border' => '#cbd5e1', 'text' => '#64748b', 'icone' => '⭕']
-                            ];
-
-                            $totalPaye = $tD + $tT + $tL + $tM;
-                            $totalRef = $rD + $rT + $rL + $rM;
-                            $tousSoldes = ($statutD === 'solde' || $tD == 0) && 
-                                          ($statutT === 'solde' || $tT == 0) && 
-                                          ($statutL === 'solde' || $tL == 0) && 
-                                          ($statutM === 'solde' || $tM == 0);
-                            $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
-
-                            // ✅ LOTS DOSSIER VS BÉNÉFICIAIRES
-                            $lotsDossier = $d->affectations->whereNull('beneficiaire_id');
-                            $lotsBenef   = $d->affectations->whereNotNull('beneficiaire_id');
-                            $totalLotsDossier = $lotsDossier->count();
-                            $totalLotsBenef   = $lotsBenef->count();
-
-                            // ✅ BÉNÉFICIAIRES DU DOSSIER
-                            $beneficiaires = $d->beneficiaires ?? collect();
-                            $supDossier    = $d->superficie_voulue ?? 0;
-                            $supAttribuee  = $beneficiaires->sum('superficie_attribuee');
-                            $supRestante   = max(0, $supDossier - $supAttribuee);
-                            $pctAttribue   = $supDossier > 0 ? min(100, round(($supAttribuee / $supDossier) * 100)) : 0;
-                        @endphp
-
-                        <div class="dossier-pill" id="pill-dossier-{{ $d->id }}" style="display:inline-block;margin-bottom:8px;">
-                            <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;border:1px solid #e2e8f0;">
-                                
-                                {{-- En-tête --}}
-                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                    <span class="site" style="font-weight:700;color:#1e3a5f;">
-                                        {{ $d->grandSite?->nom ?? $d->nom_dossier }}
-                                        <small style="color:#6b7280;font-weight:normal;">
-                                            ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
-                                        </small>
-                                    </span>
-                                    <span style="color:#64748b;font-size:11px;">
-                                        {{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}
-                                    </span>
-                                </div>
-
-                                {{-- 📦 LOTS AFFECTÉS AU DOSSIER --}}
-                                @if($totalLotsDossier > 0)
-                                <div class="lots-badge-container" style="margin-top:6px;">
-                                    <span style="font-size:9px;color:#1d4ed8;font-weight:700;">📦 Dossier :</span>
-
-                                    @php
-                                        $groupesDossier = $lotsDossier->groupBy(function($aff) {
-                                            return $aff->bloc_id . '-' . $aff->date_affectation?->format('Y-m-d');
-                                        });
-                                    @endphp
-
-                                    @foreach($groupesDossier as $grp)
-                                        @php
-                                            $premier  = $grp->first();
-                                            $nbLots   = $grp->count();
-                                            $lotsList = $grp->pluck('lot.numero')->implode(', ');
-                                        @endphp
-                                        <span class="lot-badge dossier" title="{{ $premier->grandSite?->nom }} — Bloc {{ $premier->bloc?->code }} — 📅 {{ $premier->date_affectation?->format('d/m/Y') }}">
-                                            🏷️ {{ $lotsList }}
-                                            @if($nbLots > 1)
-                                                <span style="background:#1d4ed822;padding:0 4px;border-radius:6px;">{{ $nbLots }}</span>
-                                            @endif
-                                        </span>
-                                    @endforeach
-                                </div>
-                                @endif
-
-                                {{-- ═══════════════════════════════════════════════════════════
-                                     👥 BÉNÉFICIAIRES DU DOSSIER
-                                     ═══════════════════════════════════════════════════════════ --}}
-                                @if($beneficiaires->count() > 0)
-                                <div class="benef-list">
-                                    <div class="benef-list-header">
-                                        <span>👥 Bénéficiaires ({{ $beneficiaires->count() }})</span>
-                                        <span style="color:{{ $supRestante > 0 ? '#16a34a' : '#dc2626' }};font-size:9px;">
-                                            📐 {{ number_format($supRestante, 0, ',', ' ') }} m² restants
-                                        </span>
-                                    </div>
-
-                                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                                        @foreach($beneficiaires as $b)
-                                            @php
-                                                $benefAffs   = $b->affectations ?? collect();
-                                                $nbLotsB     = $benefAffs->count();
-                                                $lotsBList   = $benefAffs->pluck('lot.numero')->filter()->implode(', ');
-                                                $etapeActive = $b->etape_actuelle ?? null;
-                                            @endphp
-
-                                            <span class="benef-pill" 
-                                                  title="👤 {{ $b->nom }}&#10;📐 {{ number_format($b->superficie_attribuee, 0, ',', ' ') }} m²&#10;{{ $nbLotsB > 0 ? '📦 Lots : ' . $lotsBList : '⭕ Aucun lot affecté' }}&#10;{{ $etapeActive ? '📊 Étape : ' . str_replace('_', ' ', $etapeActive) : '📊 Aucune étape' }}">
-                                                <span class="benef-etape {{ $etapeActive ? '' : 'vide' }}"></span>
-                                                <span class="benef-nom">👤 {{ $b->nom }}</span>
-                                                <span class="benef-sup">{{ number_format($b->superficie_attribuee, 0, ',', ' ') }} m²</span>
-                                                @if($nbLotsB > 0)
-                                                    <span class="benef-lots">📦 {{ $nbLotsB }}</span>
-                                                @endif
-                                            </span>
-                                        @endforeach
-                                    </div>
-
-                                    {{-- Barre de répartition --}}
-                                    @if($supDossier > 0)
-                                    <div class="benef-superficie-bar">
-                                        <div class="benef-superficie-fill" style="width:{{ $pctAttribue }}%;"></div>
-                                    </div>
-                                    <div class="benef-superficie-info">
-                                        <span>📐 {{ number_format($supAttribuee, 0, ',', ' ') }} / {{ number_format($supDossier, 0, ',', ' ') }} m²</span>
-                                        <span>{{ $pctAttribue }}% attribué</span>
-                                    </div>
-                                    @endif
-                                </div>
-                                @endif
-
-                                {{-- ═══════════════════════════════════════════════════════════
-                                     👥 LOTS AFFECTÉS AUX BÉNÉFICIAIRES (vue groupée)
-                                     ═══════════════════════════════════════════════════════════ --}}
-                                @if($totalLotsBenef > 0)
-                                <div class="lots-badge-container" style="margin-top:6px;">
-                                    <span style="font-size:9px;color:#7c3aed;font-weight:700;">📦 Lots bénéf. :</span>
-
-                                    @php
-                                        $groupesBenef = $lotsBenef->groupBy('beneficiaire_id');
-                                    @endphp
-
-                                    @foreach($groupesBenef as $benefId => $affsBenef)
-                                        @php
-                                            $premier  = $affsBenef->first();
-                                            $benefNom = $premier->beneficiaire?->nom ?? 'Bénéf. #' . $benefId;
-                                            $nbLots   = $affsBenef->count();
-                                            $lotsList = $affsBenef->pluck('lot.numero')->implode(', ');
-                                        @endphp
-                                        <span class="lot-badge benef" title="{{ $benefNom }} — {{ $premier->grandSite?->nom ?? '-' }} — Bloc {{ $premier->bloc?->code ?? '-' }} — 📅 {{ $premier->date_affectation?->format('d/m/Y') }}">
-                                            👤 {{ $benefNom }}
-                                            <span style="background:#7c3aed22;padding:0 4px;border-radius:6px;">
-                                                {{ $lotsList }}
-                                            </span>
-                                            @if($nbLots > 1)
-                                                <span style="background:#7c3aed22;padding:0 4px;border-radius:6px;">
-                                                    {{ $nbLots }} lots
-                                                </span>
-                                            @endif
-                                        </span>
-                                    @endforeach
-                                </div>
-                                @endif
-
-                                {{-- ═══════════════════════════════════════════════════════════
-                                     RÉCAPITULATIF LOTS
-                                     ═══════════════════════════════════════════════════════════ --}}
-                                @if($totalLotsDossier + $totalLotsBenef > 0)
-                                <div class="lots-badge-container" style="margin-top:6px;">
-                                    <span class="lots-count-badge">
-                                        📦 {{ $totalLotsDossier + $totalLotsBenef }} lot(s) au total
-                                    </span>
-                                    @if($totalLotsDossier > 0)
-                                        <span class="lot-badge dossier" style="font-size:8px;">
-                                            Dossier : {{ $totalLotsDossier }}
-                                        </span>
-                                    @endif
-                                    @if($totalLotsBenef > 0)
-                                        <span class="lot-badge benef" style="font-size:8px;">
-                                            Bénéf. : {{ $totalLotsBenef }}
-                                        </span>
-                                    @endif
-                                </div>
-                                @endif
-
-                                {{-- ═══════════════════════════════════════════════════════════
-                                     STATUTS DE PAIEMENT
-                                     ═══════════════════════════════════════════════════════════ --}}
-                                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
-                                    @if($tD > 0 || $rD > 0)
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
-                                        <span style="font-size:10px;">{{ $couleurs[$statutD]['icone'] }}</span>
-                                        📁 Dossier
-                                        @if($statutD === 'solde')
-                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                                        @elseif($statutD === 'en_cours')
-                                            <span>{{ $rD > 0 ? number_format(round(($tD/$rD)*100)) . '%' : 'payé' }}</span>
-                                        @else
-                                            <span style="color:#94a3b8;">non payé</span>
-                                        @endif
-                                    </span>
-                                    @endif
-
-                                    @if($tT > 0 || $rT > 0)
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;background:{{ $couleurs[$statutT]['bg'] }};color:{{ $couleurs[$statutT]['text'] }};border:1.5px solid {{ $couleurs[$statutT]['border'] }};">
-                                        <span style="font-size:10px;">{{ $couleurs[$statutT]['icone'] }}</span>
-                                        🛠️ Tech.
-                                        @if($statutT === 'solde')
-                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                                        @elseif($statutT === 'en_cours')
-                                            <span>{{ $rT > 0 ? number_format(round(($tT/$rT)*100)) . '%' : 'payé' }}</span>
-                                        @else
-                                            <span style="color:#94a3b8;">non payé</span>
-                                        @endif
-                                    </span>
-                                    @endif
-
-                                    @if($tL > 0 || $rL > 0)
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;background:{{ $couleurs[$statutL]['bg'] }};color:{{ $couleurs[$statutL]['text'] }};border:1.5px solid {{ $couleurs[$statutL]['border'] }};">
-                                        <span style="font-size:10px;">{{ $couleurs[$statutL]['icone'] }}</span>
-                                        🚗 Logi.
-                                        @if($statutL === 'solde')
-                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                                        @elseif($statutL === 'en_cours')
-                                            <span>{{ $rL > 0 ? number_format(round(($tL/$rL)*100)) . '%' : 'payé' }}</span>
-                                        @else
-                                            <span style="color:#94a3b8;">non payé</span>
-                                        @endif
-                                    </span>
-                                    @endif
-
-                                    @if($tM > 0 || $rM > 0)
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;background:{{ $couleurs[$statutM]['bg'] }};color:{{ $couleurs[$statutM]['text'] }};border:1.5px solid {{ $couleurs[$statutM]['border'] }};">
-                                        <span style="font-size:10px;">{{ $couleurs[$statutM]['icone'] }}</span>
-                                        ✂️ Morcel.
-                                        @if($statutM === 'solde')
-                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                                        @elseif($statutM === 'en_cours')
-                                            <span>{{ $rM > 0 ? number_format(round(($tM/$rM)*100)) . '%' : 'payé' }}</span>
-                                        @else
-                                            <span style="color:#94a3b8;">non payé</span>
-                                        @endif
-                                    </span>
-                                    @endif
-                                </div>
-
-                                @if($totalRef > 0)
-                                <div style="margin-top:6px;padding:4px 10px;border-radius:6px;background: {{ $tousSoldes ? '#dcfce7' : ($totalPaye > 0 ? '#fef3c7' : '#f1f5f9') }};border: 1.5px solid {{ $tousSoldes ? '#86efac' : ($totalPaye > 0 ? '#fcd34d' : '#cbd5e1') }};display:flex;justify-content:space-between;align-items:center;font-size:10px;">
-                                    <span style="font-weight:700;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
-                                        {{ $tousSoldes ? '✅ SOLDÉ ' : ($totalPaye > 0 ? '⏳ EN COURS ' : '⭕ NON PAYÉ ') }}
-                                    </span>
-                                    <span style="font-weight:900;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
-                                        @if($totalPaye > 0)
-                                            {{ number_format($totalPaye, 0, ',', ' ') }} FCFA/ {{ number_format($totalRef, 0, ',', ' ') }} FCFA
-                                            <span style="font-size:9px;">({{ $pctGlobal }}%)</span>
-                                        @else
-                                            0 FCFA
-                                        @endif
-                                    </span>
-                                </div>
-                                @endif
+                    @if($tousBeneficiaires->count() > 0)
+                    <div class="benef-section" data-client-id="{{ $client->id }}">
+                        <div class="benef-section-header">
+                            <div class="benef-section-title">
+                                👥 Bénéficiaires
+                                <span class="benef-section-count">{{ $tousBeneficiaires->count() }}</span>
+                            </div>
+                            <div class="benef-bulk-actions">
+                                <button class="benef-bulk-btn" onclick="selectionnerBenefsClient({{ $client->id }}, true)">
+                                    ☑ Tout
+                                </button>
+                                <button class="benef-bulk-btn" onclick="selectionnerBenefsClient({{ $client->id }}, false)">
+                                    ☐ Aucun
+                                </button>
                             </div>
                         </div>
+
+                        @foreach($tousBeneficiaires as $item)
+                            @php
+                                $b = $item['benef'];
+                                $d = $item['dossier'];
+
+                                $benefAffs = $b->affectations()
+                                    ->with(['lot', 'bloc', 'grandSite', 'tf', 'site'])
+                                    ->where('statut', 'actif')
+                                    ->get();
+
+                                $nbLotsB = $benefAffs->count();
+
+                                $superficieTotale = $benefAffs->sum(function($aff) {
+                                    return $aff->lot?->superficie ?? 0;
+                                });
+
+                                $etapeActive = $b->etape_actuelle ?? null;
+                                $etapesConfig = \App\Models\Beneficiaire::etapesConfig();
+                                $etapeInfo = $etapeActive && isset($etapesConfig[$etapeActive])
+                                    ? $etapesConfig[$etapeActive]
+                                    : null;
+
+                                $lotsParGrandSite = $benefAffs->groupBy(function($aff) {
+                                    return $aff->grandSite?->nom ?? 'Site inconnu';
+                                });
+                            @endphp
+
+                            <div class="benef-card" 
+                                 data-benef-id="{{ $b->id }}"
+                                 data-client-id="{{ $client->id }}"
+                                 data-dossier-id="{{ $d->id }}"
+                                 onclick="toggleBenefSelection(event, {{ $b->id }})">
+                                
+                                <input type="checkbox" 
+                                       class="benef-checkbox"
+                                       data-benef-id="{{ $b->id }}"
+                                       data-client-id="{{ $client->id }}"
+                                       onclick="event.stopPropagation(); toggleBenefSelection(event, {{ $b->id }})">
+
+                                <div class="benef-avatar">
+                                    {{ strtoupper(substr($b->nom, 0, 1)) }}
+                                </div>
+
+                                <div class="benef-info">
+                                    <div class="benef-nom">
+                                        <span class="benef-etape-dot {{ $etapeActive ? '' : 'vide' }}"></span>
+                                        👤 {{ $b->nom }}
+                                        @if($b->client_id)
+                                            <span style="background:#dbeafe;color:#1d4ed8;font-size:8px;
+                                                         padding:1px 6px;border-radius:5px;font-weight:700;">
+                                                🔗 Client
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    @if($benefAffs->count() > 0)
+                                    <div class="benef-detail-badges">
+                                        @foreach($lotsParGrandSite as $grandSiteNom => $affsGrandSite)
+                                            <span class="badge-site">🏢 {{ $grandSiteNom }}</span>
+
+                                            @php
+                                                $lotsParTf = $affsGrandSite->groupBy(function($aff) {
+                                                    return $aff->tf?->title ?? 'TF inconnu';
+                                                });
+                                            @endphp
+
+                                            @foreach($lotsParTf as $tfNom => $affsTf)
+                                                <span class="badge-tf">📄 {{ $tfNom }}</span>
+
+                                                @php
+                                                    $lotsParBloc = $affsTf->groupBy(function($aff) {
+                                                        return $aff->bloc?->code ?? '?';
+                                                    });
+                                                @endphp
+
+                                                @foreach($lotsParBloc as $blocCode => $affsBloc)
+                                                    <span class="badge-bloc">🏗️ Bloc {{ $blocCode }}</span>
+
+                                                    @foreach($affsBloc as $aff)
+                                                        <span class="badge-lot">
+                                                            📦 Lot {{ $aff->lot?->numero ?? '?' }}
+                                                            @if($aff->lot?->superficie)
+                                                                <span style="font-weight:400;font-size:8px;">
+                                                                    ({{ number_format($aff->lot->superficie, 0, ',', ' ') }} m²)
+                                                                </span>
+                                                            @endif
+                                                        </span>
+                                                    @endforeach
+                                                @endforeach
+                                            @endforeach
+                                        @endforeach
+
+                                        <span class="badge-superficie">
+                                            📐 {{ number_format($superficieTotale, 0, ',', ' ') }} m²
+                                        </span>
+
+                                        <span class="badge-count">
+                                            📦 {{ $nbLotsB }} lot(s)
+                                        </span>
+                                    </div>
+                                    @else
+                                        <div class="benef-detail-badges" style="margin-top:6px;">
+                                            <span style="font-size:10px;color:#94a3b8;font-style:italic;">
+                                                Aucun lot affecté
+                                            </span>
+                                            <span class="badge-superficie" style="opacity:0.5;">
+                                                📐 0 m²
+                                            </span>
+                                        </div>
+                                    @endif
+
+                                    @if($etapeInfo)
+                                    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                                        <span class="benef-etape-pill"
+                                              style="background:{{ $etapeInfo['bg'] }};color:{{ $etapeInfo['color'] }};border:1px solid {{ $etapeInfo['color'] }}33;">
+                                            {{ $etapeInfo['icon'] }} {{ $etapeInfo['label'] }}
+                                        </span>
+                                    </div>
+                                    @endif
+
+                                    <div class="benef-meta" style="margin-top:4px;">
+                                        @if($b->telephone)
+                                            <span class="benef-meta-item">📞 {{ $b->telephone }}</span>
+                                        @endif
+                                        <span class="benef-meta-item" style="color:#94a3b8;">
+                                            📂 {{ $d->nom_dossier }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="benef-actions" onclick="event.stopPropagation();">
+                                    <button class="benef-action-btn whatsapp"
+                                            onclick="envoyerWhatsAppBenef({{ $b->id }})"
+                                            title="Envoyer WhatsApp">💬</button>
+                                    <button class="benef-action-btn view"
+                                            onclick="voirBenefDetail({{ $b->id }}, {{ $client->id }})"
+                                            title="Voir détails">👁</button>
+                                </div>
+                            </div>
                         @endforeach
                     </div>
+                    @endif
+
                 </div>
             </div>
             <a href="{{ route('suivi-client.show', $client->id) }}"
@@ -848,6 +775,10 @@
     </div>
     @endforelse
 </div>
+
+{{-- ═══════════════════════════════════════════════════════════
+     MODALS
+     ═══════════════════════════════════════════════════════════ --}}
 
 {{-- MODAL MODIFIER NOM --}}
 <div class="modal-overlay" id="overlayNom" onclick="fermerEditNom()"></div>
@@ -905,20 +836,92 @@
     </div>
 </div>
 
+{{-- MODAL DÉTAIL BÉNÉFICIAIRE --}}
+<div class="modal-overlay" id="benefDetailOverlay" onclick="fermerBenefDetail()"></div>
+<div class="modal-box" id="benefDetail" style="width:520px; max-width:95%;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 style="color:#7c3aed;font-weight:800;margin:0;">👤 Détail bénéficiaire</h5>
+        <button onclick="fermerBenefDetail()" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div id="benefDetailContent">Chargement...</div>
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════
+     MODAL ÉTAPE GROUPÉE
+     ═══════════════════════════════════════════════════════════ --}}
+<div class="modal-overlay" id="etapeGroupeeOverlay" onclick="fermerModalEtapeGroupee()"></div>
+<div class="modal-box" id="etapeGroupeeModal" style="width:600px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 style="color:#1e3a5f;font-weight:800;margin:0;">
+            📊 Appliquer une étape d'avancement
+        </h5>
+        <button onclick="fermerModalEtapeGroupee()" 
+                style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+
+    {{-- Résumé de la sélection --}}
+    <div id="etapeGroupeeResume" 
+         style="background:#f1f5f9;border-radius:8px;padding:12px;
+                margin-bottom:14px;font-size:12px;color:#475569;">
+    </div>
+
+    {{-- Étape --}}
+    <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:8px;">
+            📍 Étape à appliquer *
+        </label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="etapeGroupeeOptions">
+            @php
+                $etapesDossier = \App\Models\DossierClient::etapesConfig();
+            @endphp
+            @foreach($etapesDossier as $cle => $cfg)
+                <label class="etape-groupee-label"
+                       data-etape="{{ $cle }}">
+                    <input type="radio" name="etapeGroupeeRadio" value="{{ $cle }}"
+                           style="width:14px;height:14px;"
+                           onchange="onEtapeGroupeeChange()">
+                    <span style="font-size:16px;">{{ $cfg['icon'] }}</span>
+                    {{ $cfg['label'] }}
+                </label>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Date --}}
+    <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">
+            📅 Date de l'étape *
+        </label>
+        <input type="date" id="etapeGroupeeDate" class="form-control"
+               value="{{ now()->format('Y-m-d') }}">
+    </div>
+
+    {{-- Actions --}}
+    <div class="d-flex justify-content-end gap-2">
+        <button onclick="fermerModalEtapeGroupee()" class="btn btn-light btn-sm">
+            Annuler
+        </button>
+        <button onclick="validerEtapeGroupee()" class="btn btn-warning btn-sm"
+                style="font-weight:700;color:white;">
+            ✅ Appliquer
+        </button>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
 <script>
-const CSRF = '{{ csrf_token() }}';
+const CSRF = window.CSRF || '{{ csrf_token() }}';
+
 let clientIdCourant = null;
 let selectedClients = new Set();
+let selectedBenefs  = new Set();
 
 // ════════════════════════════════════════════════════════════════
-// ✅ EXPORT PDF
+// EXPORT PDF
 // ════════════════════════════════════════════════════════════════
-
 function exporterPdf() {
-    const params = new URLSearchParams(window.location.search);
     const q = document.getElementById('search-live')?.value || '';
     const du = document.getElementById('filtre-du')?.value || '';
     const au = document.getElementById('filtre-au')?.value || '';
@@ -948,9 +951,8 @@ function exporterPdf() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ GESTION DES SÉLECTIONS
+// SÉLECTION CLIENTS
 // ════════════════════════════════════════════════════════════════
-
 function toggleSelection(checkbox, clientId) {
     if (checkbox.checked) {
         selectedClients.add(clientId);
@@ -959,6 +961,54 @@ function toggleSelection(checkbox, clientId) {
         selectedClients.delete(clientId);
         document.querySelector(`.client-card[data-id="${clientId}"]`)?.classList.remove('selected');
     }
+    mettreAJourActionBar();
+}
+
+// ════════════════════════════════════════════════════════════════
+// SÉLECTION BÉNÉFICIAIRES
+// ════════════════════════════════════════════════════════════════
+function toggleBenefSelection(event, benefId) {
+    event.stopPropagation();
+    
+    const cb = document.querySelector(`.benef-checkbox[data-benef-id="${benefId}"]`);
+    const card = document.querySelector(`.benef-card[data-benef-id="${benefId}"]`);
+    
+    if (event.target.type === 'checkbox') {
+        // déjà togglé
+    } else {
+        cb.checked = !cb.checked;
+    }
+    
+    if (cb.checked) {
+        selectedBenefs.add(benefId);
+        card?.classList.add('selected');
+    } else {
+        selectedBenefs.delete(benefId);
+        card?.classList.remove('selected');
+    }
+    
+    mettreAJourActionBar();
+}
+
+function selectionnerBenefsClient(clientId, select) {
+    const section = document.querySelector(`.benef-section[data-client-id="${clientId}"]`);
+    if (!section) return;
+    
+    const cards = section.querySelectorAll('.benef-card');
+    cards.forEach(card => {
+        const benefId = parseInt(card.dataset.benefId);
+        const cb = card.querySelector('.benef-checkbox');
+        
+        cb.checked = select;
+        if (select) {
+            selectedBenefs.add(benefId);
+            card.classList.add('selected');
+        } else {
+            selectedBenefs.delete(benefId);
+            card.classList.remove('selected');
+        }
+    });
+    
     mettreAJourActionBar();
 }
 
@@ -972,6 +1022,14 @@ function selectionnerTout() {
             card.classList.add('selected');
         }
     });
+    
+    document.querySelectorAll('.client-card:not([style*="display: none"]) .benef-checkbox').forEach(cb => {
+        cb.checked = true;
+        const benefId = parseInt(cb.dataset.benefId);
+        selectedBenefs.add(benefId);
+        cb.closest('.benef-card')?.classList.add('selected');
+    });
+    
     mettreAJourActionBar();
 }
 
@@ -982,81 +1040,58 @@ function deselectionnerTout() {
         selectedClients.delete(id);
         document.querySelector(`.client-card[data-id="${id}"]`)?.classList.remove('selected');
     });
+    
+    document.querySelectorAll('.benef-checkbox').forEach(cb => {
+        cb.checked = false;
+        const benefId = parseInt(cb.dataset.benefId);
+        selectedBenefs.delete(benefId);
+        cb.closest('.benef-card')?.classList.remove('selected');
+    });
+    
     mettreAJourActionBar();
 }
 
 function mettreAJourActionBar() {
     const bar = document.getElementById('actionBar');
-    const count = selectedClients.size;
-    document.getElementById('selectedCount').textContent = count;
+    const summary = document.getElementById('selectionSummary');
+    const total = selectedClients.size + selectedBenefs.size;
     
-    if (count > 0) {
+    document.getElementById('selectedCount').textContent = total;
+    
+    if (total > 0) {
         bar.classList.add('visible');
+        summary.style.display = 'flex';
+        document.getElementById('count-clients').textContent = selectedClients.size + ' client(s)';
+        document.getElementById('count-benefs').textContent = selectedBenefs.size + ' bénéficiaire(s)';
     } else {
         bar.classList.remove('visible');
+        summary.style.display = 'none';
     }
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ ACTIONS GROUPÉES
+// ACTIONS GROUPÉES
 // ════════════════════════════════════════════════════════════════
-
 function actionGroupee(action) {
-    const ids = Array.from(selectedClients);
-    if (ids.length === 0) {
-        showToast('⚠️ Aucun client sélectionné', 'warning');
+    const idsClients = Array.from(selectedClients);
+    const idsBenefs  = Array.from(selectedBenefs);
+    const ids = idsClients;
+
+    if (idsClients.length === 0 && idsBenefs.length === 0) {
+        showToast('⚠️ Aucun élément sélectionné', 'warning');
         return;
     }
 
     const actionsMessages = {
-        'mark_as_new': { 
-            title: '🆕 Marquer comme nouveaux', 
-            message: `Êtes-vous sûr de vouloir marquer ${ids.length} client(s) comme NOUVEAUX ?`,
-            btnText: 'Marquer',
-            btnClass: 'btn-success'
-        },
-        'mark_as_old': { 
-            title: '📌 Marquer comme anciens', 
-            message: `Êtes-vous sûr de vouloir marquer ${ids.length} client(s) comme ANCIENS ?`,
-            btnText: 'Marquer',
-            btnClass: 'btn-warning'
-        },
-        'set_masculin': {
-            title: '👨 Marquer comme Masculin',
-            message: `Êtes-vous sûr de vouloir marquer ${ids.length} client(s) comme MASCULIN ?`,
-            btnText: 'Marquer',
-            btnClass: 'btn-primary'
-        },
-        'set_feminin': {
-            title: '👩 Marquer comme Féminin',
-            message: `Êtes-vous sûr de vouloir marquer ${ids.length} client(s) comme FÉMININ ?`,
-            btnText: 'Marquer',
-            btnClass: 'btn-primary'
-        },
-        'delete': { 
-            title: '🗑 Supprimer', 
-            message: `Êtes-vous sûr de vouloir supprimer ${ids.length} client(s) ? Cette action est irréversible.`,
-            btnText: 'Supprimer',
-            btnClass: 'btn-danger'
-        },
-        'export_whatsapp': { 
-            title: '💬 Envoyer sur WhatsApp', 
-            message: `Envoyer les informations de ${ids.length} client(s) sur WhatsApp au numéro +237 653 350 503 ?`,
-            btnText: 'Envoyer',
-            btnClass: 'btn-primary'
-        },
-        'export_pdf_selected': {
-            title: '📄 Exporter en PDF',
-            message: `Exporter les ${ids.length} client(s) sélectionné(s) en PDF ?`,
-            btnText: 'Exporter',
-            btnClass: 'btn-danger'
-        },
-        'export_documents': {
-            title: '📁 Récupérer tous les documents',
-            message: `Récupérer tous les documents des ${ids.length} client(s) sélectionné(s) ?`,
-            btnText: 'Récupérer',
-            btnClass: 'btn-info'
-        }
+        'mark_as_new': {title:'🆕 Marquer comme nouveaux', message:`Marquer ${idsClients.length} client(s) comme NOUVEAUX ?`, btnText:'Marquer', btnClass:'btn-success'},
+        'mark_as_old': {title:'📌 Marquer comme anciens', message:`Marquer ${idsClients.length} client(s) comme ANCIENS ?`, btnText:'Marquer', btnClass:'btn-warning'},
+        'set_masculin': {title:'👨 Marquer comme Masculin', message:`Marquer ${idsClients.length} client(s) comme MASCULIN ?`, btnText:'Marquer', btnClass:'btn-primary'},
+        'set_feminin': {title:'👩 Marquer comme Féminin', message:`Marquer ${idsClients.length} client(s) comme FÉMININ ?`, btnText:'Marquer', btnClass:'btn-primary'},
+        'delete': {title:'🗑 Supprimer', message:`Supprimer ${idsClients.length} client(s) ? Action irréversible.`, btnText:'Supprimer', btnClass:'btn-danger'},
+        'export_whatsapp': {title:'💬 Envoyer sur WhatsApp', message:`Envoyer les informations de ${idsClients.length} client(s) sur WhatsApp ?`, btnText:'Envoyer', btnClass:'btn-primary'},
+        'export_pdf_selected': {title:'📄 Exporter en PDF', message:`Exporter les ${idsClients.length} client(s) sélectionné(s) en PDF ?`, btnText:'Exporter', btnClass:'btn-danger'},
+        'export_excel_selected': {title:'📥 Exporter en Excel', message:`Exporter les éléments sélectionnés en Excel ?`, btnText:'Exporter', btnClass:'btn-success'},
+        'export_documents': {title:'📁 Récupérer tous les documents', message:`Récupérer tous les documents des ${idsClients.length} client(s) sélectionné(s) ?`, btnText:'Récupérer', btnClass:'btn-info'}
     };
 
     const config = actionsMessages[action];
@@ -1068,15 +1103,31 @@ function actionGroupee(action) {
     document.getElementById('modalConfirmationBtn').className = `btn ${config.btnClass}`;
     
     const liste = document.getElementById('modalConfirmationListe');
-    let html = '<div style="font-size:12px;color:#64748b;margin-bottom:6px;">Clients sélectionnés :</div>';
-    ids.forEach(id => {
-        const card = document.querySelector(`.client-card[data-id="${id}"]`);
-        if (card) {
-            const nom = card.querySelector('.client-nom')?.textContent || 'Inconnu';
-            const phone = card.dataset.phone || '';
-            html += `<div style="padding:3px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">• ${nom} ${phone ? '- ' + phone : ''}</div>`;
-        }
-    });
+    let html = '';
+    
+    if (idsClients.length > 0) {
+        html += '<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:6px;">👤 Clients :</div>';
+        idsClients.forEach(id => {
+            const card = document.querySelector(`.client-card[data-id="${id}"]`);
+            if (card) {
+                const nom = card.querySelector('.client-nom')?.textContent || 'Inconnu';
+                const phone = card.dataset.phone || '';
+                html += `<div style="padding:3px 8px;font-size:12px;border-bottom:1px solid #f1f5f9;">• ${nom} ${phone ? '- ' + phone : ''}</div>`;
+            }
+        });
+    }
+    
+    if (idsBenefs.length > 0) {
+        html += '<div style="font-size:12px;color:#7c3aed;font-weight:700;margin:8px 0 6px 0;">👥 Bénéficiaires :</div>';
+        idsBenefs.forEach(id => {
+            const card = document.querySelector(`.benef-card[data-benef-id="${id}"]`);
+            if (card) {
+                const nom = card.querySelector('.benef-nom')?.textContent?.trim() || 'Inconnu';
+                html += `<div style="padding:3px 8px;font-size:12px;border-bottom:1px solid #f1f5f9;">• ${nom}</div>`;
+            }
+        });
+    }
+    
     liste.innerHTML = html;
     
     document.getElementById('modalConfirmationOverlay').style.display = 'block';
@@ -1094,36 +1145,54 @@ function fermerModalProgress() {
     document.getElementById('modalProgress').style.display = 'none';
 }
 
+// ════════════════════════════════════════════════════════════════
+// EXÉCUTION DE L'ACTION CONFIRMÉE
+// ════════════════════════════════════════════════════════════════
 function executerActionConfirmee() {
     const action = document.getElementById('modalConfirmationBtn').dataset.action;
-    const ids = Array.from(selectedClients);
-    
+    const idsClients = Array.from(selectedClients);
+    const idsBenefs  = Array.from(selectedBenefs);
+    const ids        = idsClients;
+
     fermerModalConfirmation();
-    
+
+    // ✅ Export documents
     if (action === 'export_documents') {
-        exporterDocuments(ids);
+        exporterDocuments(idsClients);
         return;
     }
-    
+
+    // ✅ Export PDF sélection
     if (action === 'export_pdf_selected') {
-        exporterPdfSelection(ids);
+        exporterPdfSelection(idsClients);
         return;
     }
-    
+
+    // ✅ Export Excel sélection (SÉPARATION clients / bénéficiaires)
+    if (action === 'export_excel_selected') {
+        const params = new URLSearchParams();
+
+        // ✅ Envoyer les IDs clients séparément
+        idsClients.forEach(id => params.append('client_ids[]', id));
+
+        // ✅ Envoyer les IDs bénéficiaires séparément
+        idsBenefs.forEach(id => params.append('beneficiaire_ids[]', id));
+
+        window.location.href = '/admin/dossiers/export-excel?' + params.toString();
+        return;
+    }
+
     if (window.EdenLoader) window.EdenLoader.show();
-    
+
     fetch('/admin/suivi-client/actions-group', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF
-        },
+        headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF},
         body: JSON.stringify({ ids: ids, action: action })
     })
     .then(response => response.json())
     .then(data => {
         if (window.EdenLoader) window.EdenLoader.hide();
-        
+
         if (data.success) {
             if (action === 'export_whatsapp' && data.whatsapp_url) {
                 window.open(data.whatsapp_url, '_blank');
@@ -1142,31 +1211,25 @@ function executerActionConfirmee() {
     .catch(error => {
         if (window.EdenLoader) window.EdenLoader.hide();
         showToast('❌ Erreur réseau : ' + error.message, 'error');
-        console.error('Erreur:', error);
     });
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ EXPORTER PDF DES SÉLECTIONNÉS
+// EXPORTER PDF DES SÉLECTIONNÉS
 // ════════════════════════════════════════════════════════════════
-
 function exporterPdfSelection(ids) {
     if (window.EdenLoader) window.EdenLoader.show();
-    
+
     const params = new URLSearchParams();
     ids.forEach(id => params.append('ids[]', id));
-    
+
     fetch('/admin/suivi-client/export-pdf-selected?' + params.toString(), {
         method: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': CSRF
-        }
+        headers: { 'X-CSRF-TOKEN': CSRF }
     })
     .then(response => {
         if (window.EdenLoader) window.EdenLoader.hide();
-        if (response.ok) {
-            return response.blob();
-        }
+        if (response.ok) return response.blob();
         throw new Error('Erreur lors de l\'export');
     })
     .then(blob => {
@@ -1187,9 +1250,8 @@ function exporterPdfSelection(ids) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ EXPORTER TOUS LES DOCUMENTS
+// EXPORTER DOCUMENTS
 // ════════════════════════════════════════════════════════════════
-
 function exporterDocuments(ids) {
     document.getElementById('modalProgressOverlay').style.display = 'block';
     document.getElementById('modalProgress').style.display = 'block';
@@ -1199,40 +1261,35 @@ function exporterDocuments(ids) {
     document.getElementById('progressPercent').textContent = '0%';
     document.getElementById('progressLabel').textContent = 'Préparation des documents...';
     document.getElementById('progressDetails').innerHTML = '';
-    
+
     let total = ids.length;
     let completed = 0;
     let documents = [];
     let errors = [];
-    
+
     function updateProgress() {
         const percent = Math.round((completed / total) * 100);
         document.getElementById('progressBar').style.width = percent + '%';
         document.getElementById('progressPercent').textContent = percent + '%';
         document.getElementById('progressLabel').textContent = `Traitement ${completed}/${total} clients...`;
     }
-    
+
     function processClient(clientId) {
         return fetch('/admin/suivi-client/export-documents/' + clientId, {
             method: 'GET',
-            headers: {
-                'X-CSRF-TOKEN': CSRF
-            }
+            headers: { 'X-CSRF-TOKEN': CSRF }
         })
         .then(response => response.json())
         .then(data => {
             completed++;
             updateProgress();
-            
             const details = document.getElementById('progressDetails');
             if (data.success) {
                 const div = document.createElement('div');
                 div.style.cssText = 'padding:4px 8px;border-bottom:1px solid #e2e8f0;color:#16a34a;';
                 div.textContent = '✅ ' + data.client_name + ' - ' + data.documents_count + ' document(s) trouvé(s)';
                 details.appendChild(div);
-                if (data.documents) {
-                    documents = documents.concat(data.documents);
-                }
+                if (data.documents) documents = documents.concat(data.documents);
             } else {
                 const div = document.createElement('div');
                 div.style.cssText = 'padding:4px 8px;border-bottom:1px solid #e2e8f0;color:#dc2626;';
@@ -1240,7 +1297,6 @@ function exporterDocuments(ids) {
                 details.appendChild(div);
                 errors.push(data.message || 'Erreur');
             }
-            
             details.scrollTop = details.scrollHeight;
         })
         .catch(error => {
@@ -1253,71 +1309,47 @@ function exporterDocuments(ids) {
             errors.push('Erreur réseau pour le client ' + clientId);
         });
     }
-    
+
     let index = 0;
     const concurrency = 5;
-    
+
     function processNext() {
         if (index >= total) {
             document.getElementById('progressLabel').textContent = 'Terminé !';
             document.getElementById('progressBar').style.width = '100%';
             document.getElementById('progressPercent').textContent = '100%';
-            
+
             setTimeout(() => {
                 document.getElementById('progressContent').style.display = 'none';
                 document.getElementById('progressResult').style.display = 'block';
                 document.getElementById('resultMessage').textContent = 
                     `${documents.length} document(s) récupéré(s) pour ${total - errors.length} client(s) sur ${total}.${errors.length > 0 ? ' ' + errors.length + ' erreur(s).' : ''}`;
-                
-                if (documents.length > 0) {
-                    telechargerDocumentsZip(documents);
-                }
+                if (documents.length > 0) telechargerDocumentsZip(documents);
             }, 500);
             return;
         }
-        
         const clientId = ids[index];
         index++;
-        processClient(clientId).then(() => {
-            processNext();
-        });
+        processClient(clientId).then(() => processNext());
     }
-    
-    for (let i = 0; i < Math.min(concurrency, total); i++) {
-        processNext();
-    }
+
+    for (let i = 0; i < Math.min(concurrency, total); i++) { processNext(); }
 }
 
-// ════════════════════════════════════════════════════════════════
-// ✅ TÉLÉCHARGER LES DOCUMENTS EN ZIP
-// ════════════════════════════════════════════════════════════════
-
 function telechargerDocumentsZip(documents) {
-    if (documents.length === 0) {
-        showToast('⚠️ Aucun document à télécharger', 'warning');
-        return;
-    }
-    
+    if (documents.length === 0) { showToast('⚠️ Aucun document à télécharger', 'warning'); return; }
     if (documents.length === 1) {
-        const doc = documents[0];
-        if (doc.url) {
-            window.open(doc.url, '_blank');
-        }
+        if (documents[0].url) window.open(documents[0].url, '_blank');
         return;
     }
-    
+
     fetch('/admin/suivi-client/download-documents-zip', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF
-        },
+        headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF},
         body: JSON.stringify({ documents: documents })
     })
     .then(response => {
-        if (response.ok) {
-            return response.blob();
-        }
+        if (response.ok) return response.blob();
         throw new Error('Erreur lors de la création du ZIP');
     })
     .then(blob => {
@@ -1331,31 +1363,45 @@ function telechargerDocumentsZip(documents) {
         window.URL.revokeObjectURL(url);
         showToast('✅ Tous les documents ont été téléchargés !', 'success');
     })
-    .catch(error => {
-        showToast('❌ Erreur lors du téléchargement : ' + error.message, 'error');
-    });
+    .catch(error => showToast('❌ Erreur lors du téléchargement : ' + error.message, 'error'));
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ TOGGLE NEW STATUS
+// WHATSAPP INDIVIDUEL
 // ════════════════════════════════════════════════════════════════
+function envoyerWhatsAppClient(clientId) {
+    window.open(`/admin/clients/${clientId}/whatsapp`, '_blank');
+}
 
+function envoyerWhatsAppBenef(benefId) {
+    window.open(`/admin/beneficiaires/${benefId}/whatsapp`, '_blank');
+}
+
+function voirBenefDetail(benefId, clientId) {
+    window.location.href = `/admin/suivi-client/${clientId}#benef-${benefId}`;
+}
+
+function fermerBenefDetail() {
+    document.getElementById('benefDetailOverlay').style.display = 'none';
+    document.getElementById('benefDetail').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════════════
+// TOGGLE NEW STATUS
+// ════════════════════════════════════════════════════════════════
 function toggleNew(clientId) {
     const btn = document.getElementById('btn-new-' + clientId);
     const badge = document.getElementById('badge-' + clientId);
     const card = document.querySelector(`.client-card[data-id="${clientId}"]`);
-    
+
     if (!btn) return;
-    
+
     btn.disabled = true;
     btn.textContent = '⏳ ...';
 
     fetch('/admin/suivi-client/toggle-new/' + clientId, {
         method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': CSRF,
-            'Content-Type': 'application/json'
-        },
+        headers: {'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json'},
         body: JSON.stringify({})
     })
     .then(response => response.json())
@@ -1381,22 +1427,15 @@ function toggleNew(clientId) {
             showToast('❌ ' + data.message, 'error');
         }
     })
-    .catch(error => {
-        showToast('❌ Erreur réseau', 'error');
-        console.error('Erreur:', error);
-    })
-    .finally(() => {
-        btn.disabled = false;
-    });
+    .catch(error => showToast('❌ Erreur réseau', 'error'))
+    .finally(() => btn.disabled = false);
 }
 
 function mettreAJourCompteur() {
     const cards = document.querySelectorAll('#liste-clients .client-card');
     let total = cards.length;
     let nouveaux = 0;
-    cards.forEach(c => {
-        if (c.dataset.isNew === 'true') nouveaux++;
-    });
+    cards.forEach(c => { if (c.dataset.isNew === 'true') nouveaux++; });
     const compteur = document.getElementById('compteur-clients');
     if (compteur) {
         compteur.innerHTML = `${total} client(s) <span style="margin-left:10px;color:#10b981;">🆕 ${nouveaux} nouveau(x)</span>`;
@@ -1404,9 +1443,8 @@ function mettreAJourCompteur() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ TOAST NOTIFICATION
+// TOAST
 // ════════════════════════════════════════════════════════════════
-
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast-notification ${type}`;
@@ -1420,9 +1458,8 @@ function showToast(message, type = 'info') {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ FILTRAGE DYNAMIQUE
+// FILTRAGE DYNAMIQUE
 // ════════════════════════════════════════════════════════════════
-
 function filtrerClients(terme) {
     const t = terme.trim().toLowerCase();
     const cards = document.querySelectorAll('#liste-clients .client-card');
@@ -1435,10 +1472,7 @@ function filtrerClients(terme) {
         const isNew = card.dataset.isNew === 'true';
         const match = !t || nom.includes(t) || phone.includes(t);
         card.style.display = match ? '' : 'none';
-        if (match) {
-            visible++;
-            if (isNew) nouveaux++;
-        }
+        if (match) { visible++; if (isNew) nouveaux++; }
 
         if (match && t) {
             const nomEl = card.querySelector('.client-nom');
@@ -1462,7 +1496,6 @@ function filtrerClients(terme) {
     }
 }
 
-// Filtres serveur
 function appliquerFiltresServeur() {
     const du = document.getElementById('filtre-du')?.value;
     const au = document.getElementById('filtre-au')?.value;
@@ -1493,7 +1526,6 @@ function appliquerFiltresServeur() {
 // ════════════════════════════════════════════════════════════════
 // MODIFIER NOM CLIENT
 // ════════════════════════════════════════════════════════════════
-
 function ouvrirEditNom(clientId, nomActuel) {
     clientIdCourant = clientId;
     document.getElementById('input-nouveau-nom').value = nomActuel;
@@ -1513,7 +1545,7 @@ function sauvegarderNom() {
     if (!nom) { alert('Le nom ne peut pas être vide.'); return; }
     fetch('/admin/clients/' + clientIdCourant + '/modifier-nom', {
         method: 'POST',
-        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },
+        headers: {'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF},
         body: JSON.stringify({ nom }),
     })
     .then(r => r.json())
@@ -1532,10 +1564,148 @@ function sauvegarderNom() {
     });
 }
 
-// Appliquer le filtre live au chargement
+// ════════════════════════════════════════════════════════════════
+// ✅ MODAL ÉTAPE GROUPÉE
+// ════════════════════════════════════════════════════════════════
+function ouvrirModalEtapeGroupee() {
+    const idsClients = Array.from(selectedClients);
+    const idsBenefs  = Array.from(selectedBenefs);
+
+    if (idsClients.length === 0 && idsBenefs.length === 0) {
+        showToast('⚠️ Aucun élément sélectionné', 'warning');
+        return;
+    }
+
+    // Résumé de la sélection
+    const resume = document.getElementById('etapeGroupeeResume');
+    let html = '<div style="font-weight:700;color:#1e3a5f;margin-bottom:8px;">📊 Éléments sélectionnés :</div>';
+
+    if (idsClients.length > 0) {
+        html += `<div style="margin-bottom:4px;color:#1d4ed8;">
+            👤 <strong>${idsClients.length} client(s)</strong>
+        </div>`;
+    }
+    if (idsBenefs.length > 0) {
+        html += `<div style="color:#7c3aed;">
+            👥 <strong>${idsBenefs.length} bénéficiaire(s)</strong>
+        </div>`;
+    }
+
+    resume.innerHTML = html;
+
+    // Reset radio + date
+    document.querySelectorAll('input[name="etapeGroupeeRadio"]').forEach(r => {
+        r.checked = false;
+    });
+    document.querySelectorAll('.etape-groupee-label').forEach(l => {
+        l.style.background = 'white';
+        l.style.borderColor = '#e2e8f0';
+        l.style.color = '#64748b';
+    });
+    document.getElementById('etapeGroupeeDate').value = new Date().toISOString().split('T')[0];
+
+    // Afficher
+    document.getElementById('etapeGroupeeOverlay').style.display = 'block';
+    document.getElementById('etapeGroupeeModal').style.display = 'block';
+}
+
+function fermerModalEtapeGroupee() {
+    document.getElementById('etapeGroupeeOverlay').style.display = 'none';
+    document.getElementById('etapeGroupeeModal').style.display = 'none';
+}
+
+function onEtapeGroupeeChange() {
+    document.querySelectorAll('.etape-groupee-label').forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        const etape = label.dataset.etape;
+
+        if (radio.checked) {
+            const colors = {
+                'implantation_prevue': { bg: '#f5f3ff', border: '#7c3aed', text: '#7c3aed' },
+                'deja_implante':       { bg: '#f0fdf4', border: '#16a34a', text: '#16a34a' },
+                'dossier_technique':   { bg: '#fff1f2', border: '#dc2626', text: '#dc2626' },
+                'morcellement':        { bg: '#fefce8', border: '#ca8a04', text: '#ca8a04' },
+            };
+            const c = colors[etape] || { bg: '#eff6ff', border: '#1d4ed8', text: '#1d4ed8' };
+            label.style.background = c.bg;
+            label.style.borderColor = c.border;
+            label.style.color = c.text;
+        } else {
+            label.style.background = 'white';
+            label.style.borderColor = '#e2e8f0';
+            label.style.color = '#64748b';
+        }
+    });
+}
+
+function validerEtapeGroupee() {
+    const etapeRadio = document.querySelector('input[name="etapeGroupeeRadio"]:checked');
+    const date = document.getElementById('etapeGroupeeDate').value;
+
+    if (!etapeRadio) {
+        showToast('⚠️ Sélectionnez une étape', 'warning');
+        return;
+    }
+    if (!date) {
+        showToast('⚠️ La date est obligatoire', 'warning');
+        return;
+    }
+
+    const idsClients = Array.from(selectedClients);
+    const idsBenefs  = Array.from(selectedBenefs);
+
+    if (window.EdenLoader) window.EdenLoader.show();
+
+    fetch('/admin/etape-groupee', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF,
+        },
+        body: JSON.stringify({
+            etape: etapeRadio.value,
+            date: date,
+            client_ids: idsClients,
+            beneficiaire_ids: idsBenefs,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            fermerModalEtapeGroupee();
+            deselectionnerTout();
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            let msg = data.message || 'Erreur';
+            if (data.errors) msg = Object.values(data.errors).flat().join('\n');
+            showToast('❌ ' + msg, 'error');
+        }
+    })
+    .catch(e => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        showToast('❌ Erreur réseau : ' + e.message, 'error');
+    });
+}
+
+// Scroll vers bénéficiaire si hash présent
 document.addEventListener('DOMContentLoaded', () => {
     const q = new URLSearchParams(window.location.search).get('q');
     if (q) filtrerClients(q);
+
+    if (window.location.hash && window.location.hash.startsWith('#benef-')) {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.transition = 'background 0.5s';
+                el.style.background = '#ede9fe';
+                setTimeout(() => { el.style.background = ''; }, 2000);
+            }, 300);
+        }
+    }
 });
 </script>
 @endsection

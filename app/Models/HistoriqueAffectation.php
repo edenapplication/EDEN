@@ -18,6 +18,7 @@ class HistoriqueAffectation extends Model
         'resume',
         'donnees_avant',
         'donnees_apres',
+        'beneficiaire_id', 
     ];
 
     protected $casts = [
@@ -64,4 +65,9 @@ class HistoriqueAffectation extends Model
             default                      => '#64748b',
         };
     }
+
+    public function beneficiaire()
+{
+    return $this->belongsTo(Beneficiaire::class, 'beneficiaire_id');
+}
 }

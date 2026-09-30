@@ -13,21 +13,20 @@ class DossierClient extends Model
         'grand_site_id', 'direction',
         'superficie_voulue', 'prix_superficie',
         'prix_technique', 'prix_morcellement','prix_logistique',
-        // ✅ Ajouter les champs d'étapes
         'etape_actuelle',
         'date_implantation_prevue',
         'date_deja_implante',
         'date_dossier_technique',
         'date_morcellement',
-        // ✅ AJOUTER CNI_IMAGES
         'cni_images',
     ];
+
     protected $casts = [
-        'cni_images' => 'array',
+        'cni_images'               => 'array',
         'date_implantation_prevue' => 'date',
-        'date_deja_implante' => 'date',
-        'date_dossier_technique' => 'date',
-        'date_morcellement' => 'date',
+        'date_deja_implante'       => 'date',
+        'date_dossier_technique'   => 'date',
+        'date_morcellement'        => 'date',
     ];
 
     // ============================================================
@@ -35,9 +34,7 @@ class DossierClient extends Model
     // ============================================================
     public function affectations()
     {
-        return $this->hasMany(Affectation::class, 'dossier_client_id')
-                    ->where('statut','actif')
-                    ->with(['grandSite','site','tf','bloc','lot']);
+        return $this->hasMany(Affectation::class, 'dossier_client_id');
     }
 
     public function client()          { return $this->belongsTo(Client::class); }
@@ -47,11 +44,24 @@ class DossierClient extends Model
     public function agentCommercial() { return $this->belongsTo(AgentCommercial::class, 'agent_commercial_id'); }
     public function grandSite()       { return $this->belongsTo(GrandSite::class); }
     public function paiements()       { return $this->hasMany(PaiementDossier::class); }
-    public function paiementsTechniques() { return $this->hasMany(PaiementTechnique::class, 'dossier_client_id'); }
+    public function paiementsTechniques()    { return $this->hasMany(PaiementTechnique::class, 'dossier_client_id'); }
     public function paiementsMorcellements() { return $this->hasMany(PaiementMorcellement::class, 'dossier_client_id'); }
-    public function paiementsLogistiques() { return $this->hasMany(PaiementLogistique::class, 'dossier_client_id'); }
+    public function paiementsLogistiques()   { return $this->hasMany(PaiementLogistique::class, 'dossier_client_id'); }
     public function bons() { return $this->hasMany(BonPaiement::class, 'dossier_client_id')->orderByDesc('date_bon'); }
     public function lots() { return $this->hasMany(Lot::class); }
+
+    // ✅ Bénéficiaires
+    public function beneficiaires()
+    {
+        return $this->hasMany(Beneficiaire::class, 'dossier_client_id');
+    }
+
+    // ✅ Historique
+    public function historiques()
+    {
+        return $this->hasMany(HistoriqueAffectation::class, 'dossier_client_id')
+                    ->orderByDesc('created_at');
+    }
 
     // ============================================================
     // MÉTHODES DE CALCUL
@@ -83,6 +93,31 @@ class DossierClient extends Model
     public function setCniImagesAttribute($value)
     {
         $this->attributes['cni_images'] = json_encode($value);
+    }
+
+    // ============================================================
+    // RÉPARTITION SUPERFICIE
+    // ============================================================
+    public function getSuperficieDossierAttribute(): float
+    {
+        return (float) ($this->superficie_voulue ?? 0);
+    }
+
+    public function getSuperficieAttribueeAttribute(): float
+    {
+        return (float) $this->beneficiaires()->sum('superficie_attribuee');
+    }
+
+    public function getSuperficieRestanteAttribute(): float
+    {
+        return max(0, $this->superficie_dossier - $this->superficie_attribuee);
+    }
+
+    public function getPourcentageAttribueAttribute(): float
+    {
+        $total = $this->superficie_dossier;
+        if ($total <= 0) return 0;
+        return min(100, round(($this->superficie_attribuee / $total) * 100, 1));
     }
 
     // ============================================================
@@ -130,9 +165,9 @@ class DossierClient extends Model
     {
         return [
             'implantation_prevue' => 1,
-            'deja_implante' => 2,
-            'dossier_technique' => 3,
-            'morcellement' => 4,
+            'deja_implante'       => 2,
+            'dossier_technique'   => 3,
+            'morcellement'        => 4,
         ];
     }
 
@@ -141,17 +176,17 @@ class DossierClient extends Model
         if (!$this->etape_actuelle) return null;
         $config = static::etapesConfig();
         $champ = $config[$this->etape_actuelle]['champ'] ?? null;
-        
+
         if (!$champ) return null;
-        
+
         return [
-            'label' => $config[$this->etape_actuelle]['label'],
-            'color' => $config[$this->etape_actuelle]['color'],
-            'bg' => $config[$this->etape_actuelle]['bg'],
+            'label'  => $config[$this->etape_actuelle]['label'],
+            'color'  => $config[$this->etape_actuelle]['color'],
+            'bg'     => $config[$this->etape_actuelle]['bg'],
             'border' => $config[$this->etape_actuelle]['border'],
-            'icon' => $config[$this->etape_actuelle]['icon'],
-            'champ' => $champ,
-            'date' => $this->$champ ? $this->$champ->format('d/m/Y') : null,
+            'icon'   => $config[$this->etape_actuelle]['icon'],
+            'champ'  => $champ,
+            'date'   => $this->$champ ? $this->$champ->format('d/m/Y') : null,
         ];
     }
 
@@ -170,61 +205,4 @@ class DossierClient extends Model
         if (!$champ || !$this->$champ) return null;
         return $this->$champ->format('d/m/Y');
     }
-
-    // app/Models/DossierClient.php
-
-// ════════════════════════════════════════════════════════════════
-// RELATION : BÉNÉFICIAIRES
-// ════════════════════════════════════════════════════════════════
-public function beneficiaires()
-{
-    return $this->hasMany(Beneficiaire::class, 'dossier_client_id');
-}
-
-// ════════════════════════════════════════════════════════════════
-// SUPERFICIE : RÉPARTITION
-// ════════════════════════════════════════════════════════════════
-
-/**
- * Superficie totale du dossier (référence principale).
- * Utilise superficie_voulue comme superficie du dossier principal.
- */
-public function getSuperficieDossierAttribute(): float
-{
-    return (float) ($this->superficie_voulue ?? 0);
-}
-
-/**
- * Somme des superficies attribuées aux bénéficiaires.
- */
-public function getSuperficieAttribueeAttribute(): float
-{
-    return (float) $this->beneficiaires()->sum('superficie_attribuee');
-}
-
-/**
- * Superficie restante disponible pour de nouveaux bénéficiaires.
- */
-public function getSuperficieRestanteAttribute(): float
-{
-    return max(0, $this->superficie_dossier - $this->superficie_attribuee);
-}
-
-/**
- * Pourcentage attribué (0-100).
- */
-public function getPourcentageAttribueAttribute(): float
-{
-    $total = $this->superficie_dossier;
-    if ($total <= 0) return 0;
-    return min(100, round(($this->superficie_attribuee / $total) * 100, 1));
-}
-// app/Models/DossierClient.php
-
-public function historiques()
-{
-    return $this->hasMany(HistoriqueAffectation::class, 'dossier_client_id')
-                ->orderByDesc('created_at');
-}
-
 }

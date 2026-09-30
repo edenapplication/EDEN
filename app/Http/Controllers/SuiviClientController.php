@@ -49,27 +49,10 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ INDEX AVEC FILTRES AMÉLIORÉS
+    // ✅ FACTORISATION DES FILTRES
     // ════════════════════════════════════════════════════════════════
-
-    public function index(Request $request)
+    private function appliquerFiltres($query, Request $request)
     {
-        $query = Client::with([
-            'dossiers.grandSite',
-            'dossiers.paiements',
-            'dossiers.paiementsTechniques',
-            'dossiers.paiementsMorcellements',
-            'dossiers.paiementsLogistiques',
-            'dossiers.affectations.grandSite',
-            'dossiers.affectations.bloc',
-            'dossiers.affectations.lot',
-            'dossiers.affectations.beneficiaire',        // ✅ AJOUT
-            'dossiers.beneficiaires',
-            'dossiers.beneficiaires.affectations.grandSite',
-            'dossiers.beneficiaires.affectations.bloc',
-            'dossiers.beneficiaires.affectations.lot',
-        ])->orderByDesc('created_at');
-
         // 🔍 Recherche
         if ($request->filled('q')) {
             $q = trim($request->q);
@@ -112,7 +95,7 @@ class SuiviClientController extends Controller
             }
         }
 
-        // ✅ NOUVEAU : Filtre par lots affectés
+        // ✅ Filtre par lots affectés
         if ($request->filled('lots')) {
             if ($request->lots == 'avec') {
                 $query->whereHas('dossiers.affectations');
@@ -181,6 +164,32 @@ class SuiviClientController extends Controller
             }
         }
 
+        return $query;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // INDEX
+    // ════════════════════════════════════════════════════════════════
+    public function index(Request $request)
+    {
+        $query = Client::with([
+            'dossiers.grandSite',
+            'dossiers.paiements',
+            'dossiers.paiementsTechniques',
+            'dossiers.paiementsMorcellements',
+            'dossiers.paiementsLogistiques',
+            'dossiers.affectations.grandSite',
+            'dossiers.affectations.bloc',
+            'dossiers.affectations.lot',
+            'dossiers.affectations.beneficiaire',
+            'dossiers.beneficiaires',
+            'dossiers.beneficiaires.affectations.grandSite',
+            'dossiers.beneficiaires.affectations.bloc',
+            'dossiers.beneficiaires.affectations.lot',
+        ])->orderByDesc('created_at');
+
+        $query = $this->appliquerFiltres($query, $request);
+
         $clients = $query->get();
         $grandSites = GrandSite::orderBy('nom')->get();
 
@@ -188,9 +197,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ EXPORT PDF
+    // ✅ EXPORT PDF (avec filtres factorisés)
     // ════════════════════════════════════════════════════════════════
-
     public function exportPdf(Request $request)
     {
         $query = Client::with([
@@ -198,7 +206,7 @@ class SuiviClientController extends Controller
             'dossiers.affectations.grandSite',
             'dossiers.affectations.bloc',
             'dossiers.affectations.lot',
-            'dossiers.affectations.beneficiaire',     // ✅ AJOUT
+            'dossiers.affectations.beneficiaire',
             'dossiers.paiementsTechniques',
             'dossiers.paiementsMorcellements',
             'dossiers.paiements',
@@ -207,101 +215,7 @@ class SuiviClientController extends Controller
             'dossiers.historiques.user',
         ]);
 
-        // Appliquer les filtres
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function($qry) use ($q) {
-                $qry->where('name', 'LIKE', "%{$q}%")
-                    ->orWhere('phone', 'LIKE', "%{$q}%");
-            });
-        }
-        if ($request->filled('du'))
-            $query->whereDate('created_at', '>=', $request->du);
-        if ($request->filled('au'))
-            $query->whereDate('created_at', '<=', $request->au);
-        if ($request->filled('grand_site_id')) {
-            $query->whereHas('dossiers', fn($q) => 
-                $q->where('grand_site_id', $request->grand_site_id));
-        }
-        if ($request->filled('status')) {
-            if ($request->status == 'new') {
-                $query->where('is_new', true);
-            } elseif ($request->status == 'old') {
-                $query->where('is_new', false);
-            }
-        }
-
-        // ✅ FILTRE SEXE
-        if ($request->filled('sexe')) {
-            if ($request->sexe == 'masculin') {
-                $query->where('sexe', 'masculin');
-            } elseif ($request->sexe == 'feminin') {
-                $query->where('sexe', 'feminin');
-            }
-        }
-
-        // ✅ NOUVEAU : Filtre par lots affectés
-        if ($request->filled('lots')) {
-            if ($request->lots == 'avec') {
-                $query->whereHas('dossiers.affectations');
-            } elseif ($request->lots == 'sans') {
-                $query->whereDoesntHave('dossiers.affectations');
-            }
-        }
-
-        if ($request->filled('technique_solde')) {
-            if ($request->technique_solde == 'solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_technique, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
-                });
-            } elseif ($request->technique_solde == 'non_solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_technique, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
-                });
-            }
-        }
-        if ($request->filled('morcellement_solde')) {
-            if ($request->morcellement_solde == 'solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_morcellement, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_morcellements WHERE dossier_client_id = dossiers_clients.id) >= prix_morcellement');
-                });
-            } elseif ($request->morcellement_solde == 'non_solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_morcellement, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_morcellements WHERE dossier_client_id = dossiers_clients.id) < prix_morcellement');
-                });
-            }
-        }
-        if ($request->filled('dossier_solde')) {
-            if ($request->dossier_solde == 'solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_superficie, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_dossier WHERE dossier_client_id = dossiers_clients.id) >= prix_superficie');
-                });
-            } elseif ($request->dossier_solde == 'non_solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_superficie, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_dossier WHERE dossier_client_id = dossiers_clients.id) < prix_superficie');
-                });
-            }
-        }
-        if ($request->filled('logistique_solde')) {
-            if ($request->logistique_solde == 'solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_logistique, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
-                });
-            } elseif ($request->logistique_solde == 'non_solde') {
-                $query->whereHas('dossiers', function($q) {
-                    $q->whereRaw('COALESCE(prix_logistique, 0) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
-                });
-            }
-        }
-
+        $query = $this->appliquerFiltres($query, $request);
         $clients = $query->get();
         
         $data = [
@@ -319,7 +233,6 @@ class SuiviClientController extends Controller
     // ════════════════════════════════════════════════════════════════
     // ✅ EXPORT PDF DES CLIENTS SÉLECTIONNÉS
     // ════════════════════════════════════════════════════════════════
-
     public function exportPdfSelected(Request $request)
     {
         try {
@@ -333,7 +246,7 @@ class SuiviClientController extends Controller
                 'dossiers.affectations.grandSite',
                 'dossiers.affectations.bloc',
                 'dossiers.affectations.lot',
-                'dossiers.affectations.beneficiaire',     // ✅ AJOUT
+                'dossiers.affectations.beneficiaire',
                 'dossiers.paiementsTechniques',
                 'dossiers.paiementsMorcellements',
                 'dossiers.paiements',
@@ -361,9 +274,93 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ EXPORTER LES DOCUMENTS D'UN CLIENT
+    // ✅ WHATSAPP PAR DOSSIER
     // ════════════════════════════════════════════════════════════════
+    public function whatsappDossier(DossierClient $dossier)
+    {
+        try {
+            $dossier->load([
+                'client',
+                'grandSite',
+                'beneficiaires',
+                'affectations.lot',
+                'affectations.beneficiaire',
+            ]);
 
+            $client = $dossier->client;
+
+            $message  = "📢 *EDEN GROUP - Dossier client*\n\n";
+            $message .= "👤 *Client :* " . ($client->name ?? '-') . "\n";
+            $message .= "📞 *Tél :* " . ($client->phone ?? '-') . "\n";
+            $message .= "📂 *Dossier :* " . $dossier->nom_dossier . "\n";
+            $message .= "🏢 *Grand Site :* " . ($dossier->grandSite?->nom ?? '-') . "\n";
+            $message .= "📐 *Superficie voulue :* " 
+                      . number_format($dossier->superficie_voulue ?? 0, 0, ',', ' ') . " m²\n";
+
+            // Bénéficiaires
+            if ($dossier->beneficiaires->count() > 0) {
+                $message .= "\n👥 *Bénéficiaires (" . $dossier->beneficiaires->count() . ") :*\n";
+                foreach ($dossier->beneficiaires as $b) {
+                    $message .= "  • " . $b->nom 
+                              . " — " . number_format($b->superficie_attribuee, 0, ',', ' ') . " m²";
+                    if ($b->lots_texte) {
+                        $message .= " (Lots : " . $b->lots_texte . ")";
+                    }
+                    $message .= "\n";
+                }
+            }
+
+            // Lots affectés
+            if ($dossier->affectations->count() > 0) {
+                $message .= "\n📦 *Lots affectés :* " . $dossier->affectations->count() . "\n";
+                foreach ($dossier->affectations as $aff) {
+                    $message .= "  • Lot " . ($aff->lot?->numero ?? '?')
+                              . " (Bloc " . ($aff->bloc?->code ?? '-') . ")";
+                    if ($aff->beneficiaire) {
+                        $message .= " → " . $aff->beneficiaire->nom;
+                    }
+                    $message .= "\n";
+                }
+            }
+
+            // Paiements
+            $totalDossier   = $dossier->paiements->sum('montant');
+            $totalTechnique = $dossier->paiementsTechniques->sum('montant');
+            $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
+            $totalLogi      = $dossier->paiementsLogistiques?->sum('montant') ?? 0;
+            $totalPaye      = $totalDossier + $totalTechnique + $totalMorcel + $totalLogi;
+
+            $message .= "\n💰 *Paiements :*\n";
+            $message .= "  • Dossier : " . number_format($totalDossier, 0, ',', ' ') . " FCFA\n";
+            $message .= "  • Technique : " . number_format($totalTechnique, 0, ',', ' ') . " FCFA\n";
+            $message .= "  • Logistique : " . number_format($totalLogi, 0, ',', ' ') . " FCFA\n";
+            $message .= "  • Morcellement : " . number_format($totalMorcel, 0, ',', ' ') . " FCFA\n";
+            $message .= "  *TOTAL : " . number_format($totalPaye, 0, ',', ' ') . " FCFA*\n";
+
+            $message .= "\n📅 " . now()->format('d/m/Y à H:i');
+            $message .= "\n🔗 EDEN GROUP";
+
+            $whatsappNumber = '237653350503';
+            $url = "https://wa.me/{$whatsappNumber}?text=" . urlencode($message);
+
+            return response()->json([
+                'success'      => true,
+                'whatsapp_url' => $url,
+                'message'      => $message,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur whatsappDossier: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // EXPORTER LES DOCUMENTS D'UN CLIENT
+    // ════════════════════════════════════════════════════════════════
     public function exportDocuments($clientId)
     {
         try {
@@ -378,7 +375,7 @@ class SuiviClientController extends Controller
                             $documents[] = [
                                 'name' => 'CNI_' . $client->name . '_' . basename($cni),
                                 'path' => $path,
-                                'url' => asset('storage/' . $cni),
+                                'url'  => asset('storage/' . $cni),
                                 'type' => 'cni',
                             ];
                         }
@@ -417,9 +414,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ TÉLÉCHARGER LES DOCUMENTS EN ZIP
+    // TÉLÉCHARGER LES DOCUMENTS EN ZIP
     // ════════════════════════════════════════════════════════════════
-
     public function downloadDocumentsZip(Request $request)
     {
         try {
@@ -459,9 +455,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ STORE
+    // STORE
     // ════════════════════════════════════════════════════════════════
-
     public function store(Request $request)
     {
         try {
@@ -550,9 +545,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ SHOW
+    // SHOW
     // ════════════════════════════════════════════════════════════════
-
     public function show($id)
     {
         try {
@@ -568,13 +562,14 @@ class SuiviClientController extends Controller
                 'dossiers.paiementsLogistiques',
                 'dossiers.bons',
                 'dossiers.beneficiaires',
-                'dossiers.beneficiaires.affectations.grandSite',   // ✅ AJOUT
-                'dossiers.beneficiaires.affectations.bloc',        // ✅ AJOUT
-                'dossiers.beneficiaires.affectations.lot',         // ✅ AJOUT
+                'dossiers.beneficiaires.affectations.grandSite',
+                'dossiers.beneficiaires.affectations.bloc',
+                'dossiers.beneficiaires.affectations.lot',
                 'dossiers.historiques.user',
                 'dossiers.affectations.grandSite',
                 'dossiers.affectations.bloc',
                 'dossiers.affectations.lot',
+                'dossiers.affectations.beneficiaire',
                 'lots.tf.site.grandSite',
                 'lots.dossier',
                 'visites.visiteur',
@@ -604,9 +599,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ EDIT
+    // EDIT
     // ════════════════════════════════════════════════════════════════
-
     public function edit(Request $request, $id)
     {
         $client    = Client::with('dossiers')->findOrFail($id);
@@ -620,9 +614,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ UPDATE
+    // UPDATE
     // ════════════════════════════════════════════════════════════════
-
     public function update(Request $request, $id)
     {
         try {
@@ -725,9 +718,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ MODIFIER NOM
+    // MODIFIER NOM
     // ════════════════════════════════════════════════════════════════
-
     public function modifierNom(Request $request, $clientId)
     {
         $request->validate(['nom' => 'required|string|max:150']);
@@ -737,9 +729,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ DESTROY
+    // DESTROY
     // ════════════════════════════════════════════════════════════════
-
     public function destroy($id)
     {
         $client = Client::findOrFail($id);
@@ -749,9 +740,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ DESTROY DOSSIER
+    // DESTROY DOSSIER
     // ════════════════════════════════════════════════════════════════
-
     public function destroyDossier(DossierClient $dossier)
     {
         $client = $dossier->client;
@@ -783,9 +773,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ DOSSIERS API
+    // DOSSIERS API
     // ════════════════════════════════════════════════════════════════
-
     public function dossiers($id)
     {
         $client = Client::with('dossiers')->findOrFail($id);
@@ -793,9 +782,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ MAJ ÉTAPE
+    // MAJ ÉTAPE (DOSSIER)
     // ════════════════════════════════════════════════════════════════
-
     public function majEtape(Request $request, DossierClient $dossier)
     {
         try {
@@ -863,9 +851,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ TOGGLE NEW STATUS
+    // TOGGLE NEW STATUS
     // ════════════════════════════════════════════════════════════════
-
     public function toggleNew($clientId)
     {
         try {
@@ -889,9 +876,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ ACTIONS GROUPÉES
+    // ACTIONS GROUPÉES
     // ════════════════════════════════════════════════════════════════
-
     public function actionsGroup(Request $request)
     {
         try {
@@ -991,9 +977,8 @@ class SuiviClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ EXPORT WHATSAPP
+    // EXPORT WHATSAPP (sélection multiple)
     // ════════════════════════════════════════════════════════════════
-
     public function exportWhatsApp($clients)
     {
         try {
@@ -1039,4 +1024,209 @@ class SuiviClientController extends Controller
             ], 500);
         }
     }
+
+    public function whatsappClient(Client $client)
+{
+    $client->load(['dossiers.grandSite', 'dossiers.beneficiaires', 'dossiers.affectations.lot']);
+
+    $message  = "📢 *EDEN GROUP - Client*\n\n";
+    $message .= "👤 *" . $client->name . "*\n";
+    $message .= "📞 " . ($client->phone ?? '-') . "\n";
+    if ($client->sexe) {
+        $message .= "👤 Sexe : " . ($client->sexe === 'masculin' ? 'Masculin' : 'Féminin') . "\n";
+    }
+    $message .= "📂 " . $client->dossiers->count() . " dossier(s)\n";
+
+    foreach ($client->dossiers as $d) {
+        $message .= "\n📁 *" . $d->nom_dossier . "*\n";
+        $message .= "  🏢 " . ($d->grandSite?->nom ?? '-') . "\n";
+        $message .= "  📐 " . number_format($d->superficie_voulue ?? 0, 0, ',', ' ') . " m²\n";
+
+        if ($d->beneficiaires->count() > 0) {
+            $message .= "  👥 Bénéficiaires : " . $d->beneficiaires->count() . "\n";
+            foreach ($d->beneficiaires as $b) {
+                $message .= "    • " . $b->nom . " — " . number_format($b->superficie_attribuee, 0, ',', ' ') . " m²\n";
+            }
+        }
+    }
+
+    $message .= "\n📅 " . now()->format('d/m/Y à H:i');
+    $message .= "\n🔗 EDEN GROUP";
+
+    $whatsappNumber = $client->phone ? preg_replace('/[^0-9]/', '', $client->phone) : '237653350503';
+    if (strlen($whatsappNumber) === 9) {
+        $whatsappNumber = '237' . $whatsappNumber;
+    }
+
+    $url = "https://wa.me/{$whatsappNumber}?text=" . urlencode($message);
+    return redirect($url);
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ APPLIQUER UNE ÉTAPE À DES CLIENTS ET/OU BÉNÉFICIAIRES
+// ════════════════════════════════════════════════════════════════
+public function etapeGroupee(Request $request)
+{
+    try {
+        $request->validate([
+            'etape'          => 'required|in:implantation_prevue,deja_implante,dossier_technique,morcellement',
+            'date'           => 'required|date',
+            'client_ids'     => 'nullable|array',
+            'client_ids.*'   => 'exists:clients,id',
+            'beneficiaire_ids' => 'nullable|array',
+            'beneficiaire_ids.*' => 'exists:beneficiaires,id',
+        ]);
+
+        $etape        = $request->etape;
+        $date         = $request->date;
+        $clientIds    = $request->input('client_ids', []);
+        $benefIds     = $request->input('beneficiaire_ids', []);
+
+        $totalClients = 0;
+        $totalBenefs  = 0;
+
+        // ═══════════════════════════════════════════════════════════
+        // 1. APPLIQUER AUX CLIENTS (via leurs dossiers)
+        // ═══════════════════════════════════════════════════════════
+        if (!empty($clientIds)) {
+            $dossiers = \App\Models\DossierClient::whereIn('client_id', $clientIds)->get();
+
+            foreach ($dossiers as $dossier) {
+                $this->appliquerEtape($dossier, $etape, $date);
+                $totalClients++;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 2. APPLIQUER AUX BÉNÉFICIAIRES
+        // ═══════════════════════════════════════════════════════════
+        if (!empty($benefIds)) {
+            $beneficiaires = \App\Models\Beneficiaire::whereIn('id', $benefIds)->get();
+
+            foreach ($beneficiaires as $benef) {
+                $this->appliquerEtapeBenef($benef, $etape, $date);
+                $totalBenefs++;
+            }
+        }
+
+        $message = "✅ Étape appliquée à {$totalClients} dossier(s) et {$totalBenefs} bénéficiaire(s).";
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'clients' => $totalClients,
+            'benefs'  => $totalBenefs,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation',
+            'errors'  => $e->errors(),
+        ], 422);
+    } catch (\Throwable $e) {
+        Log::error('Erreur etapeGroupee: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ HELPERS : Appliquer une étape
+// ════════════════════════════════════════════════════════════════
+
+private function appliquerEtape($dossier, $etape, $date)
+{
+    $etapes = [
+        'implantation_prevue' => 1,
+        'deja_implante'       => 2,
+        'dossier_technique'   => 3,
+        'morcellement'        => 4,
+    ];
+
+    $champs = [
+        'implantation_prevue' => 'date_implantation_prevue',
+        'deja_implante'       => 'date_deja_implante',
+        'dossier_technique'   => 'date_dossier_technique',
+        'morcellement'        => 'date_morcellement',
+    ];
+
+    $ordreEtape = $etapes[$etape];
+
+    // Marquer toutes les étapes jusqu'à celle-ci
+    $data = [];
+    foreach ($etapes as $etapeNom => $ordre) {
+        if ($ordre <= $ordreEtape) {
+            if (empty($dossier->{$champs[$etapeNom]})) {
+                $data[$champs[$etapeNom]] = ($etapeNom === $etape)
+                    ? $date
+                    : now()->format('Y-m-d');
+            }
+        }
+    }
+    $data['etape_actuelle'] = $etape;
+
+    $dossier->update($data);
+
+    // ✅ Historique
+    \App\Services\HistoriqueService::log(
+        $dossier->id,
+        'modification_beneficiaire',
+        "Étape « " . \App\Models\DossierClient::etapesConfig()[$etape]['label'] 
+            . " » appliquée au dossier (groupé)",
+        'dossier',
+        $dossier->id,
+        null,
+        ['etape' => $etape, 'date' => $date]
+    );
+}
+
+private function appliquerEtapeBenef($benef, $etape, $date)
+{
+    $etapes = [
+        'implantation_prevue' => 1,
+        'deja_implante'       => 2,
+        'dossier_technique'   => 3,
+        'morcellement'        => 4,
+    ];
+
+    $champs = [
+        'implantation_prevue' => 'implantation_prevue',
+        'deja_implante'       => 'deja_implante',
+        'dossier_technique'   => 'dossier_technique',
+        'morcellement'        => 'morcellement',
+    ];
+
+    $ordreEtape = $etapes[$etape];
+
+    $data = [];
+    foreach ($etapes as $etapeNom => $ordre) {
+        if ($ordre <= $ordreEtape) {
+            if (empty($benef->{$champs[$etapeNom]})) {
+                $data[$champs[$etapeNom]] = ($etapeNom === $etape)
+                    ? $date
+                    : now()->format('Y-m-d');
+            }
+        }
+    }
+    $data['etape_actuelle'] = $etape;
+
+    $benef->update($data);
+
+    // ✅ Historique
+    \App\Services\HistoriqueService::log(
+        $benef->dossier_client_id,
+        'modification_beneficiaire',
+        "Étape « " . \App\Models\Beneficiaire::etapesConfig()[$etape]['label'] 
+            . " » appliquée au bénéficiaire « {$benef->nom} » (groupé)",
+        'beneficiaire',
+        $benef->id,
+        null,
+        ['etape' => $etape, 'date' => $date],
+        $benef->id
+    );
+}
+
 }

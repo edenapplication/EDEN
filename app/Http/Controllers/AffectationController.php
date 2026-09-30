@@ -9,10 +9,10 @@ use App\Models\DossierClient;
 use App\Models\GrandSite;
 use App\Models\Site;
 use App\Models\Tf;
-use App\Services\HistoriqueService;      // ✅ AJOUT
+use App\Models\Beneficiaire;
+use App\Services\HistoriqueService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;      // ✅ AJOUT
-use Illuminate\Support\Facades\Log;       // ✅ AJOUT
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\LotsImport;
 use App\Exports\LotsExport;
@@ -215,12 +215,8 @@ class AffectationController extends Controller
     }
 
     // ============================================================
-    // ✅ IMPORT / EXPORT EXCEL
+    // IMPORT / EXPORT EXCEL
     // ============================================================
-
-    /**
-     * ✅ EXPORT — Télécharge les lots en Excel
-     */
     public function exportLots(Request $request)
     {
         $filters = [
@@ -234,18 +230,12 @@ class AffectationController extends Controller
         return Excel::download(new LotsExport($filters), $filename);
     }
 
-    /**
-     * ✅ TEMPLATE — Télécharge un fichier Excel vide pré-rempli
-     */
     public function downloadTemplate()
     {
         $filename = 'modele_import_lots.xlsx';
         return Excel::download(new LotsTemplateExport(), $filename);
     }
 
-    /**
-     * ✅ IMPORT — Importe un fichier Excel
-     */
     public function importLots(Request $request)
     {
         $request->validate([
@@ -300,7 +290,7 @@ class AffectationController extends Controller
     }
 
     // ============================================================
-    // ✅ AFFECTATION À UN DOSSIER (avec historique)
+    // AFFECTATION À UN DOSSIER (avec historique)
     // ============================================================
     public function affecter(Request $request, DossierClient $dossier)
     {
@@ -339,16 +329,15 @@ class AffectationController extends Controller
             $lot->update(['disponible' => false]);
 
             $lotsAffectes[] = [
-                'lot_id'   => $lot->id,
-                'numero'   => $lot->numero,
-                'bloc'     => $lot->bloc?->code,
+                'lot_id'     => $lot->id,
+                'numero'     => $lot->numero,
+                'bloc'       => $lot->bloc?->code,
                 'superficie' => $lot->superficie,
             ];
 
             $affectes++;
         }
 
-        // ✅ HISTORIQUE : une seule entrée pour l'ensemble de l'affectation
         if ($affectes > 0) {
             $resumeLots = collect($lotsAffectes)
                 ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
@@ -376,11 +365,99 @@ class AffectationController extends Controller
     }
 
     // ============================================================
-    // ✅ ANNULER UNE AFFECTATION (avec historique)
+    // ✅ AFFECTATION À UN BÉNÉFICIAIRE (avec historique)
+    // ============================================================
+    public function affecterBeneficiaire(Request $request, Beneficiaire $beneficiaire)
+    {
+        $request->validate([
+            'lot_ids'          => 'required|array|min:1',
+            'lot_ids.*'        => 'exists:lots_affectation,id',
+            'date_affectation' => 'required|date',
+            'notes'            => 'nullable|string',
+        ]);
+
+        $dossier      = $beneficiaire->dossier;
+        $affectes     = 0;
+        $errors       = [];
+        $lotsAffectes = [];
+
+        if (!$dossier) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Ce bénéficiaire n\'est lié à aucun dossier.',
+            ], 422);
+        }
+
+        foreach ($request->lot_ids as $lotId) {
+            $lot = LotAffectation::with('bloc')->find($lotId);
+
+            if (!$lot || !$lot->disponible) {
+                $errors[] = 'Lot ' . ($lot?->numero ?? $lotId) . ' non disponible.';
+                continue;
+            }
+
+            Affectation::create([
+                'grand_site_id'      => $lot->grand_site_id,
+                'site_id'            => $lot->site_id,
+                'tf_id'              => $lot->tf_id,
+                'bloc_id'            => $lot->bloc_id,
+                'lot_affectation_id' => $lot->id,
+                'client_id'          => $dossier->client_id,
+                'dossier_client_id'  => $dossier->id,
+                'beneficiaire_id'    => $beneficiaire->id,
+                'date_affectation'   => $request->date_affectation,
+                'statut'             => 'actif',
+                'notes'              => $request->notes,
+            ]);
+
+            $lot->update(['disponible' => false]);
+
+            $lotsAffectes[] = [
+                'lot_id'     => $lot->id,
+                'numero'     => $lot->numero,
+                'bloc'       => $lot->bloc?->code,
+                'superficie' => $lot->superficie,
+            ];
+
+            $affectes++;
+        }
+
+        // ✅ HISTORIQUE
+        if ($affectes > 0) {
+            $resumeLots = collect($lotsAffectes)
+                ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
+                ->implode(', ');
+
+            HistoriqueService::log(
+                $dossier->id,
+                'affectation_lot',
+                "Affectation de {$affectes} lot(s) au bénéficiaire « {$beneficiaire->nom} » — {$resumeLots}",
+                'beneficiaire',
+                $beneficiaire->id,
+                null,
+                [
+                    'beneficiaire_id'  => $beneficiaire->id,
+                    'beneficiaire_nom' => $beneficiaire->nom,
+                    'lots'             => $lotsAffectes,
+                    'date_affectation' => $request->date_affectation,
+                    'notes'            => $request->notes,
+                ],
+                $beneficiaire->id
+            );
+        }
+
+        $msg = $affectes . ' lot(s) affecté(s) au bénéficiaire.';
+        if (!empty($errors)) $msg .= ' Erreurs : ' . implode(', ', $errors);
+
+        return response()->json(['success' => true, 'message' => $msg]);
+    }
+
+    // ============================================================
+    // ANNULER UNE AFFECTATION (statut = annule)
     // ============================================================
     public function annuler(Affectation $affectation)
     {
-        $affectation->load(['lot', 'bloc', 'dossier']);
+        $affectation->load(['lot', 'bloc', 'dossier', 'beneficiaire']);
 
         $dossier = $affectation->dossier;
 
@@ -396,7 +473,6 @@ class AffectationController extends Controller
         $affectation->lot?->update(['disponible' => true]);
         $affectation->update(['statut' => 'annule']);
 
-        // ✅ HISTORIQUE
         if ($dossier) {
             HistoriqueService::log(
                 $dossier->id,
@@ -407,7 +483,8 @@ class AffectationController extends Controller
                 'lot',
                 $avant['lot_id'],
                 $avant,
-                null
+                null,
+                $affectation->beneficiaire_id
             );
         }
 
@@ -415,11 +492,11 @@ class AffectationController extends Controller
     }
 
     // ============================================================
-    // ✅ SUPPRIMER DÉFINITIVEMENT UNE AFFECTATION (avec historique)
+    // SUPPRIMER DÉFINITIVEMENT UNE AFFECTATION
     // ============================================================
     public function destroy(Affectation $affectation)
     {
-        $affectation->load(['lot', 'bloc', 'dossier']);
+        $affectation->load(['lot', 'bloc', 'dossier', 'beneficiaire']);
 
         $dossier = $affectation->dossier;
 
@@ -433,13 +510,14 @@ class AffectationController extends Controller
             'notes'          => $affectation->notes,
         ];
 
+        $benefId = $affectation->beneficiaire_id;
+
         // Libérer le lot
         $affectation->lot?->update(['disponible' => true]);
 
         // Supprimer définitivement
         $affectation->delete();
 
-        // ✅ HISTORIQUE
         if ($dossier) {
             HistoriqueService::log(
                 $dossier->id,
@@ -450,7 +528,8 @@ class AffectationController extends Controller
                 'lot',
                 $avant['lot_id'],
                 $avant,
-                null
+                null,
+                $benefId
             );
         }
 
@@ -464,6 +543,7 @@ class AffectationController extends Controller
     {
         $historiques = $dossier->historiques()
             ->with('user:id,name')
+            ->orderByDesc('created_at')
             ->get()
             ->map(function ($h) {
                 return [
@@ -480,7 +560,46 @@ class AffectationController extends Controller
             });
 
         return response()->json([
-            'success'    => true,
+            'success'     => true,
+            'historiques' => $historiques,
+        ]);
+    }
+
+    // ============================================================
+    // ✅ HISTORIQUE D'UN BÉNÉFICIAIRE (API)
+    // ============================================================
+    public function historiqueBeneficiaire(Beneficiaire $beneficiaire)
+    {
+        $dossier = $beneficiaire->dossier;
+
+        if (!$dossier) {
+            return response()->json([
+                'success'     => true,
+                'historiques' => [],
+            ]);
+        }
+
+        $historiques = $dossier->historiques()
+            ->where('beneficiaire_id', $beneficiaire->id)
+            ->with('user:id,name')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($h) {
+                return [
+                    'id'          => $h->id,
+                    'type_action' => $h->type_action,
+                    'icone'       => $h->icone,
+                    'couleur'     => $h->couleur,
+                    'resume'      => $h->resume,
+                    'user'        => $h->user?->name,
+                    'date'        => $h->created_at->format('d/m/Y H:i'),
+                    'avant'       => $h->donnees_avant,
+                    'apres'       => $h->donnees_apres,
+                ];
+            });
+
+        return response()->json([
+            'success'     => true,
             'historiques' => $historiques,
         ]);
     }
@@ -523,84 +642,564 @@ class AffectationController extends Controller
         );
     }
 
-    // ============================================================
-// ✅ AFFECTATION À UN BÉNÉFICIAIRE
+ // ============================================================
+// ✅ MODIFIER UNE AFFECTATION (avec support échange + historique enrichi)
 // ============================================================
-public function affecterBeneficiaire(Request $request, \App\Models\Beneficiaire $beneficiaire)
+public function update(Request $request, Affectation $affectation)
 {
-    $request->validate([
-        'lot_ids'          => 'required|array|min:1',
-        'lot_ids.*'        => 'exists:lots_affectation,id',
-        'date_affectation' => 'required|date',
-        'notes'            => 'nullable|string',
-    ]);
-
-    $dossier      = $beneficiaire->dossier;
-    $affectes     = 0;
-    $errors       = [];
-    $lotsAffectes = [];
-
-    foreach ($request->lot_ids as $lotId) {
-        $lot = LotAffectation::with('bloc')->find($lotId);
-
-        if (!$lot || !$lot->disponible) {
-            $errors[] = 'Lot ' . ($lot?->numero ?? $lotId) . ' non disponible.';
-            continue;
-        }
-
-        Affectation::create([
-            'grand_site_id'      => $lot->grand_site_id,
-            'site_id'            => $lot->site_id,
-            'tf_id'              => $lot->tf_id,
-            'bloc_id'            => $lot->bloc_id,
-            'lot_affectation_id' => $lot->id,
-            'client_id'          => $dossier->client_id,
-            'dossier_client_id'  => $dossier->id,
-            'beneficiaire_id'    => $beneficiaire->id,   // ✅
-            'date_affectation'   => $request->date_affectation,
-            'statut'             => 'actif',
-            'notes'              => $request->notes,
+    try {
+        $request->validate([
+            'lot_affectation_id' => 'nullable|exists:lots_affectation,id',
+            'date_affectation'   => 'required|date',
+            'notes'              => 'nullable|string',
         ]);
 
-        $lot->update(['disponible' => false]);
+        $affectation->load(['lot', 'bloc', 'dossier', 'beneficiaire']);
 
-        $lotsAffectes[] = [
-            'lot_id'     => $lot->id,
-            'numero'     => $lot->numero,
-            'bloc'       => $lot->bloc?->code,
-            'superficie' => $lot->superficie,
+        $dossier = $affectation->dossier;
+
+        // ═══════════════════════════════════════════════════════════
+        // 📸 SNAPSHOT AVANT (état complet)
+        // ═══════════════════════════════════════════════════════════
+        $avant = [
+            'affectation_id' => $affectation->id,
+            'lot_id'         => $affectation->lot_affectation_id,
+            'lot_num'        => $affectation->lot?->numero,
+            'bloc'           => $affectation->bloc?->code,
+            'bloc_id'        => $affectation->bloc_id,
+            'grand_site'     => $affectation->grandSite?->nom,
+            'date'           => $affectation->date_affectation?->format('Y-m-d'),
+            'date_formatee'  => $affectation->date_affectation?->format('d/m/Y'),
+            'notes'          => $affectation->notes,
+            'beneficiaire_nom' => $affectation->beneficiaire?->nom,
         ];
 
-        $affectes++;
+        $nouveauLotId = $request->lot_affectation_id;
+        $lotChange    = false;
+        $isEchange    = false;
+        $ancienLotEchange = null;
+
+        // ═══════════════════════════════════════════════════════════
+        // 🔄 CHANGEMENT DE LOT
+        // ═══════════════════════════════════════════════════════════
+        if ($nouveauLotId && $nouveauLotId != $affectation->lot_affectation_id) {
+            $nouveauLot = LotAffectation::with('bloc')->find($nouveauLotId);
+
+            if (!$nouveauLot) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '❌ Lot introuvable.',
+                ], 422);
+            }
+
+            // ✅ RÈGLE 1 : Le nouveau lot doit être dans le même bloc
+            if ($nouveauLot->bloc_id != $affectation->bloc_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '❌ Le nouveau lot doit être dans le même bloc ('
+                               . ($affectation->bloc?->code ?? '?') . ').',
+                ], 422);
+            }
+
+            // ✅ RÈGLE 2 : Vérifier si le lot est déjà affecté
+            $affectationExistante = Affectation::where('lot_affectation_id', $nouveauLot->id)
+                ->where('statut', 'actif')
+                ->where('id', '!=', $affectation->id)
+                ->first();
+
+            if ($affectationExistante) {
+                // ❌ Occupé par quelqu'un d'autre
+                if ($affectationExistante->beneficiaire_id != $affectation->beneficiaire_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '❌ Le lot ' . $nouveauLot->numero . ' est déjà affecté à '
+                                   . ($affectationExistante->beneficiaire?->nom ?? 'quelqu\'un d\'autre') . '.',
+                    ], 422);
+                }
+
+                // ✅ ÉCHANGE : Le lot appartient au même bénéficiaire
+                $ancienLot = $affectation->lot;
+                $ancienLotEchange = $ancienLot;
+
+                // L'affectation existante prend l'ancien lot
+                $affectationExistante->update([
+                    'lot_affectation_id' => $ancienLot->id,
+                    'grand_site_id'      => $ancienLot->grand_site_id,
+                    'site_id'            => $ancienLot->site_id,
+                    'tf_id'              => $ancienLot->tf_id,
+                    'bloc_id'            => $ancienLot->bloc_id,
+                ]);
+
+                // Notre affectation prend le nouveau lot
+                $affectation->update([
+                    'lot_affectation_id' => $nouveauLot->id,
+                    'grand_site_id'      => $nouveauLot->grand_site_id,
+                    'site_id'            => $nouveauLot->site_id,
+                    'tf_id'              => $nouveauLot->tf_id,
+                    'bloc_id'            => $nouveauLot->bloc_id,
+                ]);
+
+                $lotChange = true;
+                $isEchange = true;
+
+            } else {
+                // ✅ Le lot est libre → affectation normale
+                $affectation->lot?->update(['disponible' => true]);
+                $nouveauLot->update(['disponible' => false]);
+
+                $affectation->update([
+                    'lot_affectation_id' => $nouveauLot->id,
+                    'grand_site_id'      => $nouveauLot->grand_site_id,
+                    'site_id'            => $nouveauLot->site_id,
+                    'tf_id'              => $nouveauLot->tf_id,
+                    'bloc_id'            => $nouveauLot->bloc_id,
+                ]);
+
+                $lotChange = true;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 📅 MISE À JOUR DATE + NOTES
+        // ═══════════════════════════════════════════════════════════
+        $affectation->update([
+            'date_affectation' => $request->date_affectation,
+            'notes'            => $request->notes,
+        ]);
+
+        $affectation->refresh();
+        $affectation->load(['lot', 'bloc', 'beneficiaire']);
+
+        // ═══════════════════════════════════════════════════════════
+        // 📸 SNAPSHOT APRÈS (état complet)
+        // ═══════════════════════════════════════════════════════════
+        $apres = [
+            'affectation_id' => $affectation->id,
+            'lot_id'         => $affectation->lot_affectation_id,
+            'lot_num'        => $affectation->lot?->numero,
+            'bloc'           => $affectation->bloc?->code,
+            'bloc_id'        => $affectation->bloc_id,
+            'grand_site'     => $affectation->grandSite?->nom,
+            'date'           => $affectation->date_affectation?->format('Y-m-d'),
+            'date_formatee'  => $affectation->date_affectation?->format('d/m/Y'),
+            'notes'          => $affectation->notes,
+            'beneficiaire_nom' => $affectation->beneficiaire?->nom,
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ CONSTRUIRE LE RÉSUMÉ DÉTAILLÉ
+        // ═══════════════════════════════════════════════════════════
+        $changements = [];
+        $detailsChangements = [
+            'lot'   => null,
+            'date'  => null,
+            'notes' => null,
+        ];
+
+        // 📦 CHANGEMENT DE LOT
+        if ($lotChange) {
+            $changements[] = "Lot : {$avant['lot_num']} → {$apres['lot_num']}";
+            $detailsChangements['lot'] = [
+                'avant' => [
+                    'numero' => $avant['lot_num'],
+                    'bloc'   => $avant['bloc'],
+                ],
+                'apres' => [
+                    'numero' => $apres['lot_num'],
+                    'bloc'   => $apres['bloc'],
+                ],
+            ];
+        }
+
+        // 📅 CHANGEMENT DE DATE
+        if (($avant['date'] ?? null) !== ($apres['date'] ?? null)) {
+            $d1 = $avant['date'] 
+                ? \Carbon\Carbon::parse($avant['date'])->format('d/m/Y') 
+                : '—';
+            $d2 = $apres['date'] 
+                ? \Carbon\Carbon::parse($apres['date'])->format('d/m/Y') 
+                : '—';
+            $changements[] = "Date : {$d1} → {$d2}";
+            $detailsChangements['date'] = [
+                'avant' => $d1,
+                'apres' => $d2,
+            ];
+        }
+
+        // 📝 CHANGEMENT DE NOTES
+        $noteAvant = $avant['notes'] ?? null;
+        $noteApres = $apres['notes'] ?? null;
+
+        if ($noteAvant !== $noteApres) {
+            $changements[] = "Notes modifiées";
+            $detailsChangements['notes'] = [
+                'avant' => $noteAvant,
+                'apres' => $noteApres,
+            ];
+        }
+
+        $resume = empty($changements)
+            ? "Aucun changement détecté"
+            : implode(' ; ', $changements);
+
+        // ═══════════════════════════════════════════════════════════
+        // 📜 HISTORIQUE (si modifications réelles)
+        // ═══════════════════════════════════════════════════════════
+        $hasChanges = $lotChange 
+            || (($avant['date'] ?? null) !== ($apres['date'] ?? null)) 
+            || ($noteAvant !== $noteApres);
+
+        if ($dossier && $hasChanges) {
+            // Résumé enrichi
+            $typeResume = $isEchange ? "🔄 Échange de lots" : "Modification";
+            $nomComplet = $typeResume 
+                . " du lot {$apres['lot_num']}"
+                . ($apres['bloc'] ? " (Bloc {$apres['bloc']})" : '')
+                . " — {$resume}"
+                . ($affectation->beneficiaire
+                    ? " — Bénéficiaire : « {$affectation->beneficiaire->nom} »"
+                    : '');
+
+            // ✅ Historique avec données enrichies
+            HistoriqueService::log(
+                $dossier->id,
+                'modification_affectation',
+                $nomComplet,
+                'affectation',
+                $affectation->id,
+                // ✅ AVANT enrichi
+                array_merge($avant, [
+                    'beneficiaire_nom' => $affectation->beneficiaire?->nom,
+                    'date_formatee'    => $avant['date'] 
+                        ? \Carbon\Carbon::parse($avant['date'])->format('d/m/Y') 
+                        : null,
+                    'point_depart'     => [
+                        'lot'   => $avant['lot_num'],
+                        'bloc'  => $avant['bloc'],
+                        'date'  => $avant['date'],
+                        'notes' => $avant['notes'],
+                    ],
+                ]),
+                // ✅ APRÈS enrichi
+                array_merge($apres, [
+                    'beneficiaire_nom'  => $affectation->beneficiaire?->nom,
+                    'date_formatee'     => $apres['date'] 
+                        ? \Carbon\Carbon::parse($apres['date'])->format('d/m/Y') 
+                        : null,
+                    'changements'       => $detailsChangements,
+                    'is_echange'        => $isEchange,
+                    'point_depart'      => [
+                        'lot'   => $avant['lot_num'],
+                        'bloc'  => $avant['bloc'],
+                        'date'  => $avant['date'],
+                        'notes' => $avant['notes'],
+                    ],
+                    'point_arrivee'     => [
+                        'lot'   => $apres['lot_num'],
+                        'bloc'  => $apres['bloc'],
+                        'date'  => $apres['date'],
+                        'notes' => $apres['notes'],
+                    ],
+                ]),
+                $affectation->beneficiaire_id
+            );
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ RÉPONSE
+        // ═══════════════════════════════════════════════════════════
+        return response()->json([
+            'success'   => true,
+            'message'   => $isEchange 
+                ? '✅ Échange de lots effectué.'
+                : '✅ Affectation modifiée.',
+            'avant'     => $avant,
+            'apres'     => $apres,
+            'resume'    => $resume,
+            'is_echange' => $isEchange,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation',
+            'errors'  => $e->errors(),
+        ], 422);
+    } catch (\Exception $e) {
+        Log::error('❌ Erreur update affectation: ' . $e->getMessage(), [
+            'affectation_id' => $affectation->id ?? null,
+            'trace'          => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
 
-    // ✅ HISTORIQUE
-    if ($affectes > 0) {
-        $resumeLots = collect($lotsAffectes)
-            ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
-            ->implode(', ');
+// ============================================================
+// ✅ MODIFIER LES LOTS D'UN BÉNÉFICIAIRE (multi-lots)
+// ============================================================
+public function modifierLots(Request $request, Beneficiaire $beneficiaire)
+{
+    try {
+        $request->validate([
+            'date_affectation' => 'required|date',
+            'notes'            => 'nullable|string',
+            'lots_a_retirer'   => 'nullable|array',
+            'lots_a_retirer.*' => 'exists:affectations,id',
+            'lots_a_ajouter'   => 'nullable|array',
+            'lots_a_ajouter.*' => 'exists:lots_affectation,id',
+        ]);
 
-        HistoriqueService::log(
-            $dossier->id,
-            'affectation_lot',
-            "Affectation de {$affectes} lot(s) au bénéficiaire « {$beneficiaire->nom} » — {$resumeLots}",
-            'lot',
-            null,
-            null,
-            [
-                'beneficiaire_id'   => $beneficiaire->id,
-                'beneficiaire_nom'  => $beneficiaire->nom,
-                'lots'              => $lotsAffectes,
-                'date_affectation'  => $request->date_affectation,
-                'notes'             => $request->notes,
-            ]
+        $dossier = $beneficiaire->dossier;
+        if (!$dossier) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Bénéficiaire sans dossier.',
+            ], 422);
+        }
+
+        $date  = $request->date_affectation;
+        $notes = $request->notes;
+
+        // ═══════════════════════════════════════════════════════
+        // 📸 SNAPSHOT AVANT — État complet du bénéficiaire
+        // ═══════════════════════════════════════════════════════
+        $avantAffectations = Affectation::with(['lot', 'bloc', 'grandSite'])
+            ->where('beneficiaire_id', $beneficiaire->id)
+            ->where('dossier_client_id', $dossier->id)
+            ->where('statut', 'actif')
+            ->get();
+
+        $avantLotsList = $avantAffectations->map(function ($aff) {
+            return [
+                'affectation_id' => $aff->id,
+                'lot_id'         => $aff->lot_affectation_id,
+                'numero'         => $aff->lot?->numero,
+                'bloc'           => $aff->bloc?->code,
+                'superficie'     => $aff->lot?->superficie,
+            ];
+        })->values()->toArray();
+
+        // ✅ Point de départ COMPLET (utilisé ensuite dans l'historique)
+        $pointDepart = [
+            'lot'   => implode(', ', array_filter(array_column($avantLotsList, 'numero'))),
+            'bloc'  => $avantAffectations->first()?->bloc?->code,
+            'date'  => $avantAffectations->first()?->date_affectation?->format('Y-m-d'),
+            'notes' => $avantAffectations->first()?->notes,
+        ];
+
+        $avant = [
+            'lots'             => $avantLotsList,
+            'nb_lots'          => count($avantLotsList),
+            'date'             => $avantAffectations->first()?->date_affectation?->format('Y-m-d'),
+            'notes'            => $avantAffectations->first()?->notes,
+            'beneficiaire_nom' => $beneficiaire->nom,
+            'point_depart'     => $pointDepart,
+        ];
+
+        // ═══════════════════════════════════════════════════════
+        // 1. RETIRER LES LOTS
+        // ═══════════════════════════════════════════════════════
+        $lotsRetires = [];
+        if (!empty($request->lots_a_retirer)) {
+            foreach ($request->lots_a_retirer as $affId) {
+                $aff = Affectation::with('lot', 'bloc')->find($affId);
+
+                if (!$aff) continue;
+                if ($aff->beneficiaire_id != $beneficiaire->id) continue;
+
+                $lotsRetires[] = [
+                    'affectation_id' => $aff->id,
+                    'lot_id'         => $aff->lot_affectation_id,
+                    'numero'         => $aff->lot?->numero,
+                    'bloc'           => $aff->bloc?->code,
+                    'superficie'     => $aff->lot?->superficie,
+                ];
+
+                // Libérer le lot
+                $aff->lot?->update(['disponible' => true]);
+
+                // Supprimer l'affectation
+                $aff->delete();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // 2. AJOUTER LES LOTS
+        // ═══════════════════════════════════════════════════════
+        $lotsAjoutes = [];
+        if (!empty($request->lots_a_ajouter)) {
+            foreach ($request->lots_a_ajouter as $lotId) {
+                $lot = LotAffectation::with('bloc')->find($lotId);
+
+                if (!$lot || !$lot->disponible) continue;
+
+                Affectation::create([
+                    'grand_site_id'      => $lot->grand_site_id,
+                    'site_id'            => $lot->site_id,
+                    'tf_id'              => $lot->tf_id,
+                    'bloc_id'            => $lot->bloc_id,
+                    'lot_affectation_id' => $lot->id,
+                    'client_id'          => $dossier->client_id,
+                    'dossier_client_id'  => $dossier->id,
+                    'beneficiaire_id'    => $beneficiaire->id,
+                    'date_affectation'   => $date,
+                    'statut'             => 'actif',
+                    'notes'              => $notes,
+                ]);
+
+                $lot->update(['disponible' => false]);
+
+                $lotsAjoutes[] = [
+                    'lot_id'     => $lot->id,
+                    'numero'     => $lot->numero,
+                    'bloc'       => $lot->bloc?->code,
+                    'superficie' => $lot->superficie,
+                ];
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // 3. METTRE À JOUR DATE + NOTES DES LOTS CONSERVÉS
+        // ═══════════════════════════════════════════════════════
+        $lotsConserves = array_diff(
+            array_column($avantLotsList, 'affectation_id'),
+            array_column($lotsRetires, 'affectation_id')
         );
+
+        if (!empty($lotsConserves)) {
+            Affectation::whereIn('id', $lotsConserves)
+                ->update([
+                    'date_affectation' => $date,
+                    'notes'            => $notes,
+                ]);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // 📸 SNAPSHOT APRÈS — État complet du bénéficiaire
+        // ═══════════════════════════════════════════════════════
+        $apresAffectations = Affectation::with(['lot', 'bloc'])
+            ->where('beneficiaire_id', $beneficiaire->id)
+            ->where('dossier_client_id', $dossier->id)
+            ->where('statut', 'actif')
+            ->get();
+
+        $apresLotsList = $apresAffectations->map(function ($aff) {
+            return [
+                'affectation_id' => $aff->id,
+                'lot_id'         => $aff->lot_affectation_id,
+                'numero'         => $aff->lot?->numero,
+                'bloc'           => $aff->bloc?->code,
+                'superficie'     => $aff->lot?->superficie,
+            ];
+        })->values()->toArray();
+
+        // ✅ Point d'arrivée COMPLET
+        $pointArrivee = [
+            'lot'   => implode(', ', array_filter(array_column($apresLotsList, 'numero'))),
+            'bloc'  => $apresAffectations->first()?->bloc?->code,
+            'date'  => $date,
+            'notes' => $notes,
+        ];
+
+        $apres = [
+            'lots'             => $apresLotsList,
+            'nb_lots'          => count($apresLotsList),
+            'date'             => $date,
+            'notes'            => $notes,
+            'beneficiaire_nom' => $beneficiaire->nom,
+            'point_depart'     => $pointDepart,      // ✅ AUSSI dans apres (pour le JS)
+            'point_arrivee'    => $pointArrivee,
+        ];
+
+        // ═══════════════════════════════════════════════════════
+        // 4. CONSTRUIRE LE RÉSUMÉ
+        // ═══════════════════════════════════════════════════════
+        $messages = [];
+
+        if (!empty($lotsRetires)) {
+            $noms = collect($lotsRetires)
+                ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " ({$l['bloc']})" : ''))
+                ->implode(', ');
+            $messages[] = "🗑️ Retiré : {$noms}";
+        }
+
+        if (!empty($lotsAjoutes)) {
+            $noms = collect($lotsAjoutes)
+                ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " ({$l['bloc']})" : ''))
+                ->implode(', ');
+            $messages[] = "➕ Ajouté : {$noms}";
+        }
+
+        $resume = empty($messages)
+            ? "Aucun changement de lots"
+            : implode(' | ', $messages);
+
+        // ✅ Nom complet du résumé (utilisé dans l'historique)
+        $nomComplet = "Modification des lots de « {$beneficiaire->nom} »"
+            . " — {$resume}"
+            . " (Avant : " . count($avantLotsList) . " lot(s)"
+            . " → Après : " . count($apresLotsList) . " lot(s))";
+
+        // ═══════════════════════════════════════════════════════
+        // 5. HISTORIQUE ENRICHI (avec point_depart / point_arrivee)
+        // ═══════════════════════════════════════════════════════
+        if (!empty($lotsRetires) || !empty($lotsAjoutes)) {
+            // ✅ Enrichir AVANT avec point_depart
+            $avantEnrichi = array_merge($avant, [
+                'point_depart' => $pointDepart,
+                'lots'         => $avantLotsList,
+                'nb_lots'      => count($avantLotsList),
+            ]);
+
+            // ✅ Enrichir APRES avec point_arrivee ET point_depart
+            $apresEnrichi = array_merge($apres, [
+                'point_arrivee' => $pointArrivee,
+                'point_depart'  => $pointDepart,
+                'lots'          => $apresLotsList,
+                'nb_lots'       => count($apresLotsList),
+            ]);
+
+            HistoriqueService::log(
+                $dossier->id,
+                'modification_affectation',
+                $nomComplet,
+                'beneficiaire',
+                $beneficiaire->id,
+                $avantEnrichi,
+                $apresEnrichi,
+                $beneficiaire->id
+            );
+        }
+
+        $total = count($lotsRetires) + count($lotsAjoutes);
+
+        return response()->json([
+            'success'   => true,
+            'message'   => "✅ {$total} modification(s) appliquée(s).",
+            'retires'   => $lotsRetires,
+            'ajoutes'   => $lotsAjoutes,
+            'avant'     => $avant,
+            'apres'     => $apres,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation',
+            'errors'  => $e->errors(),
+        ], 422);
+    } catch (\Exception $e) {
+        Log::error('Erreur modifierLots: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
-
-    $msg = $affectes . ' lot(s) affecté(s) au bénéficiaire.';
-    if (!empty($errors)) $msg .= ' Erreurs : ' . implode(', ', $errors);
-
-    return response()->json(['success' => true, 'message' => $msg]);
 }
 
 }

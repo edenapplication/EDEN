@@ -5,12 +5,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Affectation extends Model
 {
-    protected $table    = 'affectations';
+    protected $table = 'affectations';
+
     protected $fillable = [
         'grand_site_id','site_id','tf_id','bloc_id',
         'lot_affectation_id','client_id','dossier_client_id',
-        'date_affectation','statut','notes',
+        'date_affectation','statut','notes','beneficiaire_id',
     ];
+
     protected $casts = ['date_affectation' => 'date'];
 
     public function grandSite() { return $this->belongsTo(GrandSite::class, 'grand_site_id'); }
@@ -20,11 +22,5 @@ class Affectation extends Model
     public function lot()       { return $this->belongsTo(LotAffectation::class, 'lot_affectation_id'); }
     public function client()    { return $this->belongsTo(Client::class, 'client_id'); }
     public function dossier()   { return $this->belongsTo(DossierClient::class, 'dossier_client_id'); }
-
-    // app/Models/Affectation.php
-
-public function beneficiaire()
-{
-    return $this->belongsTo(Beneficiaire::class, 'beneficiaire_id');
-}
+    public function beneficiaire() { return $this->belongsTo(Beneficiaire::class, 'beneficiaire_id'); }
 }

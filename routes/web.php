@@ -142,12 +142,13 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::put('lots/{id}',            [AffectationController::class, 'updateLot'])->name('affectations.lots.update');
         Route::delete('lots/{id}',         [AffectationController::class, 'destroyLot'])->name('affectations.lots.destroy');
         Route::post('lots/superficie-multiple', [AffectationController::class, 'updateSuperficieMultiple'])->name('affectations.lots.superficie-multiple');
+        
         // ✅ IMPORT / EXPORT EXCEL DES LOTS
-Route::get('/affectations/lots/export',   [AffectationController::class, 'exportLots'])      ->name('affectations.lots.export');
-Route::get('/affectations/lots/template', [AffectationController::class, 'downloadTemplate'])->name('affectations.lots.template');
-Route::post('/affectations/lots/import',  [AffectationController::class, 'importLots'])      ->name('affectations.lots.import');
+        Route::get('/affectations/lots/export',   [AffectationController::class, 'exportLots'])->name('affectations.lots.export');
+        Route::get('/affectations/lots/template', [AffectationController::class, 'downloadTemplate'])->name('affectations.lots.template');
+        Route::post('/affectations/lots/import',  [AffectationController::class, 'importLots'])->name('affectations.lots.import');
+        
         Route::post('/affectations/affecter/{dossier}',[AffectationController::class, 'affecter'])->name('affectations.affecter');
-        Route::delete('/affectations/{affectation}',   [AffectationController::class, 'annuler'])->name('affectations.annuler');
 
         // ── API AFFECTATIONS ──
         Route::get('/affectations/api/sites/{grandSite}', [AffectationController::class, 'apiSites'])->name('affectations.api.sites');
@@ -187,6 +188,11 @@ Route::post('/affectations/lots/import',  [AffectationController::class, 'import
 
         // ── CLIENTS ──
         Route::post('/clients/{clientId}/modifier-nom', [SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
+
+        // ✅ WHATSAPP CLIENT INDIVIDUEL
+        Route::get('/clients/{client}/whatsapp',
+            [SuiviClientController::class, 'whatsappClient'])
+            ->name('clients.whatsapp');
 
         // ── DOSSIERS ──
         Route::post('/dossiers/{dossierId}/maj-prix', [DossierClientController::class, 'majPrix'])->name('dossiers.maj-prix');
@@ -259,6 +265,72 @@ Route::post('/affectations/lots/import',  [AffectationController::class, 'import
         Route::get('feb/fiches/{fiche}',          [App\Http\Controllers\Feb\AdminFicheController::class, 'show'])->name('admin.feb.fiches.show');
         Route::get('feb/fiches/{fiche}/pdf',      [App\Http\Controllers\Feb\AdminFicheController::class, 'pdf'])->name('admin.feb.fiches.pdf');
         Route::post('feb/fiches/{fiche}/marquer', [App\Http\Controllers\Feb\AdminFicheController::class, 'marquerVue'])->name('admin.feb.fiches.marquer');
+
+        // ════════════════════════════════════════════════════════════════
+        // ✅ BÉNÉFICIAIRES + AFFECTATIONS
+        // ════════════════════════════════════════════════════════════════
+        
+        // ── BÉNÉFICIAIRES (CRUD) ──
+        Route::post  ('dossiers/{dossier}/beneficiaires',
+                      [BeneficiaireController::class, 'store'])
+                      ->name('beneficiaires.store');
+
+        Route::put   ('beneficiaires/{beneficiaire}',
+                      [BeneficiaireController::class, 'update'])
+                      ->name('beneficiaires.update');
+
+        Route::delete('beneficiaires/{beneficiaire}',
+                      [BeneficiaireController::class, 'destroy'])
+                      ->name('beneficiaires.destroy');
+
+        // ── ÉTAPES DU BÉNÉFICIAIRE ──
+        Route::post('beneficiaires/{beneficiaire}/maj-etape',
+                    [BeneficiaireController::class, 'majEtape'])
+                    ->name('beneficiaires.maj-etape');
+
+        // ── ✅ AFFECTATION DE LOTS AU BÉNÉFICIAIRE ──
+        Route::post('beneficiaires/{beneficiaire}/affecter-lots',
+                    [AffectationController::class, 'affecterBeneficiaire'])
+                    ->name('beneficiaires.affecter-lots');
+
+        // ── ✅ HISTORIQUE D'UN BÉNÉFICIAIRE ──
+        Route::get('beneficiaires/{beneficiaire}/historique',
+                   [AffectationController::class, 'historiqueBeneficiaire'])
+                   ->name('beneficiaires.historique');
+
+        // ── ✅ WHATSAPP BÉNÉFICIAIRE INDIVIDUEL ──
+        Route::get('beneficiaires/{beneficiaire}/whatsapp',
+                   [BeneficiaireController::class, 'whatsappBeneficiaire'])
+                   ->name('beneficiaires.whatsapp');
+
+        // ── AFFECTATIONS (annulation / suppression) ──
+        Route::delete('affectations/{affectation}',
+                      [AffectationController::class, 'destroy'])
+                      ->name('affectations.destroy');
+
+        // ── HISTORIQUE D'UN DOSSIER ──
+        Route::get('dossiers/{dossier}/historique',
+                   [AffectationController::class, 'historique'])
+                   ->name('dossiers.historique');
+
+        // ── ✅ WHATSAPP PAR DOSSIER ──
+        Route::get('dossiers/{dossier}/whatsapp',
+                   [SuiviClientController::class, 'whatsappDossier'])
+                   ->name('dossiers.whatsapp');
+        // ── ✅ MODIFIER UNE AFFECTATION ──
+Route::put('affectations/{affectation}',
+           [AffectationController::class, 'update'])
+           ->name('affectations.update');
+
+           // ✅ Modifier les lots d'un bénéficiaire (multi-lots)
+Route::post('beneficiaires/{beneficiaire}/modifier-lots',
+            [AffectationController::class, 'modifierLots'])
+            ->name('beneficiaires.modifier-lots');
+
+            // ✅ ÉTAPE GROUPÉE (clients + bénéficiaires)
+Route::post('/etape-groupee',
+    [SuiviClientController::class, 'etapeGroupee'])
+    ->name('etapes.groupee');
     });
 
     // ═════════════════════════════════════════════════════════════════
@@ -456,38 +528,6 @@ Route::post('/affectations/lots/import',  [AffectationController::class, 'import
             Route::delete('/trousses/{id}', [SanteController::class, 'destroyTrousse'])->name('trousses.destroy');
         });
     });
-});
-
-// ════════════════════════════════════════════════════════════════
-// BÉNÉFICIAIRES (répartition de dossier)
-// ════════════════════════════════════════════════════════════════
-Route::prefix('admin')->middleware(['auth'])->group(function () {
-    Route::post  ('dossiers/{dossier}/beneficiaires',
-                  [BeneficiaireController::class, 'store'])
-                  ->name('beneficiaires.store');
-    Route::put   ('beneficiaires/{beneficiaire}',
-                  [BeneficiaireController::class, 'update'])
-                  ->name('beneficiaires.update');
-    Route::delete('beneficiaires/{beneficiaire}',
-                  [BeneficiaireController::class, 'destroy'])
-                  ->name('beneficiaires.destroy');
-     Route::delete('affectations/{affectation}',
-                  [AffectationController::class, 'destroy'])
-                  ->name('affectations.destroy');
-
-    // ✅ Historique d'un dossier (API)
-    Route::get('dossiers/{dossier}/historique',
-               [AffectationController::class, 'historique'])
-               ->name('dossiers.historique');
-    // ✅ Étapes d'un bénéficiaire
-    Route::post('beneficiaires/{beneficiaire}/maj-etape',
-                [BeneficiaireController::class, 'majEtape'])
-                ->name('beneficiaires.maj-etape');
-
-    // ✅ Affectation de lots à un bénéficiaire
-    Route::post('beneficiaires/{beneficiaire}/affecter-lots',
-                [AffectationController::class, 'affecterBeneficiaire'])
-                ->name('beneficiaires.affecter-lots');
 });
 
 // ═══════════════════════════════════════════════════════════════════
