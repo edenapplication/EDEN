@@ -141,9 +141,7 @@
     border: 1.5px solid #86efac;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BÉNÉFICIAIRES INDÉPENDANTS
-   ═══════════════════════════════════════════════════════════════ */
+/* BÉNÉFICIAIRES INDÉPENDANTS */
 .benef-section {
     margin-top: 10px; padding: 12px;
     background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
@@ -171,7 +169,6 @@
 }
 .benef-bulk-btn:hover { background: #ede9fe; }
 
-/* CARTE BÉNÉFICIAIRE */
 .benef-card {
     display: flex; align-items: flex-start; gap: 8px;
     padding: 10px 12px; background: white;
@@ -211,7 +208,6 @@
     flex-wrap: wrap;
 }
 
-/* BADGES DÉTAIL DU BÉNÉFICIAIRE */
 .benef-detail-badges {
     display: flex; flex-wrap: wrap;
     gap: 4px; margin-top: 6px;
@@ -304,7 +300,6 @@
     font-size: 9px; font-weight: 700;
 }
 
-/* Barre de sélection */
 .selection-summary {
     display: flex; gap: 12px; align-items: center;
     font-size: 11px; color: #64748b;
@@ -330,9 +325,7 @@
 }
 </style>
 
-{{-- ═══════════════════════════════════════════════════════════
-     EN-TÊTE
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- EN-TÊTE --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 style="color:#1e3a5f;font-weight:800;margin:0;">👤 Suivi Clients</h2>
@@ -366,9 +359,7 @@
     </div>
 @endif
 
-{{-- ═══════════════════════════════════════════════════════════
-     BARRE D'ACTIONS GROUPÉES
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- BARRE D'ACTIONS GROUPÉES --}}
 <div class="action-bar" id="actionBar">
     <span class="count" id="selectedCount">0</span>
     <span style="font-size:13px;color:#64748b;">élément(s) sélectionné(s)</span>
@@ -387,7 +378,7 @@
                 <li><button class="dropdown-item" onclick="actionGroupee('set_feminin')">👩 Féminin</button></li>
             </ul>
         </div>
-        
+
         {{-- ✅ ÉTAPE D'AVANCEMENT --}}
         <button class="btn" style="background:#f59e0b;color:white;" onclick="ouvrirModalEtapeGroupee()">
             📊 Étape
@@ -409,9 +400,7 @@
     <span class="badge-count benef" id="count-benefs">0 bénéficiaire(s)</span>
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════
-     FILTRES
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- FILTRES --}}
 <div class="filtre-box">
     <div class="row g-2 align-items-end">
         <div class="col-md-2">
@@ -503,9 +492,7 @@
     </div>
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════
-     LISTE DES CLIENTS
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- LISTE --}}
 <div id="liste-clients">
     @forelse($clients as $client)
     <div class="client-card"
@@ -563,6 +550,9 @@
                         &nbsp;·&nbsp; 📅 {{ $client->created_at?->format('d/m/Y') ?? '-' }}
                     </div>
 
+                    {{-- ═══════════════════════════════════════════════════════════
+                         📦 LOTS AFFECTÉS (dossier) — Résumé rapide
+                         ═══════════════════════════════════════════════════════════ --}}
                     @php
                         $lotsDossierTotal = 0;
                         $lotsBenefTotal = 0;
@@ -590,6 +580,137 @@
                     </div>
                     @endif
 
+                    {{-- ═══════════════════════════════════════════════════════════
+                         💰 STATUTS DE PAIEMENT PAR DOSSIER
+                         ═══════════════════════════════════════════════════════════ --}}
+                    @foreach($client->dossiers as $d)
+                        @php
+                            // Totaux payés
+                            $tD = $d->paiements->sum('montant');
+                            $tT = $d->paiementsTechniques->sum('montant');
+                            $tM = $d->paiementsMorcellements->sum('montant');
+                            $tL = $d->paiementsLogistiques?->sum('montant') ?? 0;
+
+                            // Prix de référence
+                            $rD = $d->prix_superficie    ?? 0;
+                            $rT = $d->prix_technique     ?? 0;
+                            $rM = $d->prix_morcellement  ?? 0;
+                            $rL = $d->prix_logistique    ?? 0;
+
+                            // Statuts
+                            $statutD = $rD > 0 ? ($tD >= $rD ? 'solde' : ($tD > 0 ? 'en_cours' : 'vide')) : ($tD > 0 ? 'en_cours' : 'vide');
+                            $statutT = $rT > 0 ? ($tT >= $rT ? 'solde' : ($tT > 0 ? 'en_cours' : 'vide')) : ($tT > 0 ? 'en_cours' : 'vide');
+                            $statutM = $rM > 0 ? ($tM >= $rM ? 'solde' : ($tM > 0 ? 'en_cours' : 'vide')) : ($tM > 0 ? 'en_cours' : 'vide');
+                            $statutL = $rL > 0 ? ($tL >= $rL ? 'solde' : ($tL > 0 ? 'en_cours' : 'vide')) : ($tL > 0 ? 'en_cours' : 'vide');
+
+                            $couleurs = [
+                                'solde'    => ['bg' => '#dcfce7', 'border' => '#86efac', 'text' => '#15803d', 'icone' => '✅'],
+                                'en_cours' => ['bg' => '#fef3c7', 'border' => '#fcd34d', 'text' => '#b45309', 'icone' => '⏳'],
+                                'vide'     => ['bg' => '#f1f5f9', 'border' => '#cbd5e1', 'text' => '#64748b', 'icone' => '⭕']
+                            ];
+
+                            $totalPaye = $tD + $tT + $tL + $tM;
+                            $totalRef  = $rD + $rT + $rL + $rM;
+                            $tousSoldes = ($statutD === 'solde' || $tD == 0)
+                                       && ($statutT === 'solde' || $tT == 0)
+                                       && ($statutL === 'solde' || $tL == 0)
+                                       && ($statutM === 'solde' || $tM == 0);
+                            $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
+                        @endphp
+
+                        <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;margin-top:8px;border:1px solid #e2e8f0;">
+
+                            {{-- En-tête dossier --}}
+                            <div style="font-size:11px;color:#1e3a5f;font-weight:700;margin-bottom:8px;">
+                                📂 {{ $d->nom_dossier }}
+                                <span style="color:#6b7280;font-weight:normal;font-size:10px;">
+                                    ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
+                                    · {{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}
+                                </span>
+                            </div>
+
+                            {{-- Statuts de paiement --}}
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+
+                                {{-- Dossier --}}
+                                @if($tD > 0 || $rD > 0)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
+                                    {{ $couleurs[$statutD]['icone'] }} 📁 Dossier
+                                    @if($statutD === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutD === 'en_cours')
+                                        <span>{{ $rD > 0 ? number_format(round(($tD/$rD)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+
+                                {{-- Technique --}}
+                                @if($tT > 0 || $rT > 0)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutT]['bg'] }};color:{{ $couleurs[$statutT]['text'] }};border:1.5px solid {{ $couleurs[$statutT]['border'] }};">
+                                    {{ $couleurs[$statutT]['icone'] }} 🛠️ Tech.
+                                    @if($statutT === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutT === 'en_cours')
+                                        <span>{{ $rT > 0 ? number_format(round(($tT/$rT)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+
+                                {{-- Logistique --}}
+                                @if($tL > 0 || $rL > 0)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutL]['bg'] }};color:{{ $couleurs[$statutL]['text'] }};border:1.5px solid {{ $couleurs[$statutL]['border'] }};">
+                                    {{ $couleurs[$statutL]['icone'] }} 🚗 Logi.
+                                    @if($statutL === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutL === 'en_cours')
+                                        <span>{{ $rL > 0 ? number_format(round(($tL/$rL)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+
+                                {{-- Morcellement --}}
+                                @if($tM > 0 || $rM > 0)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutM]['bg'] }};color:{{ $couleurs[$statutM]['text'] }};border:1.5px solid {{ $couleurs[$statutM]['border'] }};">
+                                    {{ $couleurs[$statutM]['icone'] }} ✂️ Morcel.
+                                    @if($statutM === 'solde')
+                                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                    @elseif($statutM === 'en_cours')
+                                        <span>{{ $rM > 0 ? number_format(round(($tM/$rM)*100)) . '%' : 'payé' }}</span>
+                                    @else
+                                        <span style="color:#94a3b8;">non payé</span>
+                                    @endif
+                                </span>
+                                @endif
+                            </div>
+
+                            {{-- Barre de progression globale --}}
+                            @if($totalRef > 0)
+                            <div style="margin-top:8px;padding:6px 12px;border-radius:6px;background:{{ $tousSoldes ? '#dcfce7' : ($totalPaye > 0 ? '#fef3c7' : '#f1f5f9') }};border:1.5px solid {{ $tousSoldes ? '#86efac' : ($totalPaye > 0 ? '#fcd34d' : '#cbd5e1') }};display:flex;justify-content:space-between;align-items:center;font-size:11px;">
+                                <span style="font-weight:700;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
+                                    {{ $tousSoldes ? '✅ SOLDÉ' : ($totalPaye > 0 ? '⏳ EN COURS' : '⭕ NON PAYÉ') }}
+                                </span>
+                                <span style="font-weight:900;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
+                                    @if($totalPaye > 0)
+                                        {{ number_format($totalPaye, 0, ',', ' ') }} / {{ number_format($totalRef, 0, ',', ' ') }} FCFA
+                                        <span style="font-size:10px;">({{ $pctGlobal }}%)</span>
+                                    @else
+                                        0 FCFA
+                                    @endif
+                                </span>
+                            </div>
+                            @endif
+                        </div>
+                    @endforeach
+
+                    {{-- ═══════════════════════════════════════════════════════════
+                         👥 BÉNÉFICIAIRES
+                         ═══════════════════════════════════════════════════════════ --}}
                     @php
                         $tousBeneficiaires = collect();
                         foreach ($client->dossiers as $d) {
@@ -776,10 +897,6 @@
     @endforelse
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════
-     MODALS
-     ═══════════════════════════════════════════════════════════ --}}
-
 {{-- MODAL MODIFIER NOM --}}
 <div class="modal-overlay" id="overlayNom" onclick="fermerEditNom()"></div>
 <div class="modal-box" id="modalNom">
@@ -846,9 +963,7 @@
     <div id="benefDetailContent">Chargement...</div>
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════
-     MODAL ÉTAPE GROUPÉE
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- MODAL ÉTAPE GROUPÉE --}}
 <div class="modal-overlay" id="etapeGroupeeOverlay" onclick="fermerModalEtapeGroupee()"></div>
 <div class="modal-box" id="etapeGroupeeModal" style="width:600px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -859,13 +974,11 @@
                 style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
 
-    {{-- Résumé de la sélection --}}
     <div id="etapeGroupeeResume" 
          style="background:#f1f5f9;border-radius:8px;padding:12px;
                 margin-bottom:14px;font-size:12px;color:#475569;">
     </div>
 
-    {{-- Étape --}}
     <div style="margin-bottom:14px;">
         <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:8px;">
             📍 Étape à appliquer *
@@ -875,8 +988,7 @@
                 $etapesDossier = \App\Models\DossierClient::etapesConfig();
             @endphp
             @foreach($etapesDossier as $cle => $cfg)
-                <label class="etape-groupee-label"
-                       data-etape="{{ $cle }}">
+                <label class="etape-groupee-label" data-etape="{{ $cle }}">
                     <input type="radio" name="etapeGroupeeRadio" value="{{ $cle }}"
                            style="width:14px;height:14px;"
                            onchange="onEtapeGroupeeChange()">
@@ -887,7 +999,6 @@
         </div>
     </div>
 
-    {{-- Date --}}
     <div style="margin-bottom:16px;">
         <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">
             📅 Date de l'étape *
@@ -896,7 +1007,6 @@
                value="{{ now()->format('Y-m-d') }}">
     </div>
 
-    {{-- Actions --}}
     <div class="d-flex justify-content-end gap-2">
         <button onclick="fermerModalEtapeGroupee()" class="btn btn-light btn-sm">
             Annuler
@@ -1156,28 +1266,23 @@ function executerActionConfirmee() {
 
     fermerModalConfirmation();
 
-    // ✅ Export documents
+    // Export documents
     if (action === 'export_documents') {
         exporterDocuments(idsClients);
         return;
     }
 
-    // ✅ Export PDF sélection
+    // Export PDF sélection
     if (action === 'export_pdf_selected') {
         exporterPdfSelection(idsClients);
         return;
     }
 
-    // ✅ Export Excel sélection (SÉPARATION clients / bénéficiaires)
+    // Export Excel sélection
     if (action === 'export_excel_selected') {
         const params = new URLSearchParams();
-
-        // ✅ Envoyer les IDs clients séparément
         idsClients.forEach(id => params.append('client_ids[]', id));
-
-        // ✅ Envoyer les IDs bénéficiaires séparément
         idsBenefs.forEach(id => params.append('beneficiaire_ids[]', id));
-
         window.location.href = '/admin/dossiers/export-excel?' + params.toString();
         return;
     }
@@ -1565,7 +1670,7 @@ function sauvegarderNom() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ MODAL ÉTAPE GROUPÉE
+// MODAL ÉTAPE GROUPÉE
 // ════════════════════════════════════════════════════════════════
 function ouvrirModalEtapeGroupee() {
     const idsClients = Array.from(selectedClients);
@@ -1576,7 +1681,6 @@ function ouvrirModalEtapeGroupee() {
         return;
     }
 
-    // Résumé de la sélection
     const resume = document.getElementById('etapeGroupeeResume');
     let html = '<div style="font-weight:700;color:#1e3a5f;margin-bottom:8px;">📊 Éléments sélectionnés :</div>';
 
@@ -1593,7 +1697,6 @@ function ouvrirModalEtapeGroupee() {
 
     resume.innerHTML = html;
 
-    // Reset radio + date
     document.querySelectorAll('input[name="etapeGroupeeRadio"]').forEach(r => {
         r.checked = false;
     });
@@ -1604,7 +1707,6 @@ function ouvrirModalEtapeGroupee() {
     });
     document.getElementById('etapeGroupeeDate').value = new Date().toISOString().split('T')[0];
 
-    // Afficher
     document.getElementById('etapeGroupeeOverlay').style.display = 'block';
     document.getElementById('etapeGroupeeModal').style.display = 'block';
 }
