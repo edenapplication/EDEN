@@ -283,6 +283,8 @@
 .benef-action-btn.whatsapp:hover { background: #16a34a; color: white; transform: scale(1.1); }
 .benef-action-btn.view { background: #dbeafe; color: #1d4ed8; }
 .benef-action-btn.view:hover { background: #1d4ed8; color: white; transform: scale(1.1); }
+.benef-action-btn.delete { background: #fee2e2; color: #dc2626; }
+.benef-action-btn.delete:hover { background: #dc2626; color: white; transform: scale(1.1); }
 
 .benef-etape-dot {
     width: 8px; height: 8px; border-radius: 50%;
@@ -581,150 +583,141 @@
                     @endif
 
                     {{-- ═══════════════════════════════════════════════════════════
-     💰 STATUTS DE PAIEMENT PAR DOSSIER (CÔTE À CÔTE)
-     ═══════════════════════════════════════════════════════════ --}}
-@if($client->dossiers->count() > 0)
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:10px;margin-top:8px;">
-    @foreach($client->dossiers as $d)
-        @php
-            // Totaux payés
-            $tD = $d->paiements->sum('montant');
-            $tT = $d->paiementsTechniques->sum('montant');
-            $tM = $d->paiementsMorcellements->sum('montant');
-            $tL = $d->paiementsLogistiques?->sum('montant') ?? 0;
+                         💰 STATUTS DE PAIEMENT PAR DOSSIER (CÔTE À CÔTE)
+                         ═══════════════════════════════════════════════════════════ --}}
+                    @if($client->dossiers->count() > 0)
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:10px;margin-top:8px;">
+                        @foreach($client->dossiers as $d)
+                            @php
+                                $tD = $d->paiements->sum('montant');
+                                $tT = $d->paiementsTechniques->sum('montant');
+                                $tM = $d->paiementsMorcellements->sum('montant');
+                                $tL = $d->paiementsLogistiques?->sum('montant') ?? 0;
 
-            // Prix de référence
-            $rD = $d->prix_superficie    ?? 0;
-            $rT = $d->prix_technique     ?? 0;
-            $rM = $d->prix_morcellement  ?? 0;
-            $rL = $d->prix_logistique    ?? 0;
+                                $rD = $d->prix_superficie    ?? 0;
+                                $rT = $d->prix_technique     ?? 0;
+                                $rM = $d->prix_morcellement  ?? 0;
+                                $rL = $d->prix_logistique    ?? 0;
 
-            // Statuts
-            $statutD = $rD > 0 ? ($tD >= $rD ? 'solde' : ($tD > 0 ? 'en_cours' : 'vide')) : ($tD > 0 ? 'en_cours' : 'vide');
-            $statutT = $rT > 0 ? ($tT >= $rT ? 'solde' : ($tT > 0 ? 'en_cours' : 'vide')) : ($tT > 0 ? 'en_cours' : 'vide');
-            $statutM = $rM > 0 ? ($tM >= $rM ? 'solde' : ($tM > 0 ? 'en_cours' : 'vide')) : ($tM > 0 ? 'en_cours' : 'vide');
-            $statutL = $rL > 0 ? ($tL >= $rL ? 'solde' : ($tL > 0 ? 'en_cours' : 'vide')) : ($tL > 0 ? 'en_cours' : 'vide');
+                                $statutD = $rD > 0 ? ($tD >= $rD ? 'solde' : ($tD > 0 ? 'en_cours' : 'vide')) : ($tD > 0 ? 'en_cours' : 'vide');
+                                $statutT = $rT > 0 ? ($tT >= $rT ? 'solde' : ($tT > 0 ? 'en_cours' : 'vide')) : ($tT > 0 ? 'en_cours' : 'vide');
+                                $statutM = $rM > 0 ? ($tM >= $rM ? 'solde' : ($tM > 0 ? 'en_cours' : 'vide')) : ($tM > 0 ? 'en_cours' : 'vide');
+                                $statutL = $rL > 0 ? ($tL >= $rL ? 'solde' : ($tL > 0 ? 'en_cours' : 'vide')) : ($tL > 0 ? 'en_cours' : 'vide');
 
-            $couleurs = [
-                'solde'    => ['bg' => '#dcfce7', 'border' => '#86efac', 'text' => '#15803d', 'icone' => '✅'],
-                'en_cours' => ['bg' => '#fef3c7', 'border' => '#fcd34d', 'text' => '#b45309', 'icone' => '⏳'],
-                'vide'     => ['bg' => '#f1f5f9', 'border' => '#cbd5e1', 'text' => '#64748b', 'icone' => '⭕']
-            ];
+                                $couleurs = [
+                                    'solde'    => ['bg' => '#dcfce7', 'border' => '#86efac', 'text' => '#15803d', 'icone' => '✅'],
+                                    'en_cours' => ['bg' => '#fef3c7', 'border' => '#fcd34d', 'text' => '#b45309', 'icone' => '⏳'],
+                                    'vide'     => ['bg' => '#f1f5f9', 'border' => '#cbd5e1', 'text' => '#64748b', 'icone' => '⭕']
+                                ];
 
-            $totalPaye = $tD + $tT + $tL + $tM;
-            $totalRef  = $rD + $rT + $rL + $rM;
-            $tousSoldes = ($statutD === 'solde' || $tD == 0)
-                       && ($statutT === 'solde' || $tT == 0)
-                       && ($statutL === 'solde' || $tL == 0)
-                       && ($statutM === 'solde' || $tM == 0);
-            $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
-        @endphp
+                                $totalPaye = $tD + $tT + $tL + $tM;
+                                $totalRef  = $rD + $rT + $rL + $rM;
+                                $tousSoldes = ($statutD === 'solde' || $tD == 0)
+                                           && ($statutT === 'solde' || $tT == 0)
+                                           && ($statutL === 'solde' || $tL == 0)
+                                           && ($statutM === 'solde' || $tM == 0);
+                                $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
+                            @endphp
 
-        <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;">
+                            <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;">
 
-            {{-- En-tête dossier --}}
-            <div style="font-size:11px;color:#1e3a5f;font-weight:700;margin-bottom:8px;
-                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                 title="{{ $d->nom_dossier }}">
-                📂 {{ $d->nom_dossier }}
-                <span style="color:#6b7280;font-weight:normal;font-size:10px;">
-                    ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
-                    · {{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}
-                </span>
-            </div>
+                                <div style="font-size:11px;color:#1e3a5f;font-weight:700;margin-bottom:8px;
+                                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                                     title="{{ $d->nom_dossier }}">
+                                    📂 {{ $d->nom_dossier }}
+                                    <span style="color:#6b7280;font-weight:normal;font-size:10px;">
+                                        ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
+                                        · {{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}
+                                    </span>
+                                </div>
 
-            {{-- Statuts de paiement (avec noms complets) --}}
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;">
 
-                {{-- Dossier --}}
-                @if($tD > 0 || $rD > 0)
-                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
-                    {{ $couleurs[$statutD]['icone'] }}
-                    <span>📁 Dossier</span>
-                    @if($statutD === 'solde')
-                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                    @elseif($statutD === 'en_cours')
-                        <span style="background:{{ $couleurs[$statutD]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
-                            {{ $rD > 0 ? number_format(round(($tD/$rD)*100)) . '%' : 'payé' }}
-                        </span>
-                    @else
-                        <span style="color:#94a3b8;">non payé</span>
+                                    @if($tD > 0 || $rD > 0)
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
+                                        {{ $couleurs[$statutD]['icone'] }}
+                                        <span>📁 Dossier</span>
+                                        @if($statutD === 'solde')
+                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                        @elseif($statutD === 'en_cours')
+                                            <span style="background:{{ $couleurs[$statutD]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
+                                                {{ $rD > 0 ? number_format(round(($tD/$rD)*100)) . '%' : 'payé' }}
+                                            </span>
+                                        @else
+                                            <span style="color:#94a3b8;">non payé</span>
+                                        @endif
+                                    </span>
+                                    @endif
+
+                                    @if($tT > 0 || $rT > 0)
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutT]['bg'] }};color:{{ $couleurs[$statutT]['text'] }};border:1.5px solid {{ $couleurs[$statutT]['border'] }};">
+                                        {{ $couleurs[$statutT]['icone'] }}
+                                        <span>🛠️ Technique</span>
+                                        @if($statutT === 'solde')
+                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                        @elseif($statutT === 'en_cours')
+                                            <span style="background:{{ $couleurs[$statutT]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
+                                                {{ $rT > 0 ? number_format(round(($tT/$rT)*100)) . '%' : 'payé' }}
+                                            </span>
+                                        @else
+                                            <span style="color:#94a3b8;">non payé</span>
+                                        @endif
+                                    </span>
+                                    @endif
+
+                                    @if($tL > 0 || $rL > 0)
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutL]['bg'] }};color:{{ $couleurs[$statutL]['text'] }};border:1.5px solid {{ $couleurs[$statutL]['border'] }};">
+                                        {{ $couleurs[$statutL]['icone'] }}
+                                        <span>🚗 Logistique</span>
+                                        @if($statutL === 'solde')
+                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                        @elseif($statutL === 'en_cours')
+                                            <span style="background:{{ $couleurs[$statutL]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
+                                                {{ $rL > 0 ? number_format(round(($tL/$rL)*100)) . '%' : 'payé' }}
+                                            </span>
+                                        @else
+                                            <span style="color:#94a3b8;">non payé</span>
+                                        @endif
+                                    </span>
+                                    @endif
+
+                                    @if($tM > 0 || $rM > 0)
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutM]['bg'] }};color:{{ $couleurs[$statutM]['text'] }};border:1.5px solid {{ $couleurs[$statutM]['border'] }};">
+                                        {{ $couleurs[$statutM]['icone'] }}
+                                        <span>✂️ Morcellement</span>
+                                        @if($statutM === 'solde')
+                                            <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
+                                        @elseif($statutM === 'en_cours')
+                                            <span style="background:{{ $couleurs[$statutM]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
+                                                {{ $rM > 0 ? number_format(round(($tM/$rM)*100)) . '%' : 'payé' }}
+                                            </span>
+                                        @else
+                                            <span style="color:#94a3b8;">non payé</span>
+                                        @endif
+                                    </span>
+                                    @endif
+                                </div>
+
+                                @if($totalRef > 0)
+                                <div style="margin-top:8px;padding:6px 12px;border-radius:6px;background:{{ $tousSoldes ? '#dcfce7' : ($totalPaye > 0 ? '#fef3c7' : '#f1f5f9') }};border:1.5px solid {{ $tousSoldes ? '#86efac' : ($totalPaye > 0 ? '#fcd34d' : '#cbd5e1') }};display:flex;justify-content:space-between;align-items:center;font-size:11px;">
+                                    <span style="font-weight:700;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
+                                        {{ $tousSoldes ? '✅ SOLDÉ' : ($totalPaye > 0 ? '⏳ EN COURS' : '⭕ NON PAYÉ') }}
+                                    </span>
+                                    <span style="font-weight:900;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
+                                        @if($totalPaye > 0)
+                                            {{ number_format($totalPaye, 0, ',', ' ') }} / {{ number_format($totalRef, 0, ',', ' ') }} FCFA
+                                            <span style="font-size:10px;">({{ $pctGlobal }}%)</span>
+                                        @else
+                                            0 FCFA
+                                        @endif
+                                    </span>
+                                </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                     @endif
-                </span>
-                @endif
 
-                {{-- Technique --}}
-                @if($tT > 0 || $rT > 0)
-                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutT]['bg'] }};color:{{ $couleurs[$statutT]['text'] }};border:1.5px solid {{ $couleurs[$statutT]['border'] }};">
-                    {{ $couleurs[$statutT]['icone'] }}
-                    <span>🛠️ Technique</span>
-                    @if($statutT === 'solde')
-                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                    @elseif($statutT === 'en_cours')
-                        <span style="background:{{ $couleurs[$statutT]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
-                            {{ $rT > 0 ? number_format(round(($tT/$rT)*100)) . '%' : 'payé' }}
-                        </span>
-                    @else
-                        <span style="color:#94a3b8;">non payé</span>
-                    @endif
-                </span>
-                @endif
-
-                {{-- Logistique --}}
-                @if($tL > 0 || $rL > 0)
-                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutL]['bg'] }};color:{{ $couleurs[$statutL]['text'] }};border:1.5px solid {{ $couleurs[$statutL]['border'] }};">
-                    {{ $couleurs[$statutL]['icone'] }}
-                    <span>🚗 Logistique</span>
-                    @if($statutL === 'solde')
-                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                    @elseif($statutL === 'en_cours')
-                        <span style="background:{{ $couleurs[$statutL]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
-                            {{ $rL > 0 ? number_format(round(($tL/$rL)*100)) . '%' : 'payé' }}
-                        </span>
-                    @else
-                        <span style="color:#94a3b8;">non payé</span>
-                    @endif
-                </span>
-                @endif
-
-                {{-- Morcellement --}}
-                @if($tM > 0 || $rM > 0)
-                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutM]['bg'] }};color:{{ $couleurs[$statutM]['text'] }};border:1.5px solid {{ $couleurs[$statutM]['border'] }};">
-                    {{ $couleurs[$statutM]['icone'] }}
-                    <span>✂️ Morcellement</span>
-                    @if($statutM === 'solde')
-                        <span style="background:#15803d22;padding:0 6px;border-radius:8px;">SOLDÉ</span>
-                    @elseif($statutM === 'en_cours')
-                        <span style="background:{{ $couleurs[$statutM]['bg'] }};padding:0 6px;border-radius:8px;font-weight:800;">
-                            {{ $rM > 0 ? number_format(round(($tM/$rM)*100)) . '%' : 'payé' }}
-                        </span>
-                    @else
-                        <span style="color:#94a3b8;">non payé</span>
-                    @endif
-                </span>
-                @endif
-            </div>
-
-            {{-- Barre de progression globale --}}
-            @if($totalRef > 0)
-            <div style="margin-top:8px;padding:6px 12px;border-radius:6px;background:{{ $tousSoldes ? '#dcfce7' : ($totalPaye > 0 ? '#fef3c7' : '#f1f5f9') }};border:1.5px solid {{ $tousSoldes ? '#86efac' : ($totalPaye > 0 ? '#fcd34d' : '#cbd5e1') }};display:flex;justify-content:space-between;align-items:center;font-size:11px;">
-                <span style="font-weight:700;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
-                    {{ $tousSoldes ? '✅ SOLDÉ' : ($totalPaye > 0 ? '⏳ EN COURS' : '⭕ NON PAYÉ') }}
-                </span>
-                <span style="font-weight:900;color:{{ $tousSoldes ? '#15803d' : ($totalPaye > 0 ? '#b45309' : '#64748b') }};">
-                    @if($totalPaye > 0)
-                        {{ number_format($totalPaye, 0, ',', ' ') }} / {{ number_format($totalRef, 0, ',', ' ') }} FCFA
-                        <span style="font-size:10px;">({{ $pctGlobal }}%)</span>
-                    @else
-                        0 FCFA
-                    @endif
-                </span>
-            </div>
-            @endif
-        </div>
-    @endforeach
-</div>
-@endif
                     {{-- ═══════════════════════════════════════════════════════════
                          👥 BÉNÉFICIAIRES
                          ═══════════════════════════════════════════════════════════ --}}
@@ -894,6 +887,9 @@
                                     <button class="benef-action-btn view"
                                             onclick="voirBenefDetail({{ $b->id }}, {{ $client->id }})"
                                             title="Voir détails">👁</button>
+                                    <button class="benef-action-btn delete"
+                                            onclick="supprimerBenef({{ $b->id }}, '{{ addslashes($b->nom) }}')"
+                                            title="Supprimer ce bénéficiaire">🗑</button>
                                 </div>
                             </div>
                         @endforeach
@@ -1214,7 +1210,7 @@ function actionGroupee(action) {
         'mark_as_old': {title:'📌 Marquer comme anciens', message:`Marquer ${idsClients.length} client(s) comme ANCIENS ?`, btnText:'Marquer', btnClass:'btn-warning'},
         'set_masculin': {title:'👨 Marquer comme Masculin', message:`Marquer ${idsClients.length} client(s) comme MASCULIN ?`, btnText:'Marquer', btnClass:'btn-primary'},
         'set_feminin': {title:'👩 Marquer comme Féminin', message:`Marquer ${idsClients.length} client(s) comme FÉMININ ?`, btnText:'Marquer', btnClass:'btn-primary'},
-        'delete': {title:'🗑 Supprimer', message:`Supprimer ${idsClients.length} client(s) ? Action irréversible.`, btnText:'Supprimer', btnClass:'btn-danger'},
+        'delete': {title:'🗑 Supprimer', message:`Supprimer définitivement ${idsClients.length + idsBenefs.length} élément(s) sélectionné(s) ? Action irréversible.`, btnText:'Supprimer', btnClass:'btn-danger'},
         'export_whatsapp': {title:'💬 Envoyer sur WhatsApp', message:`Envoyer les informations de ${idsClients.length} client(s) sur WhatsApp ?`, btnText:'Envoyer', btnClass:'btn-primary'},
         'export_pdf_selected': {title:'📄 Exporter en PDF', message:`Exporter les ${idsClients.length} client(s) sélectionné(s) en PDF ?`, btnText:'Exporter', btnClass:'btn-danger'},
         'export_excel_selected': {title:'📥 Exporter en Excel', message:`Exporter les éléments sélectionnés en Excel ?`, btnText:'Exporter', btnClass:'btn-success'},
@@ -1283,6 +1279,62 @@ function executerActionConfirmee() {
 
     fermerModalConfirmation();
 
+    // ✅ SUPPRESSION UNIFIÉE : clients + bénéficiaires cochés
+    if (action === 'delete') {
+        if (idsClients.length === 0 && idsBenefs.length === 0) {
+            showToast('⚠️ Aucun élément sélectionné', 'warning');
+            return;
+        }
+
+        if (window.EdenLoader) window.EdenLoader.show();
+
+        const promises = [];
+
+        // Suppression des bénéficiaires
+        idsBenefs.forEach(id => {
+            promises.push(
+                fetch(`/admin/beneficiaires/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                }).then(r => r.json())
+            );
+        });
+
+        // Suppression des clients
+        idsClients.forEach(id => {
+            promises.push(
+                fetch(`/admin/suivi-client/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                }).then(r => r.json())
+            );
+        });
+
+        Promise.all(promises)
+            .then(results => {
+                if (window.EdenLoader) window.EdenLoader.hide();
+
+                const success = results.filter(r => r.success).length;
+                const errors  = results.length - success;
+
+                if (success > 0) {
+                    showToast(
+                        `✅ ${success} élément(s) supprimé(s)${errors > 0 ? ' — ' + errors + ' erreur(s)' : ''}`,
+                        'success'
+                    );
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showToast('❌ Aucun élément supprimé', 'error');
+                }
+            })
+            .catch(err => {
+                if (window.EdenLoader) window.EdenLoader.hide();
+                showToast('❌ Erreur réseau : ' + err.message, 'error');
+            });
+
+        return;
+    }
+
     // Export documents
     if (action === 'export_documents') {
         exporterDocuments(idsClients);
@@ -1319,9 +1371,6 @@ function executerActionConfirmee() {
             if (action === 'export_whatsapp' && data.whatsapp_url) {
                 window.open(data.whatsapp_url, '_blank');
                 showToast(`✅ ${data.count} client(s) envoyé(s) sur WhatsApp !`, 'success');
-            } else if (action === 'delete') {
-                showToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
             } else {
                 showToast(data.message, 'success');
                 setTimeout(() => location.reload(), 1000);
@@ -1333,6 +1382,68 @@ function executerActionConfirmee() {
     .catch(error => {
         if (window.EdenLoader) window.EdenLoader.hide();
         showToast('❌ Erreur réseau : ' + error.message, 'error');
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
+// SUPPRIMER UN BÉNÉFICIAIRE (individuel)
+// ════════════════════════════════════════════════════════════════
+function supprimerBenef(benefId, benefNom) {
+    if (!confirm(`⚠️ Supprimer définitivement le bénéficiaire « ${benefNom} » ?\n\nLes lots affectés seront libérés.`)) {
+        return;
+    }
+
+    if (window.EdenLoader) window.EdenLoader.show();
+
+    fetch(`/admin/beneficiaires/${benefId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': CSRF,
+            'Accept': 'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+
+        if (data.success) {
+            showToast('✅ ' + (data.message || 'Bénéficiaire supprimé'), 'success');
+
+            const card = document.querySelector(`.benef-card[data-benef-id="${benefId}"]`);
+            if (card) {
+                const section = card.closest('.benef-section');
+
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-20px)';
+
+                setTimeout(() => {
+                    card.remove();
+
+                    if (section) {
+                        const countEl = section.querySelector('.benef-section-count');
+                        if (countEl) {
+                            const current = parseInt(countEl.textContent) || 1;
+                            const newCount = Math.max(0, current - 1);
+                            countEl.textContent = newCount;
+                            if (newCount === 0) section.remove();
+                        }
+                    }
+
+                    selectedBenefs.delete(benefId);
+                    mettreAJourActionBar();
+                }, 300);
+            } else {
+                setTimeout(() => location.reload(), 800);
+            }
+        } else {
+            showToast('❌ ' + (data.message || 'Erreur lors de la suppression'), 'error');
+        }
+    })
+    .catch(err => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        console.error('Erreur suppression bénéficiaire :', err);
+        showToast('❌ Erreur réseau : ' + err.message, 'error');
     });
 }
 

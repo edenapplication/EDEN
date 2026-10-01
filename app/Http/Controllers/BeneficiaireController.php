@@ -18,38 +18,37 @@ class BeneficiaireController extends Controller
     // STORE — Ajouter un bénéficiaire (avec lots pré-sélectionnés)
     // ════════════════════════════════════════════════════════════
     public function store(Request $request, DossierClient $dossier)
-    {
-        try {
-            $request->validate([
-                'nom'                  => 'required|string|max:255',
-                'telephone'            => 'nullable|string|max:50',
-                'cni'                  => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
-                'notes'                => 'nullable|string|max:1000',
-                'client_id'            => 'nullable|exists:clients,id',
-                'lot_ids'              => 'required|array|min:1',
-                'lot_ids.*'            => 'exists:lots_affectation,id',
-                'date_affectation'     => 'nullable|date',
-            ]);
+{
+    try {
+        $request->validate([
+            'nom'                  => 'required|string|max:255',
+            'telephone'            => 'nullable|string|max:50',
+            'cni'                  => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'notes'                => 'nullable|string|max:1000',
+            'client_id'            => 'nullable|exists:clients,id',
+            'lot_ids'              => 'nullable|array',
+            'lot_ids.*'            => 'nullable|exists:lots_affectation,id',
+            'date_affectation'     => 'nullable|date',
+        ]);
 
-            // ✅ Vérification client
-            $clientId = $request->client_id;
-            if ($clientId && $clientId != $dossier->client_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Le client sélectionné n\'est pas le propriétaire de ce dossier.',
-                ], 422);
-            }
+        // ✅ Vérification client
+        $clientId = $request->client_id;
+        if ($clientId && $clientId != $dossier->client_id) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Le client sélectionné n\'est pas le propriétaire de ce dossier.',
+            ], 422);
+        }
 
-            // ✅ Calculer la superficie totale à partir des lots sélectionnés
-            $lots = LotAffectation::with('bloc')->whereIn('id', $request->lot_ids)->get();
+        // ✅ Récupérer les lots (peut être vide)
+        $lotIds = $request->lot_ids ?? [];
+        $lots = !empty($lotIds)
+            ? LotAffectation::with('bloc')->whereIn('id', $lotIds)->get()
+            : collect();
 
-            if ($lots->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Aucun lot valide sélectionné.',
-                ], 422);
-            }
-
+        // ✅ MODIFIÉ : On ne bloque PLUS si vide, on continue
+        $superficieTotale = 0;
+        if ($lots->isNotEmpty()) {
             // Vérifier que tous les lots sont disponibles
             $lotsIndisponibles = $lots->where('disponible', false);
             if ($lotsIndisponibles->isNotEmpty()) {
@@ -60,12 +59,10 @@ class BeneficiaireController extends Controller
                 ], 422);
             }
 
-            // Calcul superficie totale
             $superficieTotale = $lots->sum('superficie');
 
             // Vérifier superficie restante du dossier
             $superficieRestante = $dossier->superficie_restante;
-
             if ($superficieTotale > $superficieRestante) {
                 return response()->json([
                     'success' => false,
@@ -73,113 +70,123 @@ class BeneficiaireController extends Controller
                                . "dépasse la superficie disponible du dossier ({$superficieRestante} m²).",
                 ], 422);
             }
+        }
 
-            // ✅ Upload CNI
-            $cniPath = null;
-            if ($request->hasFile('cni') && $request->file('cni')->isValid()) {
-                $cniPath = $request->file('cni')->store('beneficiaires/cni', 'public');
-                Log::info('✅ CNI uploadée', ['path' => $cniPath]);
-            }
+        // ✅ Upload CNI
+        $cniPath = null;
+        if ($request->hasFile('cni') && $request->file('cni')->isValid()) {
+            $cniPath = $request->file('cni')->store('beneficiaires/cni', 'public');
+            Log::info('✅ CNI uploadée', ['path' => $cniPath]);
+        }
 
-            if (!$cniPath) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Erreur lors de l\'upload de la CNI.',
-                ], 500);
-            }
+        if (!$cniPath) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Erreur lors de l\'upload de la CNI.',
+            ], 500);
+        }
 
-            // ✅ Créer le bénéficiaire
-            $beneficiaire = Beneficiaire::create([
-                'dossier_client_id'    => $dossier->id,
-                'client_id'            => $clientId,
-                'nom'                  => $request->nom,
-                'telephone'            => $request->telephone,
-                'cni_path'             => $cniPath,
-                'lots_texte'           => $lots->pluck('numero')->implode(', '),
-                'superficie_attribuee' => $superficieTotale,
-                'notes'                => $request->notes,
+        // ✅ Créer le bénéficiaire (superficie peut être 0)
+        $beneficiaire = Beneficiaire::create([
+            'dossier_client_id'    => $dossier->id,
+            'client_id'            => $clientId,
+            'nom'                  => $request->nom,
+            'telephone'            => $request->telephone,
+            'cni_path'             => $cniPath,
+            'lots_texte'           => $lots->pluck('numero')->implode(', ') ?: null,
+            'superficie_attribuee' => $superficieTotale,
+            'notes'                => $request->notes,
+        ]);
+
+        // ✅ Créer les affectations (seulement si des lots ont été sélectionnés)
+        $dateAffectation = $request->date_affectation ?? now()->format('Y-m-d');
+        $lotsAffectes = [];
+
+        foreach ($lots as $lot) {
+            Affectation::create([
+                'grand_site_id'      => $lot->grand_site_id,
+                'site_id'            => $lot->site_id,
+                'tf_id'              => $lot->tf_id,
+                'bloc_id'            => $lot->bloc_id,
+                'lot_affectation_id' => $lot->id,
+                'client_id'          => $dossier->client_id,
+                'dossier_client_id'  => $dossier->id,
+                'beneficiaire_id'    => $beneficiaire->id,
+                'date_affectation'   => $dateAffectation,
+                'statut'             => 'actif',
+                'notes'              => $request->notes,
             ]);
 
-            // ✅ Créer les affectations pour chaque lot
-            $dateAffectation = $request->date_affectation ?? now()->format('Y-m-d');
-            $lotsAffectes = [];
+            $lot->update(['disponible' => false]);
 
-            foreach ($lots as $lot) {
-                Affectation::create([
-                    'grand_site_id'      => $lot->grand_site_id,
-                    'site_id'            => $lot->site_id,
-                    'tf_id'              => $lot->tf_id,
-                    'bloc_id'            => $lot->bloc_id,
-                    'lot_affectation_id' => $lot->id,
-                    'client_id'          => $dossier->client_id,
-                    'dossier_client_id'  => $dossier->id,
-                    'beneficiaire_id'    => $beneficiaire->id,
-                    'date_affectation'   => $dateAffectation,
-                    'statut'             => 'actif',
-                    'notes'              => $request->notes,
-                ]);
+            $lotsAffectes[] = [
+                'lot_id'     => $lot->id,
+                'numero'     => $lot->numero,
+                'bloc'       => $lot->bloc?->code,
+                'superficie' => $lot->superficie,
+            ];
+        }
 
-                // Marquer le lot comme indisponible
-                $lot->update(['disponible' => false]);
-
-                $lotsAffectes[] = [
-                    'lot_id'     => $lot->id,
-                    'numero'     => $lot->numero,
-                    'bloc'       => $lot->bloc?->code,
-                    'superficie' => $lot->superficie,
-                ];
-            }
-
-            // ✅ HISTORIQUE
+        // ✅ HISTORIQUE (message adapté selon qu'il y a des lots ou non)
+        if (!empty($lotsAffectes)) {
             $resumeLots = collect($lotsAffectes)
                 ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
                 ->implode(', ');
 
-            HistoriqueService::log(
-                $dossier->id,
-                'ajout_beneficiaire',
-                "Ajout du bénéficiaire « {$beneficiaire->nom} » "
+            $resume = "Ajout du bénéficiaire « {$beneficiaire->nom} » "
                     . "avec " . count($lotsAffectes) . " lot(s) — {$resumeLots} "
-                    . "— Superficie totale : " . number_format($superficieTotale, 0, ',', ' ') . " m²",
-                'beneficiaire',
-                $beneficiaire->id,
-                null,
-                [
-                    'beneficiaire_nom'    => $beneficiaire->nom,
-                    'superficie_totale'   => $superficieTotale,
-                    'lots'                => $lotsAffectes,
-                    'date_affectation'    => $dateAffectation,
-                    'notes'               => $request->notes,
-                ],
-                $beneficiaire->id
-            );
-
-            return response()->json([
-                'success'              => true,
-                'message'              => '✅ Bénéficiaire ajouté avec ' . count($lotsAffectes) . ' lot(s).',
-                'beneficiaire'         => $this->formatBeneficiaire($beneficiaire),
-                'superficie_dossier'   => $dossier->superficie_dossier,
-                'superficie_attribuee' => $dossier->superficie_attribuee,
-                'superficie_restante'  => $dossier->superficie_restante,
-                'pourcentage'          => $dossier->pourcentage_attribue,
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors'  => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('Erreur store beneficiaire: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
+                    . "— Superficie totale : " . number_format($superficieTotale, 0, ',', ' ') . " m²";
+        } else {
+            $resume = "Ajout du bénéficiaire « {$beneficiaire->nom} » (sans lot affecté)";
         }
+
+        HistoriqueService::log(
+            $dossier->id,
+            'ajout_beneficiaire',
+            $resume,
+            'beneficiaire',
+            $beneficiaire->id,
+            null,
+            [
+                'beneficiaire_nom'    => $beneficiaire->nom,
+                'superficie_totale'   => $superficieTotale,
+                'lots'                => $lotsAffectes,
+                'date_affectation'    => $dateAffectation,
+                'notes'               => $request->notes,
+            ],
+            $beneficiaire->id
+        );
+
+        $message = !empty($lotsAffectes)
+            ? '✅ Bénéficiaire ajouté avec ' . count($lotsAffectes) . ' lot(s).'
+            : '✅ Bénéficiaire ajouté (sans lot).';
+
+        return response()->json([
+            'success'              => true,
+            'message'              => $message,
+            'beneficiaire'         => $this->formatBeneficiaire($beneficiaire),
+            'superficie_dossier'   => $dossier->superficie_dossier,
+            'superficie_attribuee' => $dossier->superficie_attribuee,
+            'superficie_restante'  => $dossier->superficie_restante,
+            'pourcentage'          => $dossier->pourcentage_attribue,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation',
+            'errors'  => $e->errors(),
+        ], 422);
+    } catch (\Exception $e) {
+        Log::error('Erreur store beneficiaire: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
 
     // ════════════════════════════════════════════════════════════
     // UPDATE — Modifier un bénéficiaire
