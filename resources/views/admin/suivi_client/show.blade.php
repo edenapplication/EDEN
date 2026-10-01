@@ -9,254 +9,37 @@
 .info-row span:last-child  { font-weight:600; color:#1e3a5f; }
 .pay-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid #f8fafc; }
 .pay-amt { font-weight:700; }
-.dossier-tab { cursor:pointer; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; background:#f1f5f9; color:#64748b; }
-.dossier-tab.active { background:#0d6efd; color:white; }
-.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998; }
-.modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:9999; width:400px; max-height:90vh; overflow-y:auto; }
+.dossier-tab { 
+    cursor:pointer; padding:10px 18px; border-radius:8px; 
+    font-size:13px; font-weight:700; background:#f1f5f9; color:#64748b;
+    transition:all 0.2s; border:2px solid transparent;
+}
+.dossier-tab:hover { background:#e2e8f0; }
+.dossier-tab.active { background:#0d6efd; color:white; border-color:#0d6efd; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
+.modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:400px; max-height:90vh; overflow-y:auto; }
 
-/* ═══════════════════════════════════════════════════════════════
-   ONGLETS PRINCIPAUX
-   ═══════════════════════════════════════════════════════════════ */
-.main-tabs {
-    display:flex; gap:6px; margin-bottom:16px;
-    background:white; padding:6px; border-radius:12px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.06);
-    flex-wrap:wrap;
-}
-.main-tab {
-    flex:1; min-width:120px;
-    padding:10px 16px; border-radius:8px;
-    font-size:13px; font-weight:700;
-    text-align:center; cursor:pointer;
-    background:#f1f5f9; color:#64748b;
-    transition:all 0.2s;
-    display:flex; align-items:center; justify-content:center; gap:6px;
-}
-.main-tab:hover { background:#e2e8f0; }
-.main-tab.active {
-    background:linear-gradient(135deg, #7c3aed, #a855f7);
-    color:white;
-    box-shadow:0 4px 12px rgba(124,58,237,0.3);
-}
-.main-tab .count {
-    background:rgba(255,255,255,0.3);
-    padding:1px 8px; border-radius:10px;
-    font-size:11px; font-weight:700;
-}
-.main-tab:not(.active) .count {
-    background:#cbd5e1; color:#475569;
-}
-
-.tab-content { display:none; }
-.tab-content.active { display:block; animation:fadeIn 0.3s; }
-@keyframes fadeIn {
-    from { opacity:0; transform:translateY(10px); }
-    to { opacity:1; transform:translateY(0); }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   NAVIGATION DES DOSSIERS (ONGLETS VISIBLES ET DISTINCTS)
-   ═══════════════════════════════════════════════════════════════ */
-.dossier-tabs-container {
-    background:white;
-    border-radius:12px;
-    padding:14px 18px;
-    margin-bottom:16px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.06);
+.paiement-blocs { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:16px; }
+.paiement-bloc {
+    border-radius:12px; padding:16px;
     border:1px solid #e2e8f0;
+    display:flex; flex-direction:column;
 }
-.dossier-tabs-title {
-    font-size:11px;
-    font-weight:700;
-    color:#64748b;
-    text-transform:uppercase;
-    margin-bottom:12px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-}
-.dossier-tabs-nav {
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-.dossier-tab {
-    cursor:pointer;
-    padding:12px 20px;
-    border-radius:10px;
-    font-size:13px;
-    font-weight:700;
-    background:#f1f5f9;
-    color:#64748b;
-    border:2px solid transparent;
-    transition:all 0.2s;
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-.dossier-tab:hover {
-    background:#e2e8f0;
-    transform:translateY(-2px);
-    box-shadow:0 4px 8px rgba(0,0,0,0.08);
-}
-.dossier-tab.active {
-    background:linear-gradient(135deg, #0d6efd, #2563eb);
-    color:white;
-    border-color:#0d6efd;
-    box-shadow:0 6px 16px rgba(13, 110, 253, 0.35);
-    transform:translateY(-2px);
-}
-.dossier-tab .dossier-num {
-    background:rgba(255,255,255,0.35);
-    padding:2px 10px;
-    border-radius:12px;
-    font-size:11px;
-    font-weight:800;
-    min-width:26px;
-    text-align:center;
-}
-.dossier-tab:not(.active) .dossier-num {
-    background:#cbd5e1;
-    color:#475569;
-}
-.dossier-tab .dossier-info {
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    text-align:left;
-}
-.dossier-tab .dossier-nom {
-    font-size:13px;
-    font-weight:700;
-}
-.dossier-tab .dossier-site {
-    font-weight:400;
-    font-size:10px;
-    opacity:0.85;
-}
-.dossier-tab .dossier-badge-count {
-    background:rgba(255,255,255,0.35);
-    padding:2px 8px;
-    border-radius:10px;
-    font-size:10px;
-    font-weight:700;
-}
-.dossier-tab:not(.active) .dossier-badge-count {
-    background:#e2e8f0;
-    color:#475569;
-}
+.paiement-bloc.bloc-dossier   { background:#eff6ff; border-left:4px solid #0d6efd; }
+.paiement-bloc.bloc-technique { background:#fff7ed; border-left:4px solid #ea580c; }
+.paiement-bloc.bloc-morcel    { background:#fefce8; border-left:4px solid #ca8a04; }
 
-/* Panneau dossier */
-.dossier-panel {
-    position:relative;
-    padding-top:28px;
-}
-.dossier-panel-indicator {
-    position:absolute;
-    top:0;
-    left:20px;
-    background:linear-gradient(135deg, #0d6efd, #2563eb);
-    color:white;
-    padding:5px 16px;
-    border-radius:0 0 10px 10px;
-    font-size:10px;
-    font-weight:800;
-    letter-spacing:0.8px;
-    box-shadow:0 4px 10px rgba(13,110,253,0.3);
-    z-index:10;
-}
+.paiement-bloc h6 { font-weight:700; font-size:13px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+.pay-total-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
+.pay-historique { margin-top:10px; max-height:160px; overflow-y:auto; }
 
-/* ═══════════════════════════════════════════════════════════════
-   ACCORDÉONS
-   ═══════════════════════════════════════════════════════════════ */
-.accordion {
-    background:white; border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.06);
-    margin-bottom:10px; overflow:hidden;
-    border:1px solid #e2e8f0;
-}
-.accordion-header {
-    padding:14px 18px; cursor:pointer;
-    display:flex; justify-content:space-between; align-items:center;
-    background:#f8fafc; user-select:none;
-    transition:background 0.2s;
-    font-weight:700; font-size:13px; color:#1e3a5f;
-}
-.accordion-header:hover { background:#f1f5f9; }
-.accordion-header.open { background:#eff6ff; }
-.accordion-header .chevron {
-    transition:transform 0.3s;
-    font-size:14px; color:#64748b;
-    flex-shrink:0;
-}
-.accordion-header.open .chevron { transform:rotate(90deg); }
-.accordion-content {
-    max-height:0; overflow:hidden;
-    transition:max-height 0.4s ease;
-}
-.accordion-content.open { max-height:8000px; }
-.accordion-body { padding:16px 18px; border-top:1px solid #e2e8f0; }
-
-/* ═══════════════════════════════════════════════════════════════
-   BADGES BÉNÉFICIAIRE (VISIBLE SANS DÉPLIER)
-   ═══════════════════════════════════════════════════════════════ */
-.benef-summary {
-    display:flex; flex-wrap:wrap; gap:6px;
-    font-size:11px; align-items:center;
-}
-.benef-summary .badge-site {
-    background:linear-gradient(135deg, #dbeafe, #bfdbfe);
-    color:#1d4ed8; padding:3px 10px;
-    border-radius:8px; font-weight:700;
-    border:1px solid #93c5fd;
-    display:inline-flex; align-items:center; gap:4px;
-}
-.benef-summary .badge-tf {
-    background:linear-gradient(135deg, #fef3c7, #fde68a);
-    color:#92400e; padding:3px 10px;
-    border-radius:8px; font-weight:700;
-    border:1px solid #fcd34d;
-    display:inline-flex; align-items:center; gap:4px;
-}
-.benef-summary .badge-bloc {
-    background:linear-gradient(135deg, #fce7f3, #fbcfe8);
-    color:#9d174d; padding:3px 10px;
-    border-radius:8px; font-weight:700;
-    border:1px solid #f9a8d4;
-    display:inline-flex; align-items:center; gap:4px;
-}
-.benef-summary .badge-lot {
-    background:linear-gradient(135deg, #dcfce7, #bbf7d0);
-    color:#166534; padding:3px 8px;
-    border-radius:8px; font-weight:700;
-    border:1px solid #86efac;
-    display:inline-flex; align-items:center; gap:3px;
-}
-.benef-summary .badge-superficie {
-    background:linear-gradient(135deg, #7c3aed, #a855f7);
-    color:white; padding:4px 12px;
-    border-radius:10px; font-weight:800;
-    font-size:12px;
-    box-shadow:0 2px 6px rgba(124,58,237,0.3);
-    display:inline-flex; align-items:center; gap:4px;
-}
-.benef-summary .badge-count {
-    background:#f1f5f9; color:#64748b;
-    padding:3px 8px; border-radius:8px;
-    font-weight:600; font-size:10px;
-    display:inline-flex; align-items:center; gap:3px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   BADGES GÉNÉRAUX
-   ═══════════════════════════════════════════════════════════════ */
 .badge-new {
     background: #10b981; color: #fff;
     padding: 4px 12px; border-radius: 50px;
     font-size: 11px; font-weight: 700;
     text-transform: uppercase;
-    display: inline-block; margin-left: 10px;
     animation: pulse-new 2s ease-in-out infinite;
+    display: inline-block; margin-left: 10px;
 }
 .badge-old {
     background: #e2e8f0; color: #64748b;
@@ -279,9 +62,6 @@
     background: #10b981; color: #fff; border-color: #10b981;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TOAST
-   ═══════════════════════════════════════════════════════════════ */
 .toast-notification {
     position: fixed; bottom: 20px; right: 20px;
     background: #1f2937; color: #fff;
@@ -295,35 +75,14 @@
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PAIEMENT BLOCS
-   ═══════════════════════════════════════════════════════════════ */
-.paiement-blocs { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; }
-.paiement-bloc {
-    border-radius:12px; padding:16px;
-    border:1px solid #e2e8f0;
-    display:flex; flex-direction:column;
-}
-.paiement-bloc.bloc-dossier   { background:#eff6ff; border-left:4px solid #0d6efd; }
-.paiement-bloc.bloc-technique { background:#fff7ed; border-left:4px solid #ea580c; }
-.paiement-bloc.bloc-morcel    { background:#fefce8; border-left:4px solid #ca8a04; }
-.paiement-bloc h6 { font-weight:700; font-size:13px; margin-bottom:10px; }
-.pay-total-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
-.pay-historique { margin-top:10px; max-height:140px; overflow-y:auto; }
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 992px) {
     .paiement-blocs { grid-template-columns:1fr; }
-    .main-tab { min-width:100px; font-size:11px; }
-    .dossier-tab { padding:10px 14px; font-size:12px; }
-    .dossier-tab .dossier-info { font-size:11px; }
 }
 </style>
 
-
-{{-- EN-TÊTE CLIENT --}}
+{{-- ═══════════════════════════════════════════════════════════
+     EN-TÊTE CLIENT
+     ═══════════════════════════════════════════════════════════ --}}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
         <a href="{{ route('suivi-client.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
@@ -350,282 +109,278 @@
     </div>
 </div>
 
-@php
-    $nbDossiers = $client->dossiers->count();
-    $nbBenefs   = $client->dossiers->sum(fn($d) => $d->beneficiaires->count());
-    $nbVisites  = $client->visites->count();
-@endphp
-
-{{-- ONGLETS PRINCIPAUX --}}
-<div class="main-tabs">
-    <div class="main-tab active" data-tab="tab-infos" onclick="switchTab('tab-infos')">
-        📋 <span>Informations</span>
+{{-- ═══════════════════════════════════════════════════════════
+     ONGLETS DES DOSSIERS
+     ═══════════════════════════════════════════════════════════ --}}
+@if($client->dossiers->count() > 1)
+<div style="background:white;border-radius:12px;padding:10px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px;">
+        📂 Sélectionnez un dossier ({{ $client->dossiers->count() }})
     </div>
-    @if($dossier)
-    <div class="main-tab" data-tab="tab-dossiers" onclick="switchTab('tab-dossiers')">
-        📂 <span>Dossier</span>
-        <span class="count">{{ $nbDossiers }}</span>
-    </div>
-    <div class="main-tab" data-tab="tab-benefs" onclick="switchTab('tab-benefs')">
-        👥 <span>Bénéficiaires</span>
-        <span class="count">{{ $nbBenefs }}</span>
-    </div>
-    @endif
-    <div class="main-tab" data-tab="tab-visites" onclick="switchTab('tab-visites')">
-        🚶 <span>Visites</span>
-        <span class="count">{{ $nbVisites }}</span>
+    <div class="d-flex gap-2 flex-wrap">
+        @foreach($client->dossiers as $i => $d)
+            <div class="dossier-tab {{ $i === 0 ? 'active' : '' }}"
+                 onclick="showDossier('dossier-{{ $d->id }}', this, event)">
+                📂 {{ $d->nom_dossier }}
+                @if($d->grandSite)
+                    <span style="font-weight:400;font-size:10px;">({{ $d->grandSite->nom }})</span>
+                @endif
+            </div>
+        @endforeach
     </div>
 </div>
+@endif
 
-{{-- ═══════════════════════════════════════════════════════════════
-     TAB 1 : INFORMATIONS
-     ═══════════════════════════════════════════════════════════════ --}}
-<div id="tab-infos" class="tab-content active">
-    <div class="row g-3">
-        <div class="col-md-6">
-            <div class="section-card">
-                <h5>📋 Informations client</h5>
-                <div class="info-row"><span>Téléphone</span><span>{{ $client->phone ?? '-' }}</span></div>
-                <div class="info-row"><span>Lots attribués</span><span>{{ $client->lots->count() }}</span></div>
-                <div class="info-row"><span>Dossiers</span><span>{{ $client->dossiers->count() }}</span></div>
-                <div class="info-row">
-                    <span>Statut</span>
-                    <span>
-                        @if($client->is_new)
-                            <span style="color:#10b981;font-weight:700;">🆕 Nouveau client</span>
-                        @else
-                            <span style="color:#64748b;">Client existant</span>
-                        @endif
-                    </span>
-                </div>
-                <div class="info-row"><span>Date création</span><span>{{ $client->created_at?->format('d/m/Y H:i') ?? '-' }}</span></div>
+<div class="row g-3">
+
+    {{-- ═══════════════════════════════════════════════════════════
+         COLONNE GAUCHE : INFOS CLIENT + VISITES + ÉTAPES
+         ═══════════════════════════════════════════════════════════ --}}
+    <div class="col-md-4">
+        
+        {{-- INFOS CLIENT --}}
+        <div class="section-card">
+            <h5>📋 Informations client</h5>
+            <div class="info-row"><span>Téléphone</span><span>{{ $client->phone ?? '-' }}</span></div>
+            <div class="info-row"><span>Lots attribués</span><span>{{ $client->lots->count() }}</span></div>
+            <div class="info-row"><span>Dossiers</span><span>{{ $client->dossiers->count() }}</span></div>
+            <div class="info-row">
+                <span>Statut</span>
+                <span>
+                    @if($client->is_new)
+                        <span style="color:#10b981;font-weight:700;">🆕 Nouveau client</span>
+                    @else
+                        <span style="color:#64748b;">Client existant</span>
+                    @endif
+                </span>
             </div>
+            <div class="info-row"><span>Date création</span><span>{{ $client->created_at?->format('d/m/Y H:i') ?? '-' }}</span></div>
         </div>
 
-        @if($dossier)
-        <div class="col-md-6">
-            <div class="section-card">
-                <h5>📊 Étapes du dossier</h5>
-                @php
-                    $etapesConfig = \App\Models\DossierClient::etapesConfig();
-                    $etapesOrdre  = \App\Models\DossierClient::etapesOrdre();
-                    $etapeActuelle= $dossier->etape_actuelle;
-                @endphp
+        {{-- VISITES --}}
+        <div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
+                    border-left:4px solid #0d6efd;">
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        margin-bottom:10px;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
+                    🚶 Historique des visites ({{ $client->visites->count() }})
+                </div>
+                <a href="{{ route('visites.index', ['nom' => $client->name]) }}"
+                   style="font-size:10px;color:#0d6efd;font-weight:600;text-decoration:none;">
+                    Voir tout →
+                </a>
+            </div>
 
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    @foreach($etapesConfig as $cle => $cfg)
-                    @php
-                        $ordreEtape  = $etapesOrdre[$cle];
-                        $ordreActuel = $etapeActuelle ? ($etapesOrdre[$etapeActuelle] ?? 0) : 0;
-                        $estFait     = $ordreEtape <= $ordreActuel;
-                        $champ       = $cfg['champ'];
-                        $dateEtape   = $dossier->$champ;
-                    @endphp
-                    <div onclick="ouvrirModalEtape({{ $dossier->id }}, '{{ $cle }}', '{{ $cfg['label'] }}', {{ $estFait ? 'true' : 'false' }}, '{{ $dateEtape ? \Carbon\Carbon::parse($dateEtape)->format('Y-m-d') : '' }}')"
-                         style="
-                            display:flex;align-items:center;gap:6px;
-                            padding:8px 14px;border-radius:20px;
-                            border:2px solid {{ $estFait ? $cfg['color'] : '#e2e8f0' }};
-                            background:{{ $estFait ? $cfg['bg'] : 'white' }};
-                            font-size:12px;font-weight:700;color:{{ $estFait ? $cfg['color'] : '#94a3b8' }};
-                            cursor:pointer;transition:all 0.3s;
-                         ">
-                        <span>{{ $cfg['icon'] }}</span>
-                        {{ $cfg['label'] }}
-                        @if($estFait && $dateEtape)
-                            <span style="font-size:10px;background:white;padding:0 8px;border-radius:8px;border:1px solid #e2e8f0;">
-                                {{ \Carbon\Carbon::parse($dateEtape)->format('d/m/Y') }}
-                            </span>
+            @php
+                $typeColors = ['client'=>'#1d4ed8','proprietaire'=>'#15803d','autre'=>'#475569'];
+                $typeLabels = ['client'=>'Client','proprietaire'=>'Propriétaire','autre'=>'Autre'];
+            @endphp
+
+            @forelse($client->visites->sortByDesc('date_visite') as $visite)
+                @php $color = $typeColors[$visite->type_personne] ?? '#475569'; @endphp
+                <div style="border-left:3px solid {{ $color }};
+                            padding:8px 10px;margin-bottom:6px;
+                            background:#f8fafc;border-radius:6px;font-size:11px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong style="color:#1e3a5f;">
+                            {{ $visite->visiteur?->nom ?? $visite->nom ?? 'Inconnu' }}
+                        </strong>
+                        <span style="background:{{ $color }}22;color:{{ $color }};
+                                     font-size:9px;padding:1px 6px;border-radius:4px;
+                                     font-weight:600;">
+                            {{ $typeLabels[$visite->type_personne] ?? $visite->type_personne }}
+                        </span>
+                    </div>
+                    <div style="color:#64748b;margin-top:3px;">
+                        📅 {{ \Carbon\Carbon::parse($visite->date_visite)->format('d/m/Y') }}
+                        @if($visite->heure_arrivee)
+                            · 🕐 {{ substr($visite->heure_arrivee, 0, 5) }}
                         @endif
                     </div>
-                    @endforeach
+                    @if($visite->note)
+                        <div style="color:#475569;margin-top:3px;font-style:italic;">
+                            📝 {{ $visite->note }}
+                        </div>
+                    @endif
                 </div>
+            @empty
+                <div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px;">
+                    Aucune visite enregistrée
+                </div>
+            @endforelse
+        </div>
+
+        {{-- ÉTAPES DOSSIER --}}
+        @if($dossier)
+        @php
+            $etapesConfig = \App\Models\DossierClient::etapesConfig();
+            $etapesOrdre  = \App\Models\DossierClient::etapesOrdre();
+            $etapeActuelle= $dossier->etape_actuelle;
+        @endphp
+
+        <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-top:14px;border:1px solid #e2e8f0;">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px;">
+                📊 Étapes du dossier
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                @foreach($etapesConfig as $cle => $cfg)
+                @php
+                    $ordreEtape  = $etapesOrdre[$cle];
+                    $ordreActuel = $etapeActuelle ? ($etapesOrdre[$etapeActuelle] ?? 0) : 0;
+                    $estFait     = $ordreEtape <= $ordreActuel;
+                    $champ       = $cfg['champ'];
+                    $dateEtape   = $dossier->$champ;
+                @endphp
+                <div onclick="ouvrirModalEtape({{ $dossier->id }}, '{{ $cle }}', '{{ $cfg['label'] }}', {{ $estFait ? 'true' : 'false' }}, '{{ $dateEtape ? \Carbon\Carbon::parse($dateEtape)->format('Y-m-d') : '' }}')"
+                     class="etape-card-{{ $cle }}"
+                     style="
+                        display:flex;align-items:center;gap:6px;
+                        padding:8px 16px;border-radius:20px;
+                        border:2px solid {{ $estFait ? $cfg['color'] : '#e2e8f0' }};
+                        background:{{ $estFait ? $cfg['bg'] : 'white' }};
+                        font-size:12px;font-weight:700;color:{{ $estFait ? $cfg['color'] : '#94a3b8' }};
+                        cursor:pointer;transition:all 0.3s;
+                        {{ $estFait ? '' : 'opacity:0.7;' }}
+                    ">
+                    <span style="font-size:16px;">{{ $cfg['icon'] }}</span>
+                    {{ $cfg['label'] }}
+                    @if($estFait && $dateEtape)
+                        <span style="font-size:10px;font-weight:400;color:#64748b;background:white;padding:0 10px;border-radius:10px;border:1px solid #e2e8f0;">
+                            {{ \Carbon\Carbon::parse($dateEtape)->format('d/m/Y') }}
+                        </span>
+                        <span style="color:#16a34a;">✓</span>
+                    @else
+                        <span style="font-size:10px;font-weight:400;color:#94a3b8;">(à définir)</span>
+                    @endif
+                </div>
+                @endforeach
             </div>
         </div>
         @endif
     </div>
-</div>
 
-{{-- ═══════════════════════════════════════════════════════════════
-     TAB 2 : DOSSIER
-     ═══════════════════════════════════════════════════════════════ --}}
-@if($dossier)
-<div id="tab-dossiers" class="tab-content">
+    {{-- ═══════════════════════════════════════════════════════════
+         COLONNE DROITE : DOSSIERS (BOUCLE COMPLÈTE)
+         ═══════════════════════════════════════════════════════════ --}}
+    <div class="col-md-8">
+        @if($dossier)
+            @foreach($client->dossiers as $i => $dossier)
+            {{-- ✅ Afficher TOUS les dossiers, masquer sauf le premier --}}
+            <div id="dossier-{{ $dossier->id }}" 
+                 class="dossier-panel" 
+                 style="{{ $i > 0 ? 'display:none;' : '' }}">
 
-    {{-- ✅ NAVIGATION DES DOSSIERS (visibles et distincts) --}}
-    @if($client->dossiers->count() > 1)
-    <div class="dossier-tabs-container">
-        <div class="dossier-tabs-title">
-            📂 Sélectionnez un dossier ({{ $client->dossiers->count() }} disponibles)
-        </div>
-        <div class="dossier-tabs-nav">
-            @foreach($client->dossiers as $i => $d)
-                <div class="dossier-tab {{ $i === 0 ? 'active' : '' }}"
-                     data-dossier-id="{{ $d->id }}"
-                     onclick="showDossier('dossier-{{ $d->id }}', this, event)">
-                    <span class="dossier-num">{{ $i + 1 }}</span>
-                    <div class="dossier-info">
-                        <span class="dossier-nom">📂 {{ $d->nom_dossier }}</span>
-                        @if($d->grandSite)
-                            <span class="dossier-site">🏢 {{ $d->grandSite->nom }}</span>
-                        @endif
-                    </div>
-                    <span class="dossier-badge-count">
-                        {{ $d->beneficiaires->count() }} 👥
-                    </span>
-                </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
-    {{-- ✅ BOUCLE DES DOSSIERS (tous sont rendus, seul le premier est visible) --}}
-    @foreach($client->dossiers as $i => $dossier)
-    <div id="dossier-{{ $dossier->id }}"
-         class="dossier-panel"
-         data-dossier-num="{{ $i + 1 }}"
-         data-dossier-total="{{ $client->dossiers->count() }}"
-         style="{{ $i > 0 ? 'display:none;' : '' }}">
-
-        {{-- Indicateur visuel du dossier actif --}}
-        <div class="dossier-panel-indicator">
-            📂 DOSSIER {{ $i + 1 }} / {{ $client->dossiers->count() }}
-        </div>
-
-        {{-- En-tête dossier --}}
-        <div class="section-card">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
-                <div class="d-flex gap-1 flex-wrap">
-                    <a href="{{ route('bons.index', $dossier->id) }}"
-                       class="btn btn-outline-primary btn-sm" style="font-size:11px;">
-                        🧾 {{ $dossier->bons->count() }} bon(s)
-                    </a>
-                    <button onclick="envoyerWhatsAppDossier({{ $dossier->id }})"
-                            class="btn btn-success btn-sm" style="font-size:11px;">
-                        💬 WhatsApp
-                    </button>
-                    <button onclick="ouvrirHistoriqueAffectations({{ $dossier->id }})"
-                            class="btn btn-info btn-sm" style="font-size:11px;color:white;">
-                        📜 Hist. affectations
-                    </button>
-                    <a href="#" 
-                       class="btn btn-primary btn-sm" style="font-size:11px;"
-                       onclick="demanderReferenceCreate({{ $dossier->id }})">
-                        + Nouveau paiement
-                    </a>
-                    <form action="{{ route('suivi-client.dossiers.destroy', $dossier->id) }}"
-                          method="POST"
-                          onsubmit="return confirm('Supprimer ce dossier ?')"
-                          style="display:inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button class="btn btn-danger btn-sm">🗑 Supprimer</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        {{-- Accordéon Informations --}}
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span>📋 Informations générales</span>
-                <span class="chevron">▶</span>
-            </div>
-            <div class="accordion-content">
-                <div class="accordion-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="info-row"><span>🔗 Facilitateur</span>
-                                <span>{{ $dossier->facilitateur?->nom ?? '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>🧭 Direction</span>
-                                <span>{{ match($dossier->direction) { 'baffoussam'=>'Baffoussam','bagante'=>'Bagante','direction_generale'=>'Direction Générale',default=>'-' } }}</span>
-                            </div>
-                            <div class="info-row"><span>🏢 Grand Site souhaité</span>
-                                <span>{{ $dossier->grandSite?->nom ?? '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>📐 Superficie voulue</span>
-                                <span>{{ $dossier->superficie_voulue ? number_format($dossier->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>🧑‍💼 Commercial</span>
-                                <span>{{ $dossier->commercial?->name ?? '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>🤝 Agent commercial</span>
-                                <span>{{ $dossier->agentCommercial?->nom ?? '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>🚗 Chauffeur</span>
-                                <span>{{ $dossier->conducteur?->nom ?? '-' }}</span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="info-row">
-                                <span>📎 CNI</span>
-                                <span>
-                                    @php $cnis = $dossier->cni_images ?? []; @endphp
-                                    @if(count($cnis) > 0)
-                                        <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
-                                            @foreach($cnis as $img)
-                                                <a href="{{ asset('storage/' . $img) }}" target="_blank" 
-                                                   style="display:inline-block; width:30px; height:30px; border-radius:4px; overflow:hidden; border:1px solid #e2e8f0;">
-                                                    <img src="{{ asset('storage/' . $img) }}" 
-                                                         alt="CNI" 
-                                                         style="width:100%; height:100%; object-fit:cover;">
-                                                </a>
-                                            @endforeach
-                                            <span style="font-size:11px; color:#64748b; margin-left:4px;">({{ count($cnis) }})</span>
-                                        </div>
-                                    @else
-                                        <span style="color:#94a3b8;">Aucune</span>
-                                    @endif
-                                </span>
-                            </div>
-                            <div class="info-row"><span>💰 Prix superficie</span>
-                                <span>{{ $dossier->prix_superficie ? number_format($dossier->prix_superficie, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>💰 Prix technique</span>
-                                <span>{{ $dossier->prix_technique ? number_format($dossier->prix_technique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>💰 Prix logistique</span>
-                                <span>{{ $dossier->prix_logistique ? number_format($dossier->prix_logistique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                            </div>
-                            <div class="info-row"><span>💰 Prix morcellement</span>
-                                <span>{{ $dossier->prix_morcellement ? number_format($dossier->prix_morcellement, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                            </div>
+                <div class="section-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="mb-0">📂 {{ $dossier->nom_dossier }}</h5>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a href="{{ route('bons.index', $dossier->id) }}"
+                               class="btn btn-outline-primary btn-sm" style="font-size:11px;">
+                                🧾 {{ $dossier->bons->count() }} bon(s)
+                            </a>
+                            <button onclick="envoyerWhatsAppDossier({{ $dossier->id }})"
+                                    class="btn btn-success btn-sm" style="font-size:11px;">
+                                💬 WhatsApp
+                            </button>
+                            <button onclick="ouvrirHistoriqueAffectations({{ $dossier->id }})"
+                                    class="btn btn-info btn-sm" style="font-size:11px;color:white;">
+                                📜 Hist. affectations
+                            </button>
+                            <a href="#" 
+                               class="btn btn-primary btn-sm" style="font-size:11px;"
+                               onclick="demanderReferenceCreate({{ $dossier->id }})">
+                                + Nouveau paiement
+                            </a>
+                            <form action="{{ route('suivi-client.dossiers.destroy', $dossier->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Supprimer ce dossier ?')"
+                                  style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-danger btn-sm">🗑 Supprimer</button>
+                            </form>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        {{-- Accordéon Paiements --}}
-        @php
-            $totalDossier   = $dossier->paiements->sum('montant');
-            $prixRef        = $dossier->prix_superficie    ?? 0;
-            $resteDossier   = max(0, $prixRef - $totalDossier);
-            $prixTech       = $dossier->prix_technique     ?? 0;
-            $prixMorcel     = $dossier->prix_morcellement  ?? 0;
-            $prixLogistique = $dossier->prix_logistique    ?? 0;
-            $totalTechnique = $dossier->paiementsTechniques->sum('montant');
-            $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
-            $resteTech      = max(0, $prixTech - $totalTechnique);
-            $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
-        @endphp
+                    <div class="info-row"><span>🔗 Facilitateur</span>
+                        <span>{{ $dossier->facilitateur?->nom ?? '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>🧭 Direction</span>
+                        <span>{{ match($dossier->direction) { 'baffoussam'=>'Baffoussam','bagante'=>'Bagante','direction_generale'=>'Direction Générale',default=>'-' } }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>📎 CNI</span>
+                        <span>
+                            @php $cnis = $dossier->cni_images ?? []; @endphp
+                            @if(count($cnis) > 0)
+                                <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                                    @foreach($cnis as $img)
+                                        <a href="{{ asset('storage/' . $img) }}" target="_blank" 
+                                           style="display:inline-block; width:30px; height:30px; border-radius:4px; overflow:hidden; border:1px solid #e2e8f0;">
+                                            <img src="{{ asset('storage/' . $img) }}" 
+                                                 alt="CNI" 
+                                                 style="width:100%; height:100%; object-fit:cover;">
+                                        </a>
+                                    @endforeach
+                                    <span style="font-size:11px; color:#64748b; margin-left:4px;">
+                                        ({{ count($cnis) }})
+                                    </span>
+                                </div>
+                            @else
+                                <span style="color:#94a3b8;">Aucune</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div class="info-row"><span>🧑‍💼 Commercial</span>
+                        <span>{{ $dossier->commercial?->name ?? '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>🤝 Agent commercial</span>
+                        <span>{{ $dossier->agentCommercial?->nom ?? '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>🚗 Chauffeur</span>
+                        <span>{{ $dossier->conducteur?->nom ?? '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>🏢 Grand Site souhaité</span>
+                        <span>{{ $dossier->grandSite?->nom ?? '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>📐 Superficie voulue</span>
+                        <span>{{ $dossier->superficie_voulue ? number_format($dossier->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix superficie</span>
+                        <span>{{ $dossier->prix_superficie ? number_format($dossier->prix_superficie, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix technique</span>
+                        <span>{{ $dossier->prix_technique ? number_format($dossier->prix_technique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix logistique</span>
+                        <span>{{ $dossier->prix_logistique ? number_format($dossier->prix_logistique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
+                    <div class="info-row"><span>💰 Prix morcellement</span>
+                        <span>{{ $dossier->prix_morcellement ? number_format($dossier->prix_morcellement, 0, ',', ' ') . ' FCFA' : '-' }}</span>
+                    </div>
 
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span>💰 Paiements & Prix</span>
-                <span class="chevron">▶</span>
-            </div>
-            <div class="accordion-content">
-                <div class="accordion-body">
+                    @php
+                        $totalDossier   = $dossier->paiements->sum('montant');
+                        $prixRef        = $dossier->prix_superficie    ?? 0;
+                        $resteDossier   = max(0, $prixRef - $totalDossier);
+                        $prixTech       = $dossier->prix_technique     ?? 0;
+                        $prixMorcel     = $dossier->prix_morcellement  ?? 0;
+                        $prixLogistique = $dossier->prix_logistique    ?? 0;
+                        $totalTechnique = $dossier->paiementsTechniques->sum('montant');
+                        $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
+                        $resteTech      = max(0, $prixTech - $totalTechnique);
+                        $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
+                    @endphp
+
+                    {{-- Prix configurables --}}
                     <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #e2e8f0;">
                         <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px;">
-                            💰 Prix de référence
+                            💰 Prix de référence du dossier
                         </div>
                         <div class="row g-2">
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#64748b;">💰 Superficie (FCFA)</label>
+                                <label style="font-size:11px;color:#64748b;">💰 Prix superficie (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-superficie-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixRef }}">
@@ -634,7 +389,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#ea580c;">🛠️ Technique (FCFA)</label>
+                                <label style="font-size:11px;color:#ea580c;">🛠️ Prix technique (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-technique-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixTech }}">
@@ -643,7 +398,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#7c3aed;">🚗 Logistique (FCFA)</label>
+                                <label style="font-size:11px;color:#7c3aed;">🚗 Prix logistique (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-logistique-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixLogistique }}">
@@ -652,7 +407,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#ca8a04;">✂️ Morcellement (FCFA)</label>
+                                <label style="font-size:11px;color:#ca8a04;">Prix morcellement (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-morcellement-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixMorcel }}">
@@ -663,7 +418,9 @@
                         </div>
                     </div>
 
+                    {{-- BLOCS PAIEMENT --}}
                     <div class="paiement-blocs">
+                        {{-- BLOC DOSSIER --}}
                         <div class="paiement-bloc bloc-dossier">
                             <h6 style="color:#0d6efd;">📁 Paiement Parcelle</h6>
                             @if($prixRef > 0)
@@ -691,7 +448,7 @@
                             @endif
                             <div class="pay-historique">
                                 @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
-                                <div class="pay-row" style="align-items:flex-start;gap:10px;">
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
                                     <div style="flex:1;min-width:0;">
                                         <div style="font-size:12px;">{{ $p->date_paiement }}</div>
                                         @if($p->note)
@@ -715,6 +472,7 @@
                             </div>
                         </div>
 
+                        {{-- BLOC TECHNIQUE --}}
                         <div class="paiement-bloc bloc-technique">
                             <h6 style="color:#ea580c;">🛠️ Paiement Technique</h6>
                             @if($prixTech > 0)
@@ -742,7 +500,7 @@
                             @endif
                             <div class="pay-historique">
                                 @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
-                                <div class="pay-row" style="align-items:flex-start;gap:10px;">
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
                                     <div style="flex:1;min-width:0;">
                                         <div style="font-size:12px;">{{ $p->date_paiement }}</div>
                                         @if($p->note)
@@ -766,8 +524,9 @@
                             </div>
                         </div>
 
+                        {{-- BLOC MORCELLEMENT --}}
                         <div class="paiement-bloc bloc-morcel">
-                            <h6 style="color:#ca8a04;">✂️ Paiement Morcellement</h6>
+                            <h6 style="color:#ca8a04;">Paiement Morcellement</h6>
                             @if($prixMorcel > 0)
                             <div class="pay-total-row">
                                 <span style="color:#64748b;">Référence</span>
@@ -793,7 +552,7 @@
                             @endif
                             <div class="pay-historique">
                                 @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
-                                <div class="pay-row" style="align-items:flex-start;gap:10px;">
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
                                     <div style="flex:1;min-width:0;">
                                         <div style="font-size:12px;">{{ $p->date_paiement }}</div>
                                         @if($p->note)
@@ -817,33 +576,22 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        {{-- Accordéon Bénéficiaires --}}
-        @php
-            $supDossier    = $dossier->superficie_dossier;
-            $supAttribuee  = $dossier->superficie_attribuee;
-            $supRestante   = $dossier->superficie_restante;
-            $pctAttribue   = $dossier->pourcentage_attribue;
-            $beneficiaires = $dossier->beneficiaires->sortBy('nom');
-        @endphp
+                    {{-- BÉNÉFICIAIRES --}}
+                    @php
+                        $supDossier    = $dossier->superficie_dossier;
+                        $supAttribuee  = $dossier->superficie_attribuee;
+                        $supRestante   = $dossier->superficie_restante;
+                        $pctAttribue   = $dossier->pourcentage_attribue;
+                        $beneficiaires = $dossier->beneficiaires->sortBy('nom');
+                    @endphp
 
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span>👥 Bénéficiaires ({{ $beneficiaires->count() }})</span>
-                <span class="chevron">▶</span>
-            </div>
-            <div class="accordion-content">
-                <div class="accordion-body">
+                    <div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
+                                border-left:4px solid #7c3aed;" id="bloc-beneficiaires-{{ $dossier->id }}">
 
-                    {{-- Indicateur de répartition --}}
-                    <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;
-                                padding:12px;margin-bottom:14px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-                            <div style="font-size:11px;font-weight:700;color:#7c3aed;">
-                                📐 Répartition de la superficie
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
+                                👥 Bénéficiaires / Répartition ({{ $beneficiaires->count() }})
                             </div>
                             <button onclick="ouvrirModalBenef({{ $dossier->id }}, null)"
                                     class="btn btn-sm"
@@ -851,181 +599,131 @@
                                 + Ajouter un bénéficiaire
                             </button>
                         </div>
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-                            <div>
-                                <div style="font-size:10px;color:#64748b;">Dossier</div>
-                                <div style="font-size:13px;font-weight:800;color:#1e3a5f;">
-                                    {{ number_format($supDossier, 0, ',', ' ') }} m²
+
+                        <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;
+                                    padding:12px;margin-bottom:14px;">
+                            <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:8px;">
+                                📐 Répartition de la superficie
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                                <div>
+                                    <div style="font-size:10px;color:#64748b;">Superficie du dossier</div>
+                                    <div style="font-size:14px;font-weight:800;color:#1e3a5f;">
+                                        {{ number_format($supDossier, 0, ',', ' ') }} m²
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size:10px;color:#64748b;">Superficie attribuée</div>
+                                    <div style="font-size:14px;font-weight:800;color:#7c3aed;">
+                                        {{ number_format($supAttribuee, 0, ',', ' ') }} m²
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size:10px;color:#64748b;">Superficie restante</div>
+                                    <div style="font-size:14px;font-weight:800;
+                                                color:{{ $supRestante > 0 ? '#16a34a' : '#dc2626' }};">
+                                        {{ number_format($supRestante, 0, ',', ' ') }} m²
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <div style="font-size:10px;color:#64748b;">Attribuée</div>
-                                <div style="font-size:13px;font-weight:800;color:#7c3aed;">
-                                    {{ number_format($supAttribuee, 0, ',', ' ') }} m²
-                                </div>
+                            <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-top:10px;">
+                                <div style="width:{{ $pctAttribue }}%;height:100%;
+                                            background:{{ $pctAttribue >= 100 ? '#dc2626' : '#7c3aed' }};
+                                            border-radius:4px;"></div>
                             </div>
-                            <div>
-                                <div style="font-size:10px;color:#64748b;">Restante</div>
-                                <div style="font-size:13px;font-weight:800;
-                                            color:{{ $supRestante > 0 ? '#16a34a' : '#dc2626' }};">
-                                    {{ number_format($supRestante, 0, ',', ' ') }} m²
-                                </div>
+                            <div style="font-size:10px;text-align:right;color:#7c3aed;font-weight:700;margin-top:4px;">
+                                {{ $pctAttribue }}% attribué
                             </div>
                         </div>
-                        <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-top:10px;">
-                            <div style="width:{{ $pctAttribue }}%;height:100%;
-                                        background:{{ $pctAttribue >= 100 ? '#dc2626' : '#7c3aed' }};
-                                        border-radius:4px;"></div>
-                        </div>
-                        <div style="font-size:10px;text-align:right;color:#7c3aed;font-weight:700;margin-top:4px;">
-                            {{ $pctAttribue }}% attribué
-                        </div>
-                    </div>
 
-                    {{-- Liste des bénéficiaires --}}
-                    @forelse($beneficiaires as $b)
-                        @php
-                            $benefAffectations = $b->affectations()
-                                ->with(['lot', 'bloc', 'grandSite', 'tf', 'site'])
-                                ->where('statut', 'actif')
-                                ->get();
+                        <div id="liste-benef-{{ $dossier->id }}">
+                            @forelse($beneficiaires as $b)
+                                @php
+                                    $benefAffectations = $b->affectations()
+                                        ->with(['lot', 'bloc', 'grandSite'])
+                                        ->where('statut', 'actif')
+                                        ->get();
+                                    $benefEtapesConfig = \App\Models\Beneficiaire::etapesConfig();
+                                    $benefEtapesOrdre  = \App\Models\Beneficiaire::etapesOrdre();
+                                    $benefEtapeActuelle = $b->etape_actuelle;
+                                    $benefHistoriques = $dossier->historiques
+                                        ->where('beneficiaire_id', $b->id)
+                                        ->sortByDesc('created_at');
+                                @endphp
 
-                            $superficieTotale = $benefAffectations->sum(function($aff) {
-                                return $aff->lot?->superficie ?? 0;
-                            });
+                                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;
+                                            padding:14px;margin-bottom:14px;"
+                                     id="benef-{{ $b->id }}">
 
-                            $benefEtapesConfig = \App\Models\Beneficiaire::etapesConfig();
-                            $benefEtapesOrdre  = \App\Models\Beneficiaire::etapesOrdre();
-                            $benefEtapeActuelle = $b->etape_actuelle;
-                            $benefHistoriques = $dossier->historiques
-                                ->where('beneficiaire_id', $b->id)
-                                ->sortByDesc('created_at');
+                                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
+                                        <div style="flex:1;min-width:0;">
+                                            <div style="font-weight:700;font-size:14px;color:#1e3a5f;">
+                                                👤 {{ $b->nom }}
+                                                @if($b->telephone)
+                                                    <span style="font-weight:400;color:#64748b;font-size:11px;">
+                                                        · 📞 {{ $b->telephone }}
+                                                    </span>
+                                                @endif
+                                                @if($b->client_id)
+                                                    <span style="background:#dbeafe;color:#1d4ed8;font-size:9px;
+                                                                 padding:2px 8px;border-radius:6px;font-weight:700;
+                                                                 margin-left:6px;">
+                                                        🔗 Client existant
+                                                    </span>
+                                                @endif
+                                            </div>
 
-                            $lotsParGrandSite = $benefAffectations->groupBy(function($aff) {
-                                return $aff->grandSite?->nom ?? 'Site inconnu';
-                            });
+                                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+                                                @if($b->lots_texte)
+                                                    <span style="background:#f5f3ff;color:#7c3aed;font-size:10px;
+                                                                 padding:3px 8px;border-radius:6px;font-weight:600;">
+                                                        🏷️ {{ $b->lots_texte }}
+                                                    </span>
+                                                @endif
+                                                <span style="background:#f0fdf4;color:#16a34a;font-size:10px;
+                                                             padding:3px 8px;border-radius:6px;font-weight:700;">
+                                                    📐 {{ number_format($b->superficie_attribuee, 0, ',', ' ') }} m²
+                                                </span>
+                                                @if($b->cni_url)
+                                                    <a href="{{ $b->cni_url }}" target="_blank"
+                                                       style="background:#eff6ff;color:#1d4ed8;font-size:10px;
+                                                              padding:3px 8px;border-radius:6px;font-weight:600;
+                                                              text-decoration:none;">
+                                                        📎 CNI
+                                                    </a>
+                                                @else
+                                                    <span style="background:#fee2e2;color:#dc2626;font-size:10px;
+                                                                 padding:3px 8px;border-radius:6px;font-weight:600;">
+                                                        ⚠️ CNI manquante
+                                                    </span>
+                                                @endif
+                                            </div>
 
-                            $nbLotsTotal = $benefAffectations->count();
-                        @endphp
-
-                        <div class="accordion" id="benef-{{ $b->id }}" style="margin-bottom:8px;">
-                            <div class="accordion-header" onclick="toggleAccordion(this)">
-                                <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
-                                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                                        <span style="font-size:16px;">👤</span>
-                                        <strong style="font-size:13px;">{{ $b->nom }}</strong>
-                                        @if($b->telephone)
-                                            <span style="font-weight:400;color:#64748b;font-size:11px;">
-                                                📞 {{ $b->telephone }}
-                                            </span>
-                                        @endif
-                                        <span class="badge-superficie">
-                                            📐 {{ number_format($superficieTotale, 0, ',', ' ') }} m²
-                                        </span>
-                                        <span class="badge-count">
-                                            📦 {{ $nbLotsTotal }} lot(s)
-                                        </span>
-                                    </div>
-
-                                    @if($benefAffectations->count() > 0)
-                                    <div class="benef-summary">
-                                        @foreach($lotsParGrandSite as $grandSiteNom => $affsGrandSite)
-                                            <span class="badge-site">🏢 {{ $grandSiteNom }}</span>
-
-                                            @php
-                                                $lotsParTf = $affsGrandSite->groupBy(function($aff) {
-                                                    return $aff->tf?->title ?? 'TF inconnu';
-                                                });
-                                            @endphp
-
-                                            @foreach($lotsParTf as $tfNom => $affsTf)
-                                                <span class="badge-tf">📄 {{ $tfNom }}</span>
-
-                                                @php
-                                                    $lotsParBloc = $affsTf->groupBy(function($aff) {
-                                                        return $aff->bloc?->code ?? '?';
-                                                    });
-                                                @endphp
-
-                                                @foreach($lotsParBloc as $blocCode => $affsBloc)
-                                                    <span class="badge-bloc">🏗️ Bloc {{ $blocCode }}</span>
-
-                                                    @foreach($affsBloc as $aff)
-                                                        <span class="badge-lot">
-                                                            📦 Lot {{ $aff->lot?->numero ?? '?' }}
-                                                            @if($aff->lot?->superficie)
-                                                                <span style="font-weight:400;font-size:9px;">
-                                                                    ({{ number_format($aff->lot->superficie, 0, ',', ' ') }} m²)
-                                                                </span>
-                                                            @endif
-                                                        </span>
-                                                    @endforeach
-                                                @endforeach
-                                            @endforeach
-                                        @endforeach
-                                    </div>
-                                    @else
-                                    <div style="font-size:11px;color:#94a3b8;font-style:italic;">
-                                        Aucun lot affecté
-                                    </div>
-                                    @endif
-                                </div>
-                                <span class="chevron">▶</span>
-                            </div>
-                            <div class="accordion-content">
-                                <div class="accordion-body">
-
-                                    <div style="display:flex;gap:6px;justify-content:flex-end;margin-bottom:12px;">
-                                        <button onclick='event.stopPropagation(); ouvrirModalBenef({{ $dossier->id }}, @json($b))'
-                                                class="btn btn-warning btn-sm" style="font-size:11px;">
-                                            ✏️ Modifier
-                                        </button>
-                                        <button onclick='event.stopPropagation(); supprimerBenef({{ $b->id }}, {{ $dossier->id }})'
-                                                class="btn btn-danger btn-sm" style="font-size:11px;">
-                                            🗑 Supprimer
-                                        </button>
-                                    </div>
-
-                                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-                                        @if($b->cni_url)
-                                            <a href="{{ $b->cni_url }}" target="_blank"
-                                               style="background:#eff6ff;color:#1d4ed8;font-size:11px;
-                                                      padding:4px 12px;border-radius:6px;font-weight:600;
-                                                      text-decoration:none;">
-                                                📎 Voir CNI
-                                            </a>
-                                        @endif
-                                        @if($b->client_id)
-                                            <span style="background:#dbeafe;color:#1d4ed8;font-size:11px;
-                                                         padding:4px 12px;border-radius:6px;font-weight:700;">
-                                                🔗 Client existant
-                                            </span>
-                                        @endif
-                                        <span style="background:#f0fdf4;color:#16a34a;font-size:11px;
-                                                     padding:4px 12px;border-radius:6px;font-weight:700;">
-                                            📐 Total : {{ number_format($superficieTotale, 0, ',', ' ') }} m²
-                                        </span>
-                                    </div>
-
-                                    @if($b->notes)
-                                        <div style="font-size:11px;color:#64748b;margin-bottom:14px;
-                                                    background:#f1f5f9;padding:8px 12px;border-radius:6px;">
-                                            📝 {{ $b->notes }}
+                                            @if($b->notes)
+                                                <div style="font-size:10px;color:#64748b;margin-top:6px;
+                                                            background:#f1f5f9;padding:4px 8px;border-radius:4px;">
+                                                    📝 {{ $b->notes }}
+                                                </div>
+                                            @endif
                                         </div>
-                                    @endif
 
-                                    {{-- Lots affectés (détails) --}}
+                                        <div style="display:flex;gap:4px;flex-shrink:0;">
+                                            <button onclick='ouvrirModalBenef({{ $dossier->id }}, @json($b))'
+                                                    style="background:none;border:none;color:#f59e0b;cursor:pointer;font-size:13px;"
+                                                    title="Modifier">✏️</button>
+                                            <button onclick="supprimerBenef({{ $b->id }}, {{ $dossier->id }})"
+                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:13px;"
+                                                    title="Supprimer">🗑</button>
+                                        </div>
+                                    </div>
+
+                                    {{-- LOTS AFFECTÉS --}}
                                     @if($benefAffectations->count() > 0)
                                     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
-                                                padding:12px;margin-bottom:14px;">
-                                        <div style="font-size:11px;font-weight:700;color:#16a34a;
-                                                    text-transform:uppercase;margin-bottom:10px;
-                                                    display:flex;justify-content:space-between;align-items:center;">
-                                            <span>📦 Lots affectés ({{ $benefAffectations->count() }})</span>
-                                            <span style="background:#166534;color:white;padding:3px 10px;
-                                                         border-radius:8px;font-weight:700;font-size:11px;">
-                                                📐 {{ number_format($superficieTotale, 0, ',', ' ') }} m²
-                                            </span>
+                                                padding:10px;margin-bottom:10px;">
+                                        <div style="font-size:10px;font-weight:700;color:#16a34a;
+                                                    text-transform:uppercase;margin-bottom:8px;">
+                                            📦 Lots affectés ({{ $benefAffectations->count() }})
                                         </div>
 
                                         @php
@@ -1034,7 +732,7 @@
                                             });
                                         @endphp
 
-                                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                        <div style="display:flex;flex-wrap:wrap;gap:6px;">
                                             @foreach($benefGroupes as $grp)
                                                 @php
                                                     $premier  = $grp->first();
@@ -1051,29 +749,28 @@
                                                             'superficie' => $a->lot?->superficie,
                                                         ];
                                                     })->values();
-                                                    $superficieGrp = $grp->sum(fn($a) => $a->lot?->superficie ?? 0);
                                                 @endphp
 
                                                 <div style="background:white;border:1px solid #86efac;border-radius:6px;
-                                                            padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"
+                                                            padding:5px 10px;display:inline-flex;align-items:center;gap:6px;"
                                                      id="benef-groupe-{{ $premier->id }}">
 
-                                                    <span style="font-weight:600;font-size:12px;color:#1e3a5f;">
+                                                    <span style="font-weight:600;font-size:11px;color:#1e3a5f;">
                                                         {{ $premier->grandSite?->nom ?? '-' }}
                                                         — Bloc <strong>{{ $premier->bloc?->code ?? '-' }}</strong>
                                                         — (Lot {{ $lotsList }})
                                                     </span>
 
-                                                    <span style="font-size:10px;color:#64748b;">
+                                                    <span style="font-size:9px;color:#64748b;">
                                                         📅 {{ $premier->date_affectation?->format('d/m/Y') }}
                                                     </span>
 
-                                                    <span style="font-size:10px;color:#166534;background:#dcfce7;
-                                                                 padding:2px 8px;border-radius:4px;font-weight:700;">
-                                                        📐 {{ number_format($superficieGrp, 0, ',', ' ') }} m²
+                                                    <span style="font-size:9px;color:#94a3b8;background:#f1f5f9;
+                                                                 padding:0 6px;border-radius:4px;">
+                                                        {{ $nbLots }} lot(s)
                                                     </span>
 
-                                                    <button onclick='event.stopPropagation(); ouvrirModalModifierGroupe(
+                                                    <button onclick='ouvrirModalModifierGroupe(
                                                                 {{ $b->id }},
                                                                 {{ $dossier->id }},
                                                                 {{ $premier->bloc_id }},
@@ -1084,12 +781,12 @@
                                                                 @json($notesGrp)
                                                             )'
                                                             style="background:none;border:none;color:#f59e0b;
-                                                                   cursor:pointer;font-size:14px;padding:0 4px;"
+                                                                   cursor:pointer;font-size:13px;padding:0 4px;"
                                                             title="Modifier les lots de ce groupe">✏️</button>
 
-                                                    <button onclick='event.stopPropagation(); annulerGroupeBenefAffectation("{{ $ids }}", this)'
+                                                    <button onclick="annulerGroupeBenefAffectation('{{ $ids }}', this)"
                                                             style="background:none;border:none;color:#dc2626;
-                                                                   cursor:pointer;font-size:13px;padding:0 4px;"
+                                                                   cursor:pointer;font-size:11px;padding:0 4px;"
                                                             title="Annuler toutes les affectations du groupe">✕</button>
                                                 </div>
                                             @endforeach
@@ -1097,17 +794,17 @@
                                     </div>
                                     @endif
 
-                                    {{-- Formulaire affectation rapide --}}
-                                    <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;
+                                    {{-- FORMULAIRE AFFECTATION --}}
+                                    <div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:10px;
                                                 border:1px solid #e2e8f0;">
-                                        <div style="font-size:11px;font-weight:700;color:#64748b;
-                                                    text-transform:uppercase;margin-bottom:10px;">
+                                        <div style="font-size:10px;font-weight:700;color:#64748b;
+                                                    text-transform:uppercase;margin-bottom:8px;">
                                             ➕ Affecter des lots à ce bénéficiaire
                                         </div>
 
                                         <div class="row g-2 align-items-end">
                                             <div class="col-md-3">
-                                                <label style="font-size:10px;font-weight:600;color:#374151;">Grand Site</label>
+                                                <label style="font-size:9px;font-weight:600;color:#374151;">Grand Site</label>
                                                 <select class="form-control form-control-sm"
                                                         id="benef-aff-gs-{{ $b->id }}"
                                                         onchange="benefAffChargerSites(this.value, {{ $b->id }})">
@@ -1118,7 +815,7 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-2">
-                                                <label style="font-size:10px;font-weight:600;color:#374151;">Site</label>
+                                                <label style="font-size:9px;font-weight:600;color:#374151;">Site</label>
                                                 <select class="form-control form-control-sm"
                                                         id="benef-aff-site-{{ $b->id }}"
                                                         onchange="benefAffChargerTfs(this.value, {{ $b->id }})">
@@ -1126,7 +823,7 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-2">
-                                                <label style="font-size:10px;font-weight:600;color:#374151;">TF</label>
+                                                <label style="font-size:9px;font-weight:600;color:#374151;">TF</label>
                                                 <select class="form-control form-control-sm"
                                                         id="benef-aff-tf-{{ $b->id }}"
                                                         onchange="benefAffChargerBlocs(this.value, {{ $b->id }})">
@@ -1134,7 +831,7 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-2">
-                                                <label style="font-size:10px;font-weight:600;color:#374151;">Bloc</label>
+                                                <label style="font-size:9px;font-weight:600;color:#374151;">Bloc</label>
                                                 <select class="form-control form-control-sm"
                                                         id="benef-aff-bloc-{{ $b->id }}"
                                                         onchange="benefAffChargerLots(this.value, {{ $b->id }})">
@@ -1142,13 +839,13 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-1">
-                                                <label style="font-size:10px;font-weight:600;color:#374151;">Date</label>
+                                                <label style="font-size:9px;font-weight:600;color:#374151;">Date</label>
                                                 <input type="date" class="form-control form-control-sm"
                                                        id="benef-aff-date-{{ $b->id }}"
                                                        value="{{ now()->format('Y-m-d') }}">
                                             </div>
                                             <div class="col-md-2">
-                                                <label style="font-size:10px;font-weight:600;color:#374151;">Notes</label>
+                                                <label style="font-size:9px;font-weight:600;color:#374151;">Notes</label>
                                                 <input type="text" class="form-control form-control-sm"
                                                        id="benef-aff-notes-{{ $b->id }}"
                                                        placeholder="Optionnel">
@@ -1174,15 +871,15 @@
                                         </div>
                                     </div>
 
-                                    {{-- Étapes bénéficiaire --}}
-                                    <div style="background:#f8fafc;border-radius:8px;padding:12px;
-                                                border:1px solid #e2e8f0;margin-bottom:14px;">
-                                        <div style="font-size:11px;font-weight:700;color:#64748b;
-                                                    text-transform:uppercase;margin-bottom:10px;">
+                                    {{-- ÉTAPES BÉNÉFICIAIRE --}}
+                                    <div style="background:#f8fafc;border-radius:8px;padding:10px;
+                                                border:1px solid #e2e8f0;margin-bottom:10px;">
+                                        <div style="font-size:10px;font-weight:700;color:#64748b;
+                                                    text-transform:uppercase;margin-bottom:8px;">
                                             📊 Étapes du bénéficiaire
                                         </div>
 
-                                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
                                             @foreach($benefEtapesConfig as $cle => $cfg)
                                                 @php
                                                     $ordreEtape  = $benefEtapesOrdre[$cle];
@@ -1192,7 +889,7 @@
                                                     $dateEtape   = $b->$champ;
                                                 @endphp
 
-                                                <div onclick='event.stopPropagation(); ouvrirModalEtapeBenef({{ $b->id }}, "{{ $cle }}", "{{ $cfg['label'] }}", {{ $estFait ? 'true' : 'false' }}, "{{ $dateEtape ? \Carbon\Carbon::parse($dateEtape)->format('Y-m-d') : '' }}")'
+                                                <div onclick="ouvrirModalEtapeBenef({{ $b->id }}, '{{ $cle }}', '{{ $cfg['label'] }}', {{ $estFait ? 'true' : 'false' }}, '{{ $dateEtape ? \Carbon\Carbon::parse($dateEtape)->format('Y-m-d') : '' }}')"
                                                      style="
                                                         display:flex;align-items:center;gap:5px;
                                                         padding:6px 12px;border-radius:16px;
@@ -1202,28 +899,34 @@
                                                         color:{{ $estFait ? $cfg['color'] : '#94a3b8' }};
                                                         cursor:pointer;transition:all 0.2s;
                                                      ">
-                                                    <span>{{ $cfg['icon'] }}</span>
+                                                    <span style="font-size:13px;">{{ $cfg['icon'] }}</span>
                                                     {{ $cfg['label'] }}
                                                     @if($estFait && $dateEtape)
-                                                        <span style="font-size:9px;background:white;padding:0 6px;border-radius:8px;border:1px solid #e2e8f0;">
+                                                        <span style="font-size:9px;font-weight:400;color:#64748b;
+                                                                     background:white;padding:0 6px;border-radius:8px;
+                                                                     border:1px solid #e2e8f0;">
                                                             {{ \Carbon\Carbon::parse($dateEtape)->format('d/m/Y') }}
                                                         </span>
+                                                        <span style="color:#16a34a;">✓</span>
+                                                    @else
+                                                        <span style="font-size:9px;font-weight:400;color:#94a3b8;">(à définir)</span>
                                                     @endif
                                                 </div>
                                             @endforeach
                                         </div>
                                     </div>
 
-                                    {{-- Historique bénéficiaire --}}
+                                    {{-- HISTORIQUE BÉNÉFICIAIRE --}}
                                     @if($benefHistoriques->count() > 0)
                                     <div style="background:#f8fafc;border-radius:8px;
-                                                border:1px solid #e2e8f0;overflow:hidden;">
+                                                border:1px solid #e2e8f0;margin-bottom:10px;
+                                                overflow:hidden;">
 
-                                        <div onclick="event.stopPropagation(); toggleBenefHistorique({{ $b->id }})"
-                                             style="background:#f1f5f9;padding:10px 14px;
+                                        <div onclick="toggleBenefHistorique({{ $b->id }})"
+                                             style="background:#f1f5f9;padding:8px 12px;
                                                     display:flex;justify-content:space-between;
                                                     align-items:center;cursor:pointer;">
-                                            <div style="font-size:11px;font-weight:700;color:#64748b;
+                                            <div style="font-size:10px;font-weight:700;color:#64748b;
                                                         text-transform:uppercase;display:flex;
                                                         align-items:center;gap:6px;">
                                                 <span id="benef-histo-icon-{{ $b->id }}"
@@ -1237,7 +940,8 @@
                                             </div>
                                         </div>
 
-                                        <div id="benef-histo-content-{{ $b->id }}" style="display:none;padding:12px;">
+                                        <div id="benef-histo-content-{{ $b->id }}"
+                                             style="display:none;padding:10px;">
                                             @foreach($benefHistoriques as $h)
                                                 @php
                                                     $iconeH = match($h->type_action) {
@@ -1258,128 +962,16 @@
                                                         'annulation_affectation'     => '#7c3aed',
                                                         default                      => '#64748b',
                                                     };
-
-                                                    $avH = $h->donnees_avant;
-                                                    $apH = $h->donnees_apres;
-                                                    $departH = $apH['point_depart'] ?? [
-                                                        'lot'   => $avH['lot_num'] ?? null,
-                                                        'bloc'  => $avH['bloc'] ?? null,
-                                                        'date'  => $avH['date'] ?? null,
-                                                        'notes' => $avH['notes'] ?? null,
-                                                    ];
-                                                    $arriveeH = $apH['point_arrivee'] ?? [
-                                                        'lot'   => $apH['lot_num'] ?? null,
-                                                        'bloc'  => $apH['bloc'] ?? null,
-                                                        'date'  => $apH['date'] ?? null,
-                                                        'notes' => $apH['notes'] ?? null,
-                                                    ];
                                                 @endphp
-
                                                 <div style="background:white;border-left:3px solid {{ $couleurH }};
-                                                            border-radius:6px;padding:10px 12px;margin-bottom:8px;
-                                                            font-size:11px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-
+                                                            border-radius:6px;padding:8px 10px;margin-bottom:5px;
+                                                            font-size:11px;">
                                                     <div style="color:#1e3a5f;font-weight:600;">
                                                         {{ $iconeH }} {{ $h->resume }}
                                                     </div>
-                                                    <div style="font-size:9px;color:#94a3b8;margin-top:3px;">
+                                                    <div style="font-size:9px;color:#94a3b8;margin-top:2px;">
                                                         📅 {{ $h->created_at->format('d/m/Y H:i') }}
-                                                        @if($h->user)
-                                                            · 👤 {{ $h->user->name }}
-                                                        @endif
                                                     </div>
-
-                                                    @if($h->type_action === 'modification_affectation' && $avH && $apH)
-                                                        <details style="margin-top:8px;" open>
-                                                            <summary style="cursor:pointer;color:#f59e0b;font-weight:700;
-                                                                            padding:4px 0;list-style:none;font-size:11px;">
-                                                                🔍 <strong>Détail des changements</strong>
-                                                            </summary>
-                                                            <div style="background:white;border-radius:8px;padding:10px;
-                                                                        margin-top:6px;border:1px solid #e2e8f0;">
-
-                                                                <div style="background:#fef2f2;border-left:3px solid #dc2626;
-                                                                            padding:8px 10px;border-radius:6px;
-                                                                            margin-bottom:8px;">
-                                                                    <div style="font-size:9px;font-weight:700;color:#991b1b;
-                                                                                text-transform:uppercase;margin-bottom:5px;">
-                                                                        📍 Départ
-                                                                    </div>
-                                                                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
-                                                                        @if($departH['lot'])
-                                                                            @foreach(explode(',', $departH['lot']) as $n)
-                                                                                @if(trim($n))
-                                                                                    <span style="background:#fee2e2;color:#991b1b;
-                                                                                                 padding:2px 8px;border-radius:4px;
-                                                                                                 font-weight:700;font-size:10px;
-                                                                                                 text-decoration:line-through;
-                                                                                                 border:1px solid #fca5a5;">
-                                                                                        Lot {{ trim($n) }}
-                                                                                    </span>
-                                                                                @endif
-                                                                            @endforeach
-                                                                        @else
-                                                                            <span style="color:#7f1d1d;">—</span>
-                                                                        @endif
-                                                                    </div>
-                                                                    <div style="font-size:10px;color:#7f1d1d;">
-                                                                        📅 {{ $departH['date'] ? \Carbon\Carbon::parse($departH['date'])->format('d/m/Y') : '—' }}
-                                                                        @if($departH['notes'])
-                                                                            <br>📝 « {{ $departH['notes'] }} »
-                                                                        @endif
-                                                                    </div>
-                                                                </div>
-
-                                                                <div style="background:#f0fdf4;border-left:3px solid #16a34a;
-                                                                            padding:8px 10px;border-radius:6px;">
-                                                                    <div style="font-size:9px;font-weight:700;color:#166534;
-                                                                                text-transform:uppercase;margin-bottom:5px;">
-                                                                        🎯 Arrivée
-                                                                    </div>
-                                                                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
-                                                                        @if($arriveeH['lot'])
-                                                                            @foreach(explode(',', $arriveeH['lot']) as $n)
-                                                                                @if(trim($n))
-                                                                                    <span style="background:#dcfce7;color:#166534;
-                                                                                                 padding:2px 8px;border-radius:4px;
-                                                                                                 font-weight:700;font-size:10px;
-                                                                                                 border:1px solid #86efac;">
-                                                                                        ✅ Lot {{ trim($n) }}
-                                                                                    </span>
-                                                                                @endif
-                                                                            @endforeach
-                                                                        @else
-                                                                            <span style="color:#14532d;">—</span>
-                                                                        @endif
-                                                                    </div>
-                                                                    <div style="font-size:10px;color:#14532d;">
-                                                                        📅 {{ $arriveeH['date'] ? \Carbon\Carbon::parse($arriveeH['date'])->format('d/m/Y') : '—' }}
-                                                                        @if($arriveeH['notes'])
-                                                                            <br>📝 « {{ $arriveeH['notes'] }} »
-                                                                        @endif
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </details>
-                                                    @endif
-
-                                                    @if($h->type_action === 'affectation_lot' && $apH && !empty($apH['lots']))
-                                                        <div style="margin-top:6px;background:#eff6ff;
-                                                                    border-radius:6px;padding:6px 8px;
-                                                                    border:1px dashed #93c5fd;">
-                                                            <strong style="font-size:10px;color:#1d4ed8;">📦 Lots attribués :</strong>
-                                                            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
-                                                                @foreach($apH['lots'] as $lot)
-                                                                    <span style="background:#dbeafe;color:#1d4ed8;
-                                                                                 padding:2px 8px;border-radius:4px;
-                                                                                 font-size:10px;font-weight:700;">
-                                                                        Lot {{ $lot['numero'] ?? '?' }}
-                                                                        @if(!empty($lot['bloc'])) ({{ $lot['bloc'] }}) @endif
-                                                                    </span>
-                                                                @endforeach
-                                                            </div>
-                                                        </div>
-                                                    @endif
                                                 </div>
                                             @endforeach
                                         </div>
@@ -1387,171 +979,91 @@
                                     @endif
 
                                 </div>
+                            @empty
+                            <div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px;
+                                        background:#f8fafc;border-radius:8px;">
+                                Aucun bénéficiaire pour ce dossier.
                             </div>
+                            @endforelse
                         </div>
-                    @empty
-                        <div style="text-align:center;color:#94a3b8;font-size:12px;padding:40px;
-                                    background:#f8fafc;border-radius:12px;">
-                            <div style="font-size:40px;margin-bottom:10px;">👥</div>
-                            <div style="font-weight:700;">Aucun bénéficiaire</div>
-                            <button onclick="ouvrirModalBenef({{ $dossier->id }}, null)"
-                                    class="btn btn-primary btn-sm mt-3">
-                                + Ajouter un bénéficiaire
+                    </div>
+
+                    {{-- HISTORIQUE GÉNÉRAL --}}
+                    @php
+                        $historiques = $dossier->historiques ?? collect();
+                    @endphp
+
+                    <div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
+                                border-left:4px solid #64748b;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;
+                                    margin-bottom:12px;">
+                            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
+                                📜 Historique général ({{ $historiques->count() }})
+                            </div>
+                            <button onclick="toggleHistorique({{ $dossier->id }})"
+                                    class="btn btn-sm"
+                                    style="font-size:10px;background:#f1f5f9;color:#475569;font-weight:600;">
+                                <span id="btn-histo-texte-{{ $dossier->id }}">Afficher</span>
                             </button>
                         </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
 
-        {{-- Accordéon Historique général --}}
-        @php
-            $historiques = $dossier->historiques ?? collect();
-        @endphp
-
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span>📜 Historique général ({{ $historiques->count() }})</span>
-                <span class="chevron">▶</span>
-            </div>
-            <div class="accordion-content">
-                <div class="accordion-body">
-                    @forelse($historiques as $h)
-                        <div style="background:#f8fafc;border-left:3px solid {{ $h->couleur }};
-                                    border-radius:6px;padding:10px 12px;margin-bottom:8px;">
-                            <div style="font-size:12px;color:#1e3a5f;font-weight:600;">
-                                {{ $h->icone }} {{ $h->resume }}
-                            </div>
-                            <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
-                                📅 {{ $h->created_at->format('d/m/Y H:i') }}
-                                @if($h->user)
-                                    · 👤 {{ $h->user->name }}
-                                @endif
-                            </div>
+                        <div id="historique-content-{{ $dossier->id }}" style="display:none;">
+                            @forelse($historiques as $h)
+                                <div style="background:#f8fafc;border-left:3px solid {{ $h->couleur }};
+                                            border-radius:6px;padding:10px 12px;margin-bottom:8px;">
+                                    <div style="font-size:12px;color:#1e3a5f;font-weight:600;">
+                                        {{ $h->icone }} {{ $h->resume }}
+                                    </div>
+                                    <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
+                                        📅 {{ $h->created_at->format('d/m/Y H:i') }}
+                                        @if($h->user)
+                                            · 👤 {{ $h->user->name }}
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px;">
+                                    Aucun historique pour ce dossier.
+                                </div>
+                            @endforelse
                         </div>
-                    @empty
-                        <div style="text-align:center;color:#94a3b8;font-size:12px;padding:16px;">
-                            Aucun historique
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-    </div>
-    @endforeach
-</div>
-@endif
-
-{{-- ═══════════════════════════════════════════════════════════════
-     TAB 3 : BÉNÉFICIAIRES (vue globale)
-     ═══════════════════════════════════════════════════════════════ --}}
-@if($dossier)
-<div id="tab-benefs" class="tab-content">
-    <div class="section-card">
-        <h5>👥 Tous les bénéficiaires</h5>
-        <p style="color:#64748b;font-size:12px;">
-            Pour voir les détails par dossier, ouvrez l'onglet <strong>📂 Dossier</strong> et sélectionnez le dossier.
-        </p>
-
-        @php
-            $tousBenefs = collect();
-            foreach ($client->dossiers as $d) {
-                foreach ($d->beneficiaires as $b) {
-                    $tousBenefs->push(['b' => $b, 'd' => $d]);
-                }
-            }
-        @endphp
-
-        @forelse($tousBenefs as $item)
-            @php
-                $b = $item['b'];
-                $d = $item['d'];
-                $benefAffs = $b->affectations()->with(['lot', 'bloc', 'grandSite', 'tf'])->where('statut', 'actif')->get();
-                $superficieTotale = $benefAffs->sum(fn($aff) => $aff->lot?->superficie ?? 0);
-            @endphp
-            <div style="background:#faf5ff;border-left:3px solid #7c3aed;border-radius:8px;
-                        padding:10px 12px;margin-bottom:8px;font-size:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-                    <strong style="color:#1e3a5f;">👤 {{ $b->nom }}</strong>
-                    <span style="font-size:11px;color:#7c3aed;font-weight:700;">
-                        📐 {{ number_format($superficieTotale, 0, ',', ' ') }} m²
-                    </span>
-                </div>
-                <div style="font-size:10px;color:#64748b;margin-top:4px;">
-                    📂 {{ $d->nom_dossier }}
-                    @if($b->telephone) · 📞 {{ $b->telephone }} @endif
-                    · 📦 {{ $benefAffs->count() }} lot(s)
-                </div>
-            </div>
-        @empty
-            <div style="text-align:center;color:#94a3b8;font-size:12px;padding:30px;">
-                Aucun bénéficiaire
-            </div>
-        @endforelse
-    </div>
-</div>
-@endif
-
-{{-- ═══════════════════════════════════════════════════════════════
-     TAB 4 : VISITES
-     ═══════════════════════════════════════════════════════════════ --}}
-<div id="tab-visites" class="tab-content">
-    <div class="section-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">🚶 Historique des visites ({{ $client->visites->count() }})</h5>
-            <a href="{{ route('visites.index', ['nom' => $client->name]) }}"
-               class="btn btn-outline-primary btn-sm" style="font-size:11px;">
-                Voir tout →
-            </a>
-        </div>
-
-        @php
-            $typeColors = ['client'=>'#1d4ed8','proprietaire'=>'#15803d','autre'=>'#475569'];
-            $typeLabels = ['client'=>'Client','proprietaire'=>'Propriétaire','autre'=>'Autre'];
-        @endphp
-
-        @forelse($client->visites->sortByDesc('date_visite') as $visite)
-            @php $color = $typeColors[$visite->type_personne] ?? '#475569'; @endphp
-            <div style="border-left:3px solid {{ $color }};
-                        padding:10px 12px;margin-bottom:8px;
-                        background:#f8fafc;border-radius:6px;font-size:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <strong style="color:#1e3a5f;">
-                        {{ $visite->visiteur?->nom ?? $visite->nom ?? 'Inconnu' }}
-                    </strong>
-                    <span style="background:{{ $color }}22;color:{{ $color }};
-                                 font-size:9px;padding:1px 6px;border-radius:4px;
-                                 font-weight:600;">
-                        {{ $typeLabels[$visite->type_personne] ?? $visite->type_personne }}
-                    </span>
-                </div>
-                <div style="color:#64748b;margin-top:4px;">
-                    📅 {{ \Carbon\Carbon::parse($visite->date_visite)->format('d/m/Y') }}
-                    @if($visite->heure_arrivee)
-                        · 🕐 {{ substr($visite->heure_arrivee, 0, 5) }}
-                    @endif
-                    @if($visite->heure_depart)
-                        · 🚪 {{ substr($visite->heure_depart, 0, 5) }}
-                    @endif
-                </div>
-                @if($visite->note)
-                    <div style="color:#475569;margin-top:4px;font-style:italic;">
-                        📝 {{ $visite->note }}
                     </div>
-                @endif
+
+                </div>
             </div>
-        @empty
-            <div style="text-align:center;color:#94a3b8;font-size:12px;padding:30px;">
-                Aucune visite enregistrée
+            @endforeach
+        @else
+            <div class="section-card" style="text-align:center;padding:40px;">
+                <div style="font-size:48px;margin-bottom:16px;">📂</div>
+                <h4 style="color:#1e3a5f;">Aucun dossier pour ce client</h4>
+                <p style="color:#64748b;margin-bottom:16px;">
+                    Ce client n'a pas encore de dossier. Créez-lui un dossier pour commencer le suivi.
+                </p>
+                <a href="{{ route('suivi-client.create') }}?client_id={{ $client->id }}" 
+                   class="btn btn-primary">
+                    📂 Créer un dossier
+                </a>
             </div>
-        @endforelse
+        @endif
     </div>
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════════
+{{-- ═══════════════════════════════════════════════════════════
      MODALS
-     ═══════════════════════════════════════════════════════════════ --}}
+     ═══════════════════════════════════════════════════════════ --}}
+
+{{-- MODAL PAIEMENT --}}
+<div class="modal-overlay" id="paiementOverlay" onclick="closePaiement()"></div>
+<div class="modal-box" id="paiementModal">
+    <h5 id="paiementTitre">💰 Ajouter un paiement — <span id="dossierNom"></span></h5>
+    <input type="number" id="montant"  class="form-control mt-3" placeholder="Montant (FCFA)">
+    <input type="date"   id="datePaie" class="form-control mt-2">
+    <input type="text"   id="note"     class="form-control mt-2" placeholder="Note (optionnel)">
+    <div class="d-flex justify-content-between mt-3">
+        <button class="btn btn-secondary" onclick="closePaiement()">Annuler</button>
+        <button class="btn btn-success"   onclick="savePaiement()">Ajouter</button>
+    </div>
+</div>
 
 {{-- MODAL ÉTAPE DOSSIER --}}
 <div class="modal-overlay" id="modalEtapeOverlay" onclick="fermerModalEtape()"></div>
@@ -1612,12 +1124,8 @@
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
                 padding:14px;margin-bottom:16px;">
         <div style="font-size:12px;font-weight:700;color:#16a34a;
-                    text-transform:uppercase;margin-bottom:10px;
-                    display:flex;justify-content:space-between;align-items:center;">
-            <span>📦 Lots actuellement affectés</span>
-            <span style="font-size:10px;color:#94a3b8;font-weight:normal;text-transform:none;">
-                Décochez pour retirer
-            </span>
+                    text-transform:uppercase;margin-bottom:10px;">
+            📦 Lots actuellement affectés
         </div>
         <div id="modifAffectLotsActuels"
              style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px;">
@@ -1887,19 +1395,7 @@ let benefEditId = null;
 let benefLotsSelectionnes = new Set();
 
 // ════════════════════════════════════════════════════════════════
-// NAVIGATION PAR ONGLETS PRINCIPAUX
-// ════════════════════════════════════════════════════════════════
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-    const tab = document.getElementById(tabId);
-    if (tab) tab.classList.add('active');
-    const btn = document.querySelector(`.main-tab[data-tab="${tabId}"]`);
-    if (btn) btn.classList.add('active');
-}
-
-// ════════════════════════════════════════════════════════════════
-// ✅ NAVIGATION ENTRE DOSSIERS (ONGLETS DOSSIERS)
+// ✅ FONCTION PRINCIPALE : NAVIGATION ENTRE DOSSIERS (ONGLETS)
 // ════════════════════════════════════════════════════════════════
 function showDossier(id, tab, event) {
     if (event) event.preventDefault();
@@ -1909,32 +1405,17 @@ function showDossier(id, tab, event) {
         p.style.display = 'none';
     });
 
-    // Retirer active de tous les onglets dossier
+    // Retirer la classe active de tous les onglets
     document.querySelectorAll('.dossier-tab').forEach(t => {
         t.classList.remove('active');
     });
 
     // Afficher le dossier ciblé
     const panel = document.getElementById(id);
-    if (panel) {
-        panel.style.display = 'block';
-        // Scroll smooth vers le haut du panneau
-        setTimeout(() => {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-    }
+    if (panel) panel.style.display = 'block';
 
     // Activer l'onglet cliqué
     if (tab) tab.classList.add('active');
-}
-
-// ════════════════════════════════════════════════════════════════
-// ACCORDÉONS
-// ════════════════════════════════════════════════════════════════
-function toggleAccordion(header) {
-    const content = header.nextElementSibling;
-    header.classList.toggle('open');
-    content.classList.toggle('open');
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1975,6 +1456,7 @@ function toggleNew(clientId) {
     if (!btn) return;
     btn.disabled = true;
     btn.textContent = '⏳ ...';
+
     fetch(`/admin/suivi-client/toggle-new/${clientId}`, {
         method: 'POST',
         headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' },
@@ -2148,7 +1630,7 @@ function toggleBenefHistorique(benefId) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// MODAL MODIFIER GROUPE
+// MODIFIER GROUPE
 // ════════════════════════════════════════════════════════════════
 function ouvrirModalModifierGroupe(benefId, dossierId, blocId, blocCode, grandSiteNom,
                                     lotsActuels, dateAffectation, notes) {
@@ -2208,8 +1690,7 @@ function afficherLotsActuels() {
                           border:2px solid ${checked ? '#16a34a' : '#dc2626'};
                           border-radius:8px;padding:6px 12px;cursor:pointer;
                           font-size:11px;font-weight:700;
-                          color:${checked ? '#16a34a' : '#dc2626'};
-                          transition:all 0.2s;"
+                          color:${checked ? '#16a34a' : '#dc2626'};"
                    id="modif-lot-actuel-${lot.id}">
                 <input type="checkbox" ${checked ? 'checked' : ''}
                        style="width:14px;height:14px;"
@@ -2289,7 +1770,7 @@ function modifAffChargerLots(blocId) {
             const lotsFiltres = lots.filter(l => !lotsActuelsIds.includes(l.id));
 
             if (!lotsFiltres.length) {
-                container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">Aucun lot disponible dans ce bloc</div>';
+                container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">Aucun lot disponible</div>';
                 return;
             }
 
@@ -2327,19 +1808,6 @@ function modifAffChargerLots(blocId) {
 function toggleLotAjouter(lotId, checked) {
     if (checked) modifAffectGroupe.lotsAAjouter.add(lotId);
     else modifAffectGroupe.lotsAAjouter.delete(lotId);
-
-    const label = document.getElementById('modif-lot-ajout-' + lotId);
-    if (label) {
-        if (checked) {
-            label.style.background = '#dbeafe';
-            label.style.borderColor = '#1d4ed8';
-            label.style.color = '#1d4ed8';
-        } else {
-            label.style.background = 'white';
-            label.style.borderColor = '#e2e8f0';
-            label.style.color = '#1e3a5f';
-        }
-    }
     updateResume();
 }
 
@@ -2438,7 +1906,7 @@ function ouvrirHistoriqueAffectations(dossierId) {
             afficherHistoriqueAffectations();
         } else {
             document.getElementById('histoAffectContent').innerHTML =
-                '<div style="text-align:center;color:#dc2626;padding:20px;">Erreur de chargement</div>';
+                '<div style="text-align:center;color:#dc2626;padding:20px;">Erreur</div>';
         }
     })
     .catch(e => {
@@ -2468,20 +1936,8 @@ function filtrerHistoAffect(type) {
         else if (key === 'affectation_lot') btn.className = 'btn btn-sm ' + (key === histoAffectFiltre ? 'btn-primary' : 'btn-outline-primary');
         else if (key === 'modification_affectation') btn.className = 'btn btn-sm ' + (key === histoAffectFiltre ? 'btn-warning' : 'btn-outline-warning');
         else if (key === 'annulation_affectation') btn.className = 'btn btn-sm ' + (key === histoAffectFiltre ? 'btn-danger' : 'btn-outline-danger');
-        btn.style.fontSize = '11px';
     });
     afficherHistoriqueAffectations();
-}
-
-function formatLotsBadges(val, colorClass) {
-    if (!val) return '<span style="color:#94a3b8;">—</span>';
-    const parts = String(val).split(',').map(s => s.trim()).filter(Boolean);
-    if (parts.length === 0) return '<span style="color:#94a3b8;">—</span>';
-    const styles = {
-        rouge: 'background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:6px;font-weight:700;font-size:11px;text-decoration:line-through;border:1px solid #fca5a5;',
-        vert:  'background:#dcfce7;color:#166534;padding:3px 10px;border-radius:6px;font-weight:700;font-size:11px;border:1px solid #86efac;',
-    };
-    return parts.map(n => `<span style="${styles[colorClass]}">${colorClass === 'vert' ? '✅ ' : ''}Lot ${n}</span>`).join(' ');
 }
 
 function afficherHistoriqueAffectations() {
@@ -2490,105 +1946,22 @@ function afficherHistoriqueAffectations() {
     if (histoAffectFiltre !== 'tous') {
         filtered = histoAffectData.filter(h => h.type_action === histoAffectFiltre);
     }
-
     if (!filtered.length) {
-        container.innerHTML = `
-            <div style="text-align:center;color:#94a3b8;padding:30px;">
-                <div style="font-size:40px;">📭</div>
-                <div style="font-weight:700;margin-top:10px;">Aucun historique trouvé</div>
-            </div>`;
+        container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:30px;">Aucun historique</div>';
         return;
     }
-
     const icones = {'affectation_lot':'📦','modification_affectation':'✏️','annulation_affectation':'↩️'};
     const couleurs = {'affectation_lot':'#0d6efd','modification_affectation':'#f59e0b','annulation_affectation':'#dc2626'};
-
-    container.innerHTML = filtered.map(h => {
-        const icone = icones[h.type_action] || '📌';
-        const couleur = couleurs[h.type_action] || '#64748b';
-
-        let benefNom = null;
-        if (h.avant && h.avant.beneficiaire_nom) benefNom = h.avant.beneficiaire_nom;
-        if (h.apres && h.apres.beneficiaire_nom) benefNom = h.apres.beneficiaire_nom;
-        if (h.resume) {
-            const m1 = h.resume.match(/Bénéficiaire\s*:\s*«\s*([^»]+)\s*»/);
-            if (m1) benefNom = m1[1];
-            const m2 = h.resume.match(/bénéficiaire\s*«\s*([^»]+)\s*»/);
-            if (m2) benefNom = m2[1];
-        }
-
-        let detailsHtml = '';
-
-        if (h.type_action === 'modification_affectation' && h.avant && h.apres) {
-            const depart = h.apres?.point_depart || {lot:h.avant.lot_num,bloc:h.avant.bloc,date:h.avant.date,notes:h.avant.notes};
-            const arrivee = h.apres?.point_arrivee || {lot:h.apres.lot_num,bloc:h.apres.bloc,date:h.apres.date,notes:h.apres.notes};
-            const dateAvantFmt = depart.date ? new Date(depart.date).toLocaleDateString('fr-FR') : '—';
-            const dateApresFmt = arrivee.date ? new Date(arrivee.date).toLocaleDateString('fr-FR') : '—';
-
-            detailsHtml = `
-                <details style="margin-top:8px;font-size:11px;" open>
-                    <summary style="cursor:pointer;color:#f59e0b;font-weight:700;padding:4px 0;list-style:none;">
-                        🔍 <strong>Détail des changements</strong>
-                    </summary>
-                    <div style="background:white;border-radius:8px;padding:12px;margin-top:8px;border:1px solid #e2e8f0;">
-                        <div style="background:#fef2f2;border-left:3px solid #dc2626;padding:8px 12px;border-radius:6px;margin-bottom:10px;">
-                            <div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;margin-bottom:6px;">📍 Point de départ</div>
-                            <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:4px;">
-                                ${formatLotsBadges(depart.lot, 'rouge')}
-                            </div>
-                            <div style="font-size:11px;color:#7f1d1d;">📅 ${dateAvantFmt}</div>
-                        </div>
-                        <div style="background:#f8fafc;border-radius:6px;padding:8px 12px;margin-bottom:10px;text-align:center;">
-                            <span style="color:#94a3b8;font-weight:900;font-size:20px;">⬇</span>
-                        </div>
-                        <div style="background:#f0fdf4;border-left:3px solid #16a34a;padding:8px 12px;border-radius:6px;">
-                            <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;margin-bottom:6px;">🎯 Point d'arrivée</div>
-                            <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:4px;">
-                                ${formatLotsBadges(arrivee.lot, 'vert')}
-                            </div>
-                            <div style="font-size:11px;color:#14532d;">📅 ${dateApresFmt}</div>
-                        </div>
-                    </div>
-                </details>
-            `;
-        }
-
-        if (h.type_action === 'affectation_lot' && h.apres) {
-            let lotsData = h.apres.lots || [];
-            let dateAff = h.apres.date_affectation || null;
-            detailsHtml = `
-                <details style="margin-top:8px;font-size:11px;" open>
-                    <summary style="cursor:pointer;color:#0d6efd;font-weight:700;padding:4px 0;list-style:none;">
-                        🔍 <strong>Lots attribués</strong>
-                    </summary>
-                    <div style="background:white;border-radius:8px;padding:12px;margin-top:8px;border:1px solid #e2e8f0;">
-                        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                            ${lotsData.map(l => `
-                                <span style="background:#dcfce7;color:#16a34a;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #86efac;">
-                                    ✅ Lot ${l.numero ?? '?'}
-                                    ${l.bloc ? '(Bloc ' + l.bloc + ')' : ''}
-                                </span>
-                            `).join('')}
-                        </div>
-                        ${dateAff ? `<div style="font-size:10px;color:#64748b;padding-top:6px;border-top:1px dashed #e2e8f0;">📅 Date : <strong>${new Date(dateAff).toLocaleDateString('fr-FR')}</strong></div>` : ''}
-                    </div>
-                </details>
-            `;
-        }
-
-        return `
-            <div style="background:white;border-left:4px solid ${couleur};border-radius:8px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-                ${benefNom ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#faf5ff;color:#7c3aed;padding:3px 12px;border-radius:12px;font-size:11px;font-weight:700;margin-bottom:6px;">👤 ${benefNom}</div>` : ''}
-                <div style="font-size:13px;color:#1e3a5f;font-weight:700;">${icone} ${h.resume}</div>
-                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">📅 ${h.date}${h.user ? ' · 👤 ' + h.user : ''}</div>
-                ${detailsHtml}
-            </div>
-        `;
-    }).join('');
+    container.innerHTML = filtered.map(h => `
+        <div style="background:white;border-left:4px solid ${couleurs[h.type_action] || '#64748b'};border-radius:8px;padding:12px 14px;margin-bottom:10px;">
+            <div style="font-size:13px;color:#1e3a5f;font-weight:700;">${icones[h.type_action] || '📌'} ${h.resume}</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px;">📅 ${h.date} ${h.user ? '· 👤 ' + h.user : ''}</div>
+        </div>
+    `).join('');
 }
 
 // ════════════════════════════════════════════════════════════════
-// AFFECTATION RAPIDE DANS CARTE BÉNÉFICIAIRE
+// AFFECTATION LOTS BÉNÉFICIAIRE
 // ════════════════════════════════════════════════════════════════
 function benefAffChargerSites(gsId, benefId) {
     const sel = document.getElementById('benef-aff-site-' + benefId);
@@ -2708,7 +2081,7 @@ function validerBenefAffectation(benefId) {
 }
 
 function annulerGroupeBenefAffectation(ids, btn) {
-    if (!confirm('Supprimer toutes ces affectations ? Les lots redeviendront disponibles.')) return;
+    if (!confirm('Supprimer toutes ces affectations ?')) return;
     const idArray = ids.split(',');
     const promises = idArray.map(id =>
         fetch(`/admin/affectations/${id}`, {
@@ -2721,7 +2094,7 @@ function annulerGroupeBenefAffectation(ids, btn) {
             if (results.every(r => r.success)) {
                 showToast('✅ Affectations annulées');
                 setTimeout(() => location.reload(), 800);
-            } else alert('Erreur lors de la suppression');
+            } else alert('Erreur');
         })
         .catch(e => alert('Erreur réseau : ' + e.message));
 }
@@ -2733,11 +2106,11 @@ function ouvrirModalBenef(dossierId, benef) {
     benefEditId = benef?.id ?? null;
     benefLotsSelectionnes = new Set();
 
-    document.getElementById('benefId').value = benef?.id ?? '';
-    document.getElementById('benefDossierId').value = dossierId;
-    document.getElementById('benefNom').value = benef?.nom ?? '';
-    document.getElementById('benefTelephone').value = benef?.telephone ?? '';
-    document.getElementById('benefNotes').value = benef?.notes ?? '';
+    document.getElementById('benefId').value         = benef?.id ?? '';
+    document.getElementById('benefDossierId').value  = dossierId;
+    document.getElementById('benefNom').value        = benef?.nom ?? '';
+    document.getElementById('benefTelephone').value  = benef?.telephone ?? '';
+    document.getElementById('benefNotes').value      = benef?.notes ?? '';
     document.getElementById('benefTitre').textContent = benef ? '✏️ Modifier un bénéficiaire' : '👥 Ajouter un bénéficiaire';
 
     document.getElementById('benefCniOblig').style.display = benef ? 'none' : 'inline';
@@ -2797,15 +2170,12 @@ function prefillBenefFromClient(select) {
         sexe ? '👤 Sexe : ' + (sexe === 'masculin' ? 'Masculin' : 'Féminin') : '⚠️ Sexe non renseigné';
 }
 
-// SÉLECTION LOTS DANS MODAL BÉNÉFICIAIRE
 function benefLotChargerSites(gsId) {
     const sel = document.getElementById('benefLotSite');
     sel.innerHTML = '<option value="">-- Choisir --</option>';
     document.getElementById('benefLotTf').innerHTML = '<option value="">-- Choisir --</option>';
     document.getElementById('benefLotBloc').innerHTML = '<option value="">-- Choisir --</option>';
-    document.getElementById('benefLotListe').innerHTML =
-        '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">' +
-        'ℹ️ Sélectionnez un Bloc pour voir les lots disponibles</div>';
+    document.getElementById('benefLotListe').innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">ℹ️ Sélectionnez un Bloc</div>';
     if (!gsId) return;
     fetch(`/admin/affectations/api/sites/${gsId}`)
         .then(r => r.json())
@@ -2819,9 +2189,7 @@ function benefLotChargerTfs(siteId) {
     const sel = document.getElementById('benefLotTf');
     sel.innerHTML = '<option value="">-- Choisir --</option>';
     document.getElementById('benefLotBloc').innerHTML = '<option value="">-- Choisir --</option>';
-    document.getElementById('benefLotListe').innerHTML =
-        '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">' +
-        'ℹ️ Sélectionnez un Bloc pour voir les lots disponibles</div>';
+    document.getElementById('benefLotListe').innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">ℹ️ Sélectionnez un Bloc</div>';
     if (!siteId) return;
     fetch(`/admin/affectations/api/tfs/${siteId}`)
         .then(r => r.json())
@@ -2834,9 +2202,7 @@ function benefLotChargerTfs(siteId) {
 function benefLotChargerBlocs(tfId) {
     const sel = document.getElementById('benefLotBloc');
     sel.innerHTML = '<option value="">-- Choisir --</option>';
-    document.getElementById('benefLotListe').innerHTML =
-        '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">' +
-        'ℹ️ Sélectionnez un Bloc pour voir les lots disponibles</div>';
+    document.getElementById('benefLotListe').innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">ℹ️ Sélectionnez un Bloc</div>';
     if (!tfId) return;
     fetch(`/admin/affectations/api/blocs/${tfId}`)
         .then(r => r.json())
@@ -2849,8 +2215,7 @@ function benefLotChargerBlocs(tfId) {
 function benefLotChargerLots(blocId) {
     const container = document.getElementById('benefLotListe');
     if (!blocId) {
-        container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">' +
-            'ℹ️ Sélectionnez un Bloc pour voir les lots disponibles</div>';
+        container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">ℹ️ Sélectionnez un Bloc</div>';
         return;
     }
     container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">⏳ Chargement...</div>';
@@ -2859,14 +2224,14 @@ function benefLotChargerLots(blocId) {
         .then(r => r.json())
         .then(lots => {
             if (!lots.length) {
-                container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">Aucun lot disponible dans ce bloc</div>';
+                container.innerHTML = '<div style="color:#94a3b8;font-size:11px;text-align:center;padding:10px;">Aucun lot disponible</div>';
                 return;
             }
             container.innerHTML = `
-                <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px;">Cochez les lots à attribuer :</div>
+                <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px;">Cochez les lots :</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
                     ${lots.map(l => `
-                        <label style="display:inline-flex;align-items:center;gap:4px;background:white;border:2px solid #e2e8f0;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600;transition:0.15s;"
+                        <label style="display:inline-flex;align-items:center;gap:4px;background:white;border:2px solid #e2e8f0;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600;"
                                id="benef-lot-label-${l.id}">
                             <input type="checkbox" value="${l.id}" class="benef-lot-cb"
                                    data-superficie="${l.superficie ?? 0}"
@@ -2879,9 +2244,6 @@ function benefLotChargerLots(blocId) {
                     `).join('')}
                 </div>
             `;
-        })
-        .catch(e => {
-            container.innerHTML = `<div style="color:#dc2626;font-size:11px;text-align:center;padding:10px;">❌ Erreur : ${e.message}</div>`;
         });
 }
 
@@ -2915,10 +2277,10 @@ function benefMajResume() {
     });
     resume.style.display = 'block';
     resume.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-            <span>✅ <strong>${benefLotsSelectionnes.size} lot(s) sélectionné(s)</strong> : ${numeros.join(', ')}</span>
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+            <span>✅ <strong>${benefLotsSelectionnes.size} lot(s)</strong> : ${numeros.join(', ')}</span>
             <span style="background:#166534;color:white;padding:3px 10px;border-radius:6px;font-weight:700;">
-                📐 Superficie totale : ${totalSuperficie.toLocaleString('fr-FR')} m²
+                📐 ${totalSuperficie.toLocaleString('fr-FR')} m²
             </span>
         </div>
     `;
@@ -2942,7 +2304,7 @@ function sauvegarderBenef() {
     if (!benefEditId) {
         if (!cniFile) { showToast('⚠️ La CNI est obligatoire'); return; }
         if (benefLotsSelectionnes.size === 0) { showToast('⚠️ Sélectionnez au moins un lot'); return; }
-        benefLotsSelectionnes.forEach(id => { formData.append('lot_ids[]', id); });
+        benefLotsSelectionnes.forEach(id => formData.append('lot_ids[]', id));
         formData.append('date_affectation', document.getElementById('benefLotDate').value);
     }
 
@@ -2979,7 +2341,7 @@ function sauvegarderBenef() {
 }
 
 function supprimerBenef(benefId, dossierId) {
-    if (!confirm('Supprimer ce bénéficiaire ? Les lots associés seront libérés.')) return;
+    if (!confirm('Supprimer ce bénéficiaire ?')) return;
     if (window.EdenLoader) window.EdenLoader.show();
     fetch(`/admin/beneficiaires/${benefId}`, {
         method: 'DELETE',
@@ -3047,11 +2409,29 @@ function majPrix(dossierId) {
     .catch(e => { if (window.EdenLoader) window.EdenLoader.hide(); alert('Erreur réseau'); });
 }
 
+function toggleHistorique(dossierId) {
+    const content = document.getElementById('historique-content-' + dossierId);
+    const btnText = document.getElementById('btn-histo-texte-' + dossierId);
+    if (!content) return;
+    if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+        btnText.textContent = 'Masquer';
+    } else {
+        content.style.display = 'none';
+        btnText.textContent = 'Afficher';
+    }
+}
+
+function closePaiement() {
+    document.getElementById('paiementOverlay').style.display = 'none';
+    document.getElementById('paiementModal').style.display = 'none';
+}
+
 // ════════════════════════════════════════════════════════════════
-// INITIALISATION AU CHARGEMENT
+// AU CHARGEMENT
 // ════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-    // S'assurer que le premier dossier est visible
+    // S'assurer que le premier dossier est bien affiché
     const panels = document.querySelectorAll('.dossier-panel');
     if (panels.length > 0) {
         panels.forEach((p, i) => {
@@ -3059,7 +2439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // S'assurer que le premier onglet dossier est actif
+    // Vérifier que le premier onglet est actif
     const tabs = document.querySelectorAll('.dossier-tab');
     if (tabs.length > 0) {
         tabs.forEach((t, i) => {
