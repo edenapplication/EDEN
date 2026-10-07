@@ -97,7 +97,7 @@
 .empty-state .ico { font-size:56px; margin-bottom:14px; }
 
 /* ═══════════════════════════════════════════════════════════════ */
-/* 📄 BARRE DE RAPPORTS                                              */
+/* 📄 BARRE DE RAPPORTS + FILTRES                                   */
 /* ═══════════════════════════════════════════════════════════════ */
 .prog-filter-row td {
     background: #f8fafc !important;
@@ -114,7 +114,6 @@
     border-radius: 10px;
     padding: 10px 14px;
     margin: 0;
-   
 }
 .prog-filter-bar .label {
     font-size: 8px;
@@ -166,27 +165,27 @@
 .btn-rapport.prog-date:hover { box-shadow: 0 4px 12px rgba(217,119,6,0.4); }
 .btn-rapport.cloture:hover   { box-shadow: 0 4px 12px rgba(22,163,74,0.4); }
 
-/* ═══════════════════════════════════════════════════════════════ */
-/* 📅 INPUT DATE DANS L'EN-TÊTE                                     */
-/* ═══════════════════════════════════════════════════════════════ */
-.aff-table thead input[type="date"] {
-    color-scheme: dark;
-    font-family: inherit;
+/* ═══ Bouton "Effacer filtres" ═══ */
+.btn-clear-filters {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1.5px solid #fca5a5;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: 0.2s;
 }
-.aff-table thead input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    cursor: pointer;
-    opacity: 0.9;
-}
-.aff-table thead input[type="date"]:hover {
-    background: rgba(255,255,255,0.25) !important;
-    border-color: rgba(255,255,255,0.8) !important;
-}
-.aff-table thead input[type="date"]:focus {
-    background: rgba(255,255,255,0.3) !important;
-    border-color: white !important;
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.25);
-    outline: none;
+.btn-clear-filters:hover {
+    background: #dc2626;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(220,38,38,0.35);
 }
 
 /* ═══ MODALE TITRE ═══ */
@@ -231,40 +230,36 @@
             📜 Historique
         </a>
 
-       {{-- 🗂️ BOUTONS DE CONSULTATION — Rapports générés depuis cette page --}}
-<div class="d-flex gap-2 flex-wrap">
+        <div class="d-flex gap-2 flex-wrap">
 
-    {{-- 📄 RAPPORT DES ATTRIBUTIONS --}}
-    <a href="{{ route('affectations.documents.avant-date') }}"
-       class="btn btn-sm"
-       style="background:linear-gradient(135deg,#5b21b6,#7c3aed);
-              color:white;border:none;font-weight:800;
-              box-shadow:0 3px 10px rgba(91,33,182,0.3);
-              display:inline-flex;align-items:center;gap:6px;">
-        📄 Rapport des attributions
-    </a>
+            <a href="{{ route('affectations.documents.avant-date') }}"
+               class="btn btn-sm"
+               style="background:linear-gradient(135deg,#5b21b6,#7c3aed);
+                      color:white;border:none;font-weight:800;
+                      box-shadow:0 3px 10px rgba(91,33,182,0.3);
+                      display:inline-flex;align-items:center;gap:6px;">
+                📄 Rapport des attributions
+            </a>
 
-    {{-- 📅 RAPPORT DE PLANIFICATION --}}
-    <a href="{{ route('affectations.documents.avec-date') }}"
-       class="btn btn-sm"
-       style="background:linear-gradient(135deg,#d97706,#f59e0b);
-              color:white;border:none;font-weight:800;
-              box-shadow:0 3px 10px rgba(217,119,6,0.3);
-              display:inline-flex;align-items:center;gap:6px;">
-        📅 Rapport de planification
-    </a>
+            <a href="{{ route('affectations.documents.avec-date') }}"
+               class="btn btn-sm"
+               style="background:linear-gradient(135deg,#d97706,#f59e0b);
+                      color:white;border:none;font-weight:800;
+                      box-shadow:0 3px 10px rgba(217,119,6,0.3);
+                      display:inline-flex;align-items:center;gap:6px;">
+                📅 Rapport de planification
+            </a>
 
-    {{-- 🔒 RAPPORT DE CLÔTURE --}}
-    <a href="{{ route('affectations.documents.finales') }}"
-       class="btn btn-sm"
-       style="background:linear-gradient(135deg,#15803d,#16a34a);
-              color:white;border:none;font-weight:800;
-              box-shadow:0 3px 10px rgba(22,163,74,0.3);
-              display:inline-flex;align-items:center;gap:6px;">
-        🔒 Rapport de clôture
-    </a>
+            <a href="{{ route('affectations.documents.finales') }}"
+               class="btn btn-sm"
+               style="background:linear-gradient(135deg,#15803d,#16a34a);
+                      color:white;border:none;font-weight:800;
+                      box-shadow:0 3px 10px rgba(22,163,74,0.3);
+                      display:inline-flex;align-items:center;gap:6px;">
+                🔒 Rapport de clôture
+            </a>
 
-</div>
+        </div>
     </div>
 </div>
 
@@ -318,6 +313,14 @@
 {{-- FILTRES PRINCIPAUX --}}
 <div class="aff-filters">
     <form method="GET" action="{{ route('affectations.liste') }}">
+        {{-- ✅ Préserver les filtres de date dans la query string --}}
+        @if(request('jour_attribution'))
+            <input type="hidden" name="jour_attribution" value="{{ request('jour_attribution') }}">
+        @endif
+        @if(request('jour'))
+            <input type="hidden" name="jour" value="{{ request('jour') }}">
+        @endif
+
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label style="font-size:11px;font-weight:700;color:#64748b;">🔍 Recherche</label>
@@ -390,15 +393,22 @@
             </thead>
             <tbody>
                 {{-- ═══════════════════════════════════════════════════ --}}
-                {{-- 📄 BARRE DE RAPPORTS — 3 boutons avec 2 dates        --}}
+                {{-- 📄 BARRE DE RAPPORTS + 2 FILTRES CUMULABLES         --}}
                 {{-- ═══════════════════════════════════════════════════ --}}
                 <tr class="prog-filter-row">
                     <td colspan="11">
                         <div class="prog-filter-bar">
 
                             @php
-                                $jourActif = request('jour', now()->format('Y-m-d'));
-                                $jourAffiche = \Carbon\Carbon::parse($jourActif)->format('d/m/Y');
+                                // ✅ Dates des filtres avec fallback
+                                $attrActive    = request('jour_attribution', now()->format('Y-m-d'));
+                                $attrAffichee  = \Carbon\Carbon::parse($attrActive)->format('d/m/Y');
+
+                                $jourActif    = request('jour', now()->format('Y-m-d'));
+                                $jourAffiche  = \Carbon\Carbon::parse($jourActif)->format('d/m/Y');
+
+                                $aFiltreAttribution = request()->filled('jour_attribution');
+                                $aFiltreJour        = request()->filled('jour');
                             @endphp
 
                             {{-- ═══════════════════════════════════════════════ --}}
@@ -407,15 +417,25 @@
                             <span class="label" style="color:#5b21b6;">📄 Attributions</span>
 
                             <button onclick="genererRapportAttribution()" class="btn-rapport prog">
-                                📄 Rapport des attributions du 
+                                📄 Rapport des attributions du {{ $attrAffichee }}
                             </button>
 
                             <input type="date"
                                    id="filtreDateAttribution"
-                                   value="{{ now()->format('Y-m-d') }}"
-                                   title="Date d'affectation pour le rapport">
-
-                            
+                                   name="jour_attribution"
+                                   value="{{ $attrActive }}"
+                                   title="Filtrer par date d'attribution"
+                                   onchange="appliquerFiltreAttribution(this.value)"
+                                   style="border:1px solid rgba(252, 244, 244, 0.205);
+                                          background:rgb(255, 255, 255);
+                                          color: #5b21b6;
+                                          border-radius:6px;
+                                          padding:3px 6px;
+                                          font-size:11px;
+                                          font-weight:700;
+                                          cursor:pointer;
+                                          width:125px;
+                                          outline:none;">
 
                             {{-- ═══ SÉPARATEUR VISUEL ═══ --}}
                             <span style="width:2px;height:32px;background:#93c5fd;margin:0 8px;border-radius:2px;"></span>
@@ -432,10 +452,11 @@
                             <button onclick="genererRapportCloture()" class="btn-rapport cloture">
                                 🔒 Rapport de clôture de planification des implantations du {{ $jourAffiche }}
                             </button>
-                             <input type="date"
+
+                            <input type="date"
                                    id="filtreJour"
                                    name="jour"
-                                   value="{{ request('jour', now()->format('Y-m-d')) }}"
+                                   value="{{ $jourActif }}"
                                    title="Filtrer par jour d'implantation"
                                    onchange="appliquerFiltreJour(this.value)"
                                    style="border:1px solid rgba(252, 244, 244, 0.205);
@@ -448,6 +469,15 @@
                                           cursor:pointer;
                                           width:125px;
                                           outline:none;">
+
+                            {{-- ═══════════════════════════════════════════════ --}}
+                            {{-- 🧹 BOUTON "EFFACER FILTRES" (si au moins 1 filtre actif) --}}
+                            {{-- ═══════════════════════════════════════════════ --}}
+                            @if($aFiltreAttribution || $aFiltreJour)
+                                <a href="{{ route('affectations.liste') }}" class="btn-clear-filters">
+                                    ✖ Effacer filtres
+                                </a>
+                            @endif
 
                         </div>
                     </td>
@@ -528,16 +558,21 @@
 
     @else
     <div class="empty-state">
-        @if(request('jour'))
+        @if(request('jour') || request('jour_attribution'))
             <div class="ico">📭</div>
             <div style="font-weight:700;font-size:15px;color:#475569;">
-                Aucune implantation pour le {{ \Carbon\Carbon::parse(request('jour'))->format('d/m/Y') }}
+                Aucune affectation ne correspond aux filtres
             </div>
             <div style="font-size:12px;margin-top:6px;">
-                Aucune affectation n'est prévue pour cette date d'implantation.
+                @if(request('jour_attribution'))
+                    📄 Attribution : {{ \Carbon\Carbon::parse(request('jour_attribution'))->format('d/m/Y') }}<br>
+                @endif
+                @if(request('jour'))
+                    📅 Planification : {{ \Carbon\Carbon::parse(request('jour'))->format('d/m/Y') }}
+                @endif
             </div>
             <a href="{{ route('affectations.liste') }}" class="btn btn-primary btn-sm" style="margin-top:14px;">
-                ✖ Retirer le filtre
+                ✖ Retirer les filtres
             </a>
         @else
             <div class="ico">✅</div>
@@ -726,10 +761,41 @@ function confirmerTitreEtValider() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// 📄 RAPPORT DES ATTRIBUTIONS — utilise sa PROPRE date
+// 📄 FILTRE PAR DATE D'ATTRIBUTION (NOUVEAU)
+// ════════════════════════════════════════════════════════════════
+function appliquerFiltreAttribution(date) {
+    const url = new URL(window.location.href);
+
+    if (!date) {
+        url.searchParams.delete('jour_attribution');
+    } else {
+        url.searchParams.set('jour_attribution', date);
+    }
+
+    window.location.href = url.toString();
+}
+
+// ════════════════════════════════════════════════════════════════
+// 📅 FILTRE PAR JOUR D'IMPLANTATION (existant)
+// ════════════════════════════════════════════════════════════════
+function appliquerFiltreJour(date) {
+    const url = new URL(window.location.href);
+
+    if (!date) {
+        url.searchParams.delete('jour');
+    } else {
+        url.searchParams.set('jour', date);
+    }
+
+    window.location.href = url.toString();
+}
+
+// ════════════════════════════════════════════════════════════════
+// 📄 RAPPORT DES ATTRIBUTIONS — utilise la date du FILTRE
 // ════════════════════════════════════════════════════════════════
 function genererRapportAttribution() {
-    const dateAttr = document.getElementById('filtreDateAttribution')?.value;
+    const dateAttr = document.getElementById('filtreDateAttribution')?.value
+                  || '{{ request("jour_attribution", now()->format("Y-m-d")) }}';
 
     if (!dateAttr) {
         showToast('⚠️ Veuillez choisir une date d\'attribution', 'warning');
@@ -749,10 +815,11 @@ function genererRapportAttribution() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// 📅 RAPPORT DE PLANIFICATION — utilise le filtre `jour` du tableau
+// 📅 RAPPORT DE PLANIFICATION — utilise le filtre `jour`
 // ════════════════════════════════════════════════════════════════
 function genererRapportPlanification() {
-    const jour = document.getElementById('filtreJour')?.value;
+    const jour = document.getElementById('filtreJour')?.value
+              || '{{ request("jour", now()->format("Y-m-d")) }}';
 
     if (!jour) {
         showToast('⚠️ Veuillez choisir une date d\'implantation', 'warning');
@@ -770,6 +837,7 @@ function genererRapportPlanification() {
         );
     }, titreAuto);
 }
+
 function genererRapportCloture() {
     const jour = document.getElementById('filtreJour')?.value;
 
@@ -832,7 +900,6 @@ function envoyerCloture(affectationIds, titreDocument, jour) {
                 'success'
             );
 
-            // ✅ Redirection vers Étape 1
             setTimeout(() => {
                 window.location.href = '{{ route("affectations.programmation") }}';
             }, 1500);
@@ -844,73 +911,6 @@ function envoyerCloture(affectationIds, titreDocument, jour) {
         if (window.EdenLoader) window.EdenLoader.hide();
         console.error(err);
         alert('❌ Erreur réseau');
-    });
-}
-
-// ════════════════════════════════════════════════════════════════
-// 🔒 CLÔTURE → PDF + passage à 'programmee' pour Étape 1
-// ════════════════════════════════════════════════════════════════
-function envoyerClotureEtEtape2(affectationIds, titreDocument, jour) {
-    if (window.EdenLoader) window.EdenLoader.show();
-
-    // ─── ÉTAPE A : Générer le PDF de clôture ───
-    fetch('{{ route("affectations.valider-etape-1") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF,
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-            affectation_ids: affectationIds,
-            titre_document:  titreDocument,
-            type_rapport:    'cloture',
-            jour:            jour,
-        }),
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) {
-            throw new Error(data.message || 'Erreur PDF');
-        }
-
-        const pdfUrl = data.doc?.url || null;
-
-        // ─── ÉTAPE B : Passer les affectations à 'programmee' ───
-        return fetch('{{ route("affectations.valider-etape-2") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': CSRF,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ affectation_ids: affectationIds }),
-        })
-        .then(r => r.json())
-        .then(data2 => ({ pdfUrl, ...data2 }));
-    })
-    .then(result => {
-        if (window.EdenLoader) window.EdenLoader.hide();
-
-        if (result.success) {
-            showToastWithLink(
-                '✅ Rapport de clôture généré — Les lignes sont maintenant à l\'Étape 1 (géomètre + heure à attribuer).',
-                result.pdfUrl,
-                'success'
-            );
-
-            // ✅ Redirection vers l'Étape 1
-            setTimeout(() => {
-                window.location.href = '{{ route("affectations.programmation") }}';
-            }, 1500);
-        } else {
-            alert('❌ ' + (result.message || 'Erreur'));
-        }
-    })
-    .catch(err => {
-        if (window.EdenLoader) window.EdenLoader.hide();
-        console.error(err);
-        alert('❌ ' + err.message);
     });
 }
 
@@ -950,67 +950,6 @@ function envoyerRapport(url, titreDocument, filtres) {
         console.error(err);
         alert('❌ Erreur réseau');
     });
-}
-
-// ════════════════════════════════════════════════════════════════
-// Helper — Validation étape 1 (utilisé aussi pour la clôture)
-// ════════════════════════════════════════════════════════════════
-function envoyerValidationAvecTitre(affectationIds, titreDocument, typeRapport = 'initiale', jour = null) {
-    if (window.EdenLoader) window.EdenLoader.show();
-
-    const payload = {
-        affectation_ids: affectationIds,
-        titre_document:  titreDocument,
-        type_rapport:    typeRapport,   // ✅ 'initiale' ou 'cloture'
-    };
-
-    if (jour) {
-        payload.jour = jour;
-    }
-
-    fetch('{{ route("affectations.valider-etape-1") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF,
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify(payload),
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (window.EdenLoader) window.EdenLoader.hide();
-
-        if (data.success) {
-            showToastWithLink(
-                '✅ ' + data.message,
-                data.doc?.url || null,
-                'success'
-            );
-        } else {
-            alert('❌ ' + (data.message || 'Erreur'));
-        }
-    })
-    .catch(err => {
-        if (window.EdenLoader) window.EdenLoader.hide();
-        console.error(err);
-        alert('❌ Erreur réseau');
-    });
-}
-
-// ════════════════════════════════════════════════════════════════
-// 📅 FILTRE PAR JOUR D'IMPLANTATION (dans l'en-tête)
-// ════════════════════════════════════════════════════════════════
-function appliquerFiltreJour(date) {
-    const url = new URL(window.location.href);
-
-    if (!date) {
-        url.searchParams.delete('jour');
-    } else {
-        url.searchParams.set('jour', date);
-    }
-
-    window.location.href = url.toString();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1375,12 +1314,10 @@ function showToastWithLink(message, url, type = 'success') {
     toast.className = `toast-notification ${type}`;
     toast.style.cssText += 'display:flex; flex-direction:column; gap:8px;';
 
-    // Message texte
     const text = document.createElement('div');
     text.textContent = message;
     toast.appendChild(text);
 
-    // Lien vers le PDF (si présent)
     if (url) {
         const link = document.createElement('a');
         link.href = url;

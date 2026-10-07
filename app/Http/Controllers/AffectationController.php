@@ -145,21 +145,87 @@ class AffectationController extends Controller
     // ============================================================
     // LOTS
     // ============================================================
-    public function lots(Request $request)
-    {
-        $query = LotAffectation::with(['grandSite', 'site', 'tf', 'bloc', 'affectation.client'])
-                               ->orderBy('numero');
+   public function lots(Request $request)
+{
+    $query = LotAffectation::with([
+                    'grandSite',
+                    'site',
+                    'tf',
+                    'bloc',
+                    'affectation.client'
+                ])
+                // ✅ TRI par ordre de création (du plus ancien au plus récent)
+                ->orderBy('grand_site_id')
+                ->orderBy('site_id')
+                ->orderBy('tf_id')
+                ->orderBy('bloc_id')
+                ->orderBy('id');   // ← garantit l'ordre de création à l'intérieur d'un bloc
 
-        if ($request->filled('bloc_id'))       $query->where('bloc_id', $request->bloc_id);
-        if ($request->filled('disponible'))    $query->where('disponible', $request->disponible === '1');
-        if ($request->filled('grand_site_id')) $query->where('grand_site_id', $request->grand_site_id);
-
-        $lots       = $query->get();
-        $grandSites = GrandSite::orderBy('nom')->get();
-        $blocs      = Bloc::with('tf')->orderBy('code')->get();
-
-        return view('admin.affectations.lots', compact('lots', 'grandSites', 'blocs'));
+    // ✅ Filtres en cascade
+    if ($request->filled('grand_site_id')) {
+        $query->where('grand_site_id', $request->grand_site_id);
     }
+    if ($request->filled('site_id')) {
+        $query->where('site_id', $request->site_id);
+    }
+    if ($request->filled('tf_id')) {
+        $query->where('tf_id', $request->tf_id);
+    }
+    if ($request->filled('bloc_id')) {
+        $query->where('bloc_id', $request->bloc_id);
+    }
+    if ($request->filled('disponible')) {
+        $query->where('disponible', $request->disponible === '1');
+    }
+
+    $lots       = $query->get();
+    $grandSites = GrandSite::orderBy('nom')->get();
+    $blocs      = Bloc::with('tf')->orderBy('code')->get();
+
+    // ✅ Pour les filtres dynamiques : charger les sites/tfs/blocs selon les filtres actuels
+    $sites = collect();
+    $tfs   = collect();
+
+    if ($request->filled('grand_site_id')) {
+        $sites = Site::where('grand_site_id', $request->grand_site_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'grand_site_id']);
+    } else {
+        $sites = Site::orderBy('name')->get(['id', 'name', 'grand_site_id']);
+    }
+
+    if ($request->filled('site_id')) {
+        $tfs = Tf::where('site_id', $request->site_id)
+            ->orderBy('title')
+            ->get(['id', 'title', 'site_id']);
+    } elseif ($request->filled('grand_site_id')) {
+        $tfs = Tf::whereHas('site', function ($q) use ($request) {
+            $q->where('grand_site_id', $request->grand_site_id);
+        })->orderBy('title')->get(['id', 'title', 'site_id']);
+    } else {
+        $tfs = Tf::orderBy('title')->get(['id', 'title', 'site_id']);
+    }
+
+    if ($request->filled('tf_id')) {
+        $blocs = Bloc::where('tf_id', $request->tf_id)
+            ->orderBy('code')
+            ->get(['id', 'code', 'tf_id']);
+    } elseif ($request->filled('site_id')) {
+        $blocs = Bloc::whereHas('tf', function ($q) use ($request) {
+            $q->where('site_id', $request->site_id);
+        })->orderBy('code')->get(['id', 'code', 'tf_id']);
+    } elseif ($request->filled('grand_site_id')) {
+        $blocs = Bloc::whereHas('tf.site', function ($q) use ($request) {
+            $q->where('grand_site_id', $request->grand_site_id);
+        })->orderBy('code')->get(['id', 'code', 'tf_id']);
+    } else {
+        $blocs = Bloc::with('tf')->orderBy('code')->get(['id', 'code', 'tf_id']);
+    }
+
+    return view('admin.affectations.lots', compact(
+        'lots', 'grandSites', 'sites', 'tfs', 'blocs'
+    ));
+}
 
     public function storeLots(Request $request)
     {
@@ -1529,7 +1595,7 @@ class AffectationController extends Controller
         }
     }
 
-    public function listeAffectations(Request $request)
+  public function listeAffectations(Request $request)
 {
     $query = Affectation::with([
             'beneficiaire',
@@ -1546,6 +1612,7 @@ class AffectationController extends Controller
         ->where('statut', 'actif')
         ->whereIn('etape_programmation', ['nouvelle', 'date_attribuee', 'programmee', 'finalisee']);
 
+    // ─── Recherche ───
     if ($request->filled('q')) {
         $q = $request->q;
         $query->where(function ($sub) use ($q) {
@@ -1563,10 +1630,19 @@ class AffectationController extends Controller
         $query->where('bloc_id', $request->bloc_id);
     }
 
+    // ─── 📄 Filtre ATTRIBUTION (nouveau) ───
+    // Filtre sur la date d'affectation
+    if ($request->filled('jour_attribution')) {
+        $query->whereDate('date_affectation', $request->jour_attribution);
+    }
+
+    // ─── 📅 Filtre PLANIFICATION (existant) ───
+    // Filtre sur la date d'implantation
     if ($request->filled('jour')) {
         $query->whereDate('date_implantation', $request->jour);
     }
 
+    // ─── Plage de dates ───
     if ($request->filled('du')) {
         $query->whereDate('date_affectation', '>=', $request->du);
     }
@@ -1578,6 +1654,7 @@ class AffectationController extends Controller
         ->orderByDesc('id')
         ->get();
 
+    // ─── Groupement (inchangé) ───
     $groupes = $toutesAffectations->groupBy(function ($aff) {
         return implode('-', [
             $aff->beneficiaire_id ?? 'c' . $aff->client_id,
@@ -1622,6 +1699,7 @@ class AffectationController extends Controller
         ];
     })->values();
 
+    // ─── Pagination ───
     $perPage = 30;
     $page    = (int) $request->input('page', 1);
     $total   = $lignes->count();

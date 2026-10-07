@@ -1,4 +1,3 @@
-{{-- APRÈS --}}
 @extends('admin.affectations.layout')
 @section('content')
 
@@ -8,6 +7,19 @@
 .badge-dispo  { background:#dcfce7;color:#16a34a; }
 .badge-occupe { background:#fee2e2;color:#dc2626; }
 .lot-checkbox { width:18px;height:18px;cursor:pointer;accent-color:#1d4ed8; }
+
+/* 📋 Filtres cascade */
+.filtre-cascade {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #eff6ff;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #1e40af;
+    font-weight: 700;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -22,18 +34,15 @@
         </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <!-- ✅ EXPORT EXCEL -->
         <a href="{{ route('affectations.lots.export', request()->query()) }}"
            class="btn btn-outline-success btn-sm">
             📥 Exporter Excel
         </a>
 
-        <!-- ✅ IMPORT EXCEL -->
         <button onclick="openImportModal()" class="btn btn-outline-primary btn-sm">
             📤 Importer Excel
         </button>
 
-        <!-- ✅ TÉLÉCHARGER LE MODÈLE -->
         <a href="{{ route('affectations.lots.template') }}"
            class="btn btn-outline-secondary btn-sm">
             📄 Modèle
@@ -50,32 +59,118 @@
     <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 @endif
 
-{{-- FILTRES --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- 🎯 FILTRES DYNAMIQUES EN CASCADE                            --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
 <form method="GET" style="background:white;border-radius:12px;padding:14px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
     <div class="row g-2 align-items-end">
+
+        {{-- 🏢 GRAND SITE --}}
         <div class="col-md-3">
-            <label style="font-size:11px;font-weight:700;color:#64748b;">Grand Site</label>
-            <select name="grand_site_id" class="form-control form-control-sm" onchange="this.form.submit()">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">🏢 Grand Site</label>
+            <select name="grand_site_id" id="filtre-gs"
+                    class="form-control form-control-sm"
+                    onchange="chargerSitesFiltre(this.value)">
                 <option value="">Tous</option>
                 @foreach($grandSites as $gs)
-                    <option value="{{ $gs->id }}" {{ request('grand_site_id')==$gs->id?'selected':'' }}>{{ $gs->nom }}</option>
+                    <option value="{{ $gs->id }}" {{ request('grand_site_id')==$gs->id?'selected':'' }}>
+                        {{ $gs->nom }}
+                    </option>
                 @endforeach
             </select>
         </div>
-        <div class="col-md-3">
-            <label style="font-size:11px;font-weight:700;color:#64748b;">Disponibilité</label>
+
+        {{-- 📍 SITE --}}
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">📍 Site</label>
+            <select name="site_id" id="filtre-site"
+                    class="form-control form-control-sm"
+                    onchange="chargerTfsFiltre(this.value)">
+                <option value="">Tous</option>
+                @foreach($sites as $site)
+                    <option value="{{ $site->id }}" {{ request('site_id')==$site->id?'selected':'' }}>
+                        {{ $site->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- 📄 TF --}}
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">📄 TF</label>
+            <select name="tf_id" id="filtre-tf"
+                    class="form-control form-control-sm"
+                    onchange="chargerBlocsFiltre(this.value)">
+                <option value="">Tous</option>
+                @foreach($tfs as $tf)
+                    <option value="{{ $tf->id }}" {{ request('tf_id')==$tf->id?'selected':'' }}>
+                        {{ $tf->title }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- 🏗️ BLOC --}}
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">🏗️ Bloc</label>
+            <select name="bloc_id" id="filtre-bloc" class="form-control form-control-sm">
+                <option value="">Tous</option>
+                @foreach($blocs as $bloc)
+                    <option value="{{ $bloc->id }}" {{ request('bloc_id')==$bloc->id?'selected':'' }}>
+                        Bloc {{ $bloc->code }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- DISPONIBILITÉ --}}
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:700;color:#64748b;">📊 Statut</label>
             <select name="disponible" class="form-control form-control-sm" onchange="this.form.submit()">
                 <option value="">Tous</option>
                 <option value="1" {{ request('disponible')==='1'?'selected':'' }}>Disponibles</option>
                 <option value="0" {{ request('disponible')==='0'?'selected':'' }}>Affectés</option>
             </select>
         </div>
-        <div class="col-md-2">
+
+        {{-- BOUTON --}}
+        <div class="col-md-1 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-fill">🔍</button>
             <a href="{{ route('affectations.lots') }}" class="btn btn-outline-secondary btn-sm">✖</a>
         </div>
     </div>
+
+    {{-- Indicateur de cascade --}}
+    @if(request('grand_site_id') || request('site_id') || request('tf_id') || request('bloc_id'))
+    <div class="filtre-cascade" style="margin-top:10px;">
+        🎯 Filtres actifs :
+        @if(request('grand_site_id'))
+            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;">
+                🏢 {{ $grandSites->firstWhere('id', request('grand_site_id'))?->nom ?? '?' }}
+            </span>
+        @endif
+        @if(request('site_id'))
+            <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:6px;">
+                📍 {{ $sites->firstWhere('id', request('site_id'))?->name ?? '?' }}
+            </span>
+        @endif
+        @if(request('tf_id'))
+            <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;">
+                📄 {{ $tfs->firstWhere('id', request('tf_id'))?->title ?? '?' }}
+            </span>
+        @endif
+        @if(request('bloc_id'))
+            <span style="background:#fce7f3;color:#9d174d;padding:2px 8px;border-radius:6px;">
+                🏗️ Bloc {{ $blocs->firstWhere('id', request('bloc_id'))?->code ?? '?' }}
+            </span>
+        @endif
+    </div>
+    @endif
 </form>
 
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- 📋 TABLEAU DES LOTS                                         --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
 <div style="background:white;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;">
 <table class="table table-hover mb-0" style="font-size:13px;">
     <thead style="background:#1e3a5f;color:white;">
@@ -86,6 +181,7 @@
             <th class="px-3 py-3">Lot</th>
             <th>Bloc</th>
             <th>TF / Site</th>
+            <th>Grand Site</th>
             <th>Superficie</th>
             <th>Statut</th>
             <th>Client affecté</th>
@@ -111,6 +207,9 @@
         <td style="font-size:11px;color:#64748b;">
             {{ $lot->tf?->title ?? '-' }}<br>
             <span style="font-size:10px;">{{ $lot->site?->name ?? '-' }}</span>
+        </td>
+        <td style="font-size:11px;color:#64748b;">
+            🏢 {{ $lot->grandSite?->nom ?? '-' }}
         </td>
         <td id="sup-{{ $lot->id }}">{{ $lot->superficie ? number_format($lot->superficie,0,',','') . ' m²' : '-' }}</td>
         <td>
@@ -141,7 +240,7 @@
         </td>
     </tr>
     @empty
-    <tr><td colspan="8" class="text-center text-muted py-4">Aucun lot</td></tr>
+    <tr><td colspan="9" class="text-center text-muted py-4">Aucun lot</td></tr>
     @endforelse
     </tbody>
 </table>
@@ -214,8 +313,6 @@
         Utilisez le <a href="{{ route('affectations.lots.template') }}" style="color:#1d4ed8;font-weight:700;">modèle Excel</a> comme référence.
         <br><br>
         <strong>Format :</strong> 1 ligne = 1 bloc. Les numéros de lots sont dans <strong>une seule cellule</strong>, séparés par des <strong>point-virgules (;)</strong>.
-        <br>
-        <em>Exemple : </em> <code style="background:#fff;padding:2px 6px;border-radius:4px;">01;02;03;04;05</code>
     </div>
 
     <form id="importForm" enctype="multipart/form-data">
@@ -280,9 +377,71 @@
 const CSRF = '{{ csrf_token() }}';
 let lotsSelectionnes = [];
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// 🎯 FILTRES DYNAMIQUES EN CASCADE
+// ═══════════════════════════════════════════════════════════════
+function chargerSitesFiltre(gsId) {
+    const selSite = document.getElementById('filtre-site');
+    const selTf   = document.getElementById('filtre-tf');
+    const selBloc = document.getElementById('filtre-bloc');
+
+    selSite.innerHTML = '<option value="">Tous</option>';
+    selTf.innerHTML   = '<option value="">Tous</option>';
+    selBloc.innerHTML = '<option value="">Tous</option>';
+
+    if (!gsId) { return; }
+
+    fetch(`/admin/affectations/api/sites/${gsId}`, {
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(sites => {
+        selSite.innerHTML = '<option value="">Tous</option>' +
+            sites.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    })
+    .catch(err => console.error('Erreur sites:', err));
+}
+
+function chargerTfsFiltre(siteId) {
+    const selTf   = document.getElementById('filtre-tf');
+    const selBloc = document.getElementById('filtre-bloc');
+
+    selTf.innerHTML   = '<option value="">Tous</option>';
+    selBloc.innerHTML = '<option value="">Tous</option>';
+
+    if (!siteId) { return; }
+
+    fetch(`/admin/affectations/api/tfs/${siteId}`, {
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(tfs => {
+        selTf.innerHTML = '<option value="">Tous</option>' +
+            tfs.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+    })
+    .catch(err => console.error('Erreur TFs:', err));
+}
+
+function chargerBlocsFiltre(tfId) {
+    const selBloc = document.getElementById('filtre-bloc');
+    selBloc.innerHTML = '<option value="">Tous</option>';
+
+    if (!tfId) { return; }
+
+    fetch(`/admin/affectations/api/blocs/${tfId}`, {
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(blocs => {
+        selBloc.innerHTML = '<option value="">Tous</option>' +
+            blocs.map(b => `<option value="${b.id}">Bloc ${b.code}</option>`).join('');
+    })
+    .catch(err => console.error('Erreur blocs:', err));
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MODALS GÉNÉRAUX
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function openModal(id) {
     document.getElementById('overlayAdd').style.display = 'block';
     document.getElementById(id).style.display = 'block';
@@ -316,28 +475,79 @@ function openEditLot(id, numero, superficie, actif) {
     document.getElementById('editModal').style.display   = 'block';
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ✏️ SAUVEGARDER UN LOT — Utilise route() pour éviter les 404
+// ═══════════════════════════════════════════════════════════════
 function sauvegarderLot(e, id) {
     e.preventDefault();
-    fetch(`/admin/affectations/lots/${id}`, {
-        method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+
+    // ✅ URL construite côté Blade → utilise la bonne route
+    const url = `{{ url('/admin/lots') }}/${id}`;
+
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF,
+            'Accept': 'application/json',   // ← IMPORTANT : demande du JSON
+        },
         body: JSON.stringify({
             numero: document.getElementById('el-num').value,
             superficie: document.getElementById('el-sup').value,
             actif: document.getElementById('el-actif').value
         }),
-    }).then(r=>r.json()).then(d=>{
-        if(d.success) location.reload();
-        else alert(d.message);
+    })
+    .then(async r => {
+        // ✅ Vérifie si la réponse est bien du JSON
+        const contentType = r.headers.get('content-type') || '';
+
+        if (!contentType.includes('application/json')) {
+            // Ce n'est pas du JSON → probablement une page HTML d'erreur
+            if (r.status === 404) {
+                throw new Error('Route introuvable (404). Vérifie que la route PUT /admin/affectations/lots/{id} existe.');
+            }
+            if (r.status === 419) {
+                throw new Error('Session expirée. Rechargez la page.');
+            }
+            throw new Error(`Erreur serveur (${r.status}).`);
+        }
+
+        return r.json();
+    })
+    .then(d => {
+        if (d.success) {
+            location.reload();
+        } else {
+            alert(d.message || 'Erreur lors de la mise à jour.');
+        }
+    })
+    .catch(err => {
+        console.error('Erreur sauvegarderLot:', err);
+        alert('❌ ' + err.message);
     });
 }
 
 function supprimerLot(id) {
     if (!confirm('Supprimer ce lot ?')) return;
-    fetch(`/admin/affectations/lots/${id}`, {
-        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Content-Type':'application/json'}
-    }).then(r=>r.json()).then(d=>{
-        if(d.success) location.reload();
+
+    const url = `{{ url('/admin/lots') }}/${id}`;
+
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': CSRF,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) location.reload();
         else alert(d.message);
+    })
+    .catch(err => {
+        console.error('Erreur supprimerLot:', err);
+        alert('❌ Erreur lors de la suppression.');
     });
 }
 
@@ -348,7 +558,7 @@ function closeAll() {
     });
 }
 
-function chargerSites(gsId,suf){
+function chargerSites(gsId, suf){
     const s=document.getElementById('site-'+suf);
     if(!gsId){s.innerHTML='<option value="">-- Choisir --</option>';return;}
     fetch(`/admin/affectations/api/sites/${gsId}`).then(r=>r.json()).then(d=>{
@@ -356,7 +566,7 @@ function chargerSites(gsId,suf){
     });
 }
 
-function chargerTfs(sId,suf){
+function chargerTfs(sId, suf){
     const t=document.getElementById('tf-'+suf);
     if(!sId){t.innerHTML='<option value="">-- Choisir --</option>';return;}
     fetch(`/admin/affectations/api/tfs/${sId}`).then(r=>r.json()).then(d=>{
@@ -364,7 +574,7 @@ function chargerTfs(sId,suf){
     });
 }
 
-function chargerBlocs(tfId,suf){
+function chargerBlocs(tfId, suf){
     const b=document.getElementById('bloc-'+suf);
     if(!tfId){b.innerHTML='<option value="">-- Choisir d\'abord un TF --</option>';return;}
     fetch(`/admin/affectations/api/blocs/${tfId}`).then(r=>r.json()).then(d=>{
@@ -372,9 +582,9 @@ function chargerBlocs(tfId,suf){
     });
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // SÉLECTION MULTIPLE DES LOTS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function majSelection() {
     const checkboxes = document.querySelectorAll('.lot-select:checked');
     const nb = checkboxes.length;
@@ -431,11 +641,12 @@ function appliquerSuperficie() {
     }
     if (!confirm(`Appliquer ${superficie} m² à ${lotsSelectionnes.length} lot(s) ?`)) return;
 
-    fetch('/admin/affectations/lots/superficie-multiple', {
+    fetch('{{ route("affectations.lots.superficie-multiple") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF
+            'X-CSRF-TOKEN': CSRF,
+            'Accept': 'application/json',
         },
         body: JSON.stringify({
             lot_ids: lotsSelectionnes,
@@ -464,9 +675,9 @@ function appliquerSuperficie() {
     .catch(e => { alert('Erreur réseau : ' + e.message); });
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // IMPORT EXCEL
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function openImportModal() {
     document.getElementById('overlayImport').style.display = 'block';
     document.getElementById('importModal').style.display = 'block';
