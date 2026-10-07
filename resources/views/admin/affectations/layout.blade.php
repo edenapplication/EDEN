@@ -7,7 +7,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#1d4ed8">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script>
         window.CSRF = '{{ csrf_token() }}';
     </script>
@@ -92,7 +91,6 @@
             box-shadow:0 4px 12px rgba(29,78,216,0.35);
         }
 
-        /* Couleurs par groupe */
         .main-nav-btn.group-accueil.active      { background:linear-gradient(135deg,#0891b2,#0e7490); border-color:#0891b2; box-shadow:0 4px 12px rgba(8,145,178,0.35); }
         .main-nav-btn.group-implantation.active { background:linear-gradient(135deg,#f59e0b,#d97706); border-color:#f59e0b; box-shadow:0 4px 12px rgba(245,158,11,0.35); }
         .main-nav-btn.group-planification.active{ background:linear-gradient(135deg,#7c3aed,#6d28d9); border-color:#7c3aed; box-shadow:0 4px 12px rgba(124,58,237,0.35); }
@@ -214,7 +212,6 @@
     $role  = auth()->user()?->role;
     $route = request()->route()->getName() ?? '';
 
-    // ✅ AJOUT : first_url pour chaque groupe
     $groupes = [
         'accueil' => [
             'label' => '🏠 Accueil',
@@ -260,7 +257,6 @@
         ],
     ];
 
-    // Déterminer le groupe actif
     $groupeActif = null;
     foreach ($groupes as $key => $g) {
         foreach ($g['patterns'] as $pattern) {
@@ -286,7 +282,15 @@
             @else 🟢 Commercial
             @endif
         </span>
-        <form method="POST" action="{{ route('logout') }}" style="display:inline;">
+
+        {{-- ✅ Déconnexion adaptée au rôle --}}
+        @php
+            $logoutRoute = ($role === 'geometre')
+                ? route('geometre.logout')
+                : route('logout');
+        @endphp
+
+        <form method="POST" action="{{ $logoutRoute }}" style="display:inline;">
             @csrf
             <button type="submit" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">
                 Déconnexion
@@ -353,7 +357,7 @@
     </a>
 </div>
 
-{{-- ═══ SOUS-NAV : HISTORIQUE (accès rapide) ═══ --}}
+{{-- ═══ SOUS-NAV : HISTORIQUE ═══ --}}
 <div class="sub-nav" id="subnav-historique">
     <a href="{{ route('affectations.historique') }}"
        class="sub-nav-btn {{ request()->routeIs('affectations.historique') ? 'active' : '' }}">
@@ -379,19 +383,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Groupe actif au chargement (calculé par Blade)
 const groupeActif = '{{ $groupeActif ?? "" }}';
 
-// ═══════════════════════════════════════════════════════
-// TOGGLE GROUPE — Redirige vers le premier sous-onglet si nouveau groupe
-// ═══════════════════════════════════════════════════════
 function toggleGroupe(nom) {
     const btn = document.querySelector(`.main-nav-btn[data-groupe="${nom}"]`);
     if (!btn) return;
 
     const isActive = btn.classList.contains('active');
 
-    // ✅ Si déjà actif → fermer le sous-menu
     if (isActive) {
         document.querySelectorAll('.main-nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.sub-nav').forEach(s => s.classList.remove('visible'));
@@ -402,7 +401,6 @@ function toggleGroupe(nom) {
         return;
     }
 
-    // ✅ Sinon → rediriger vers le premier sous-onglet
     const firstUrl = btn.dataset.firstUrl;
 
     if (firstUrl) {
@@ -410,7 +408,6 @@ function toggleGroupe(nom) {
         return;
     }
 
-    // Fallback visuel si pas de first_url
     document.querySelectorAll('.main-nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.sub-nav').forEach(s => s.classList.remove('visible'));
 
@@ -428,9 +425,6 @@ function toggleGroupe(nom) {
     }
 }
 
-// ═══════════════════════════════════════════════════════
-// AFFICHAGE INITIAL
-// ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.getElementById('content-wrapper');
 
@@ -449,9 +443,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ═══════════════════════════════════════════════════════
-// TOAST GLOBAL
-// ═══════════════════════════════════════════════════════
 function showToast(message, type = 'info') {
     document.querySelectorAll('.toast-notification').forEach(el => el.remove());
     const toast = document.createElement('div');

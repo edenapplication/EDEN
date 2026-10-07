@@ -45,6 +45,7 @@ use App\Http\Controllers\RH\SanteController;
 use App\Http\Controllers\Feb\DestinataireController;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Controllers\GeometreAuthController;
 
 // ── WEBHOOK DEPLOY ─────────────────────────────────────────────
 Route::post('/deploy', function () {
@@ -57,7 +58,12 @@ Route::post('/deploy', function () {
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout',[LoginController::class, 'logout'])->name('logout');
-
+// ── CONNEXION GÉOMÈTRE ──────────────────────────────────────────
+Route::prefix('geometre')->name('geometre.')->group(function () {
+    Route::get('/login',  [GeometreAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [GeometreAuthController::class, 'login'])->name('login.post');
+    Route::post('/logout',[GeometreAuthController::class, 'logout'])->name('logout');
+});
 // ── PAGE D'ACCUEIL ──────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home')->middleware('auth');
 
