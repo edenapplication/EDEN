@@ -22,7 +22,7 @@ use App\Http\Controllers\PaiementTechniqueController;
 use App\Http\Controllers\PaiementMorcellementController;
 use App\Http\Controllers\DossierClientController;
 use App\Http\Controllers\AffectationController;
-use App\Http\Controllers\BonPaiementController; 
+use App\Http\Controllers\BonPaiementController;
 use App\Http\Controllers\BeneficiaireController;
 
 use App\Http\Controllers\RH\DashboardRHController;
@@ -64,7 +64,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home')->middleware('aut
 // ═══════════════════════════════════════════════════════════════════
 // ADMIN — Routes avec permissions par rôle
 // ═══════════════════════════════════════════════════════════════════
-Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->group(function () {
+Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial,geometre'])->group(function () {
 
     // ═════════════════════════════════════════════════════════════════
     // ✅ 1. ROUTES ADMIN UNIQUEMENT
@@ -88,19 +88,47 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
     });
 
     // ═════════════════════════════════════════════════════════════════
-    // ✅ 2. ROUTES ADMIN + COMMERCIAL (toutes les routes métier)
+    // ✅ 2. ROUTES ADMIN + COMMERCIAL
     // ═════════════════════════════════════════════════════════════════
-    Route::middleware('check.role:admin,commercial')->group(function () {
+    Route::middleware('check.role:admin,commercial,geometre')->group(function () {
 
-        // ── GRAND SITES (CRUD complet) ──
+        // ── GRAND SITES ──
         Route::get('/grand-sites',           [GrandSiteController::class, 'index'])->name('grand-sites.index');
         Route::get('/grand-sites/create',    [GrandSiteController::class, 'create'])->name('grand-sites.create');
+       // 🏢 CRÉER DES GRANDS SITES
+Route::get('/creation/grands-sites',
+    [GrandSiteController::class, 'createGrandSites'])
+    ->name('admin.creation.grands-sites');
+Route::post('/creation/grands-sites',
+    [GrandSiteController::class, 'storeGrandSites'])
+    ->name('admin.creation.grands-sites.store');
+
+// 📍 CRÉER DES SITES
+Route::get('/creation/sites',
+    [GrandSiteController::class, 'createSites'])
+    ->name('admin.creation.sites');
+Route::post('/creation/sites',
+    [GrandSiteController::class, 'storeSites'])
+    ->name('admin.creation.sites.store');
+
+// 📄 CRÉER DES TFs
+Route::get('/creation/tfs',
+    [GrandSiteController::class, 'createTfs'])
+    ->name('admin.creation.tfs');
+Route::post('/creation/tfs',
+    [GrandSiteController::class, 'storeTfs'])
+    ->name('admin.creation.tfs.store');
+
+// 🔄 API : sites d'un grand site (pour le select dynamique)
+Route::get('/api/grand-sites/{grandSite}/sites',
+    [GrandSiteController::class, 'apiSitesDuGrandSite'])
+    ->name('api.grand-sites.sites');
         Route::post('/grand-sites',          [GrandSiteController::class, 'store'])->name('grand-sites.store');
         Route::get('/grand-sites/{id}/edit', [GrandSiteController::class, 'edit'])->name('grand-sites.edit');
         Route::put('/grand-sites/{id}',      [GrandSiteController::class, 'update'])->name('grand-sites.update');
         Route::delete('/grand-sites/{id}',   [GrandSiteController::class, 'destroy'])->name('grand-sites.destroy');
 
-        // ── SITES (CRUD complet) ──
+        // ── SITES ──
         Route::get('/grand-sites/{grand_site_id}/sites',        [SiteController::class, 'index'])->name('sites.index');
         Route::get('/grand-sites/{grand_site_id}/sites/create', [SiteController::class, 'create'])->name('sites.create');
         Route::post('/grand-sites/{grand_site_id}/sites',       [SiteController::class, 'store'])->name('sites.store');
@@ -109,12 +137,12 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::delete('/sites/{site}',                          [SiteController::class, 'destroy'])->name('sites.destroy');
         Route::get('/sites/{site}',                             [SiteController::class, 'show'])->name('sites.show');
 
-        // ── TF (CRUD complet) ──
+        // ── TF ──
         Route::post('/tf/store',      [TfController::class, 'store'])->name('tf.store');
         Route::put('/tf/update/{tf}', [TfController::class, 'update'])->name('tf.update');
         Route::get('/tf/{tf}',        [TfController::class, 'show'])->name('tf.show');
 
-        // ── LOTS (CRUD complet) ──
+        // ── LOTS (commercial) ──
         Route::get('/lots/vendus',           [LotController::class, 'vendus'])->name('lots.vendus');
         Route::get('/lots/client-search',    [LotController::class, 'clientSearch'])->name('lots.clientSearch');
         Route::get('/lots/client-panel/{id}',[LotController::class, 'clientPanel'])->name('lots.clientPanel');
@@ -125,50 +153,25 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::put('/lots/{id}',        [LotController::class, 'update'])->name('lots.update');
         Route::delete('/lots/{id}',     [LotController::class, 'destroy'])->name('lots.destroy');
 
-        // ── ZONES GROUPES (CRUD complet) ──
+        // ── ZONES GROUPES ──
         Route::post('/zone-groupes',         [ZoneGroupeController::class, 'store'])->name('zone-groupes.store');
         Route::put('/zone-groupes/{id}',     [ZoneGroupeController::class, 'update'])->name('zone-groupes.update');
         Route::delete('/zone-groupes/{id}',  [ZoneGroupeController::class, 'destroy'])->name('zone-groupes.destroy');
         Route::get('/zone-groupes/{id}/panel', [ZoneGroupeController::class, 'panel'])->name('zone-groupes.panel');
 
-        // ── BLOCS & LOTS (Affectation - CRUD complet) ──
-        Route::get('/affectations',                    [AffectationController::class, 'index'])->name('affectations.index');
-        Route::get('/affectations/blocs',              [AffectationController::class, 'blocs'])->name('affectations.blocs');
-        Route::get('/affectations/lots',               [AffectationController::class, 'lots'])->name('affectations.lots');
-        Route::post('blocs',               [AffectationController::class, 'storeBloc'])->name('affectations.blocs.store');
-        Route::put('blocs/{id}',           [AffectationController::class, 'updateBloc'])->name('affectations.blocs.update');
-        Route::delete('blocs/{id}',        [AffectationController::class, 'destroyBloc'])->name('affectations.blocs.destroy');
-        Route::post('lots',                [AffectationController::class, 'storeLots'])->name('affectations.lots.store');
-        Route::put('lots/{id}',            [AffectationController::class, 'updateLot'])->name('affectations.lots.update');
-        Route::delete('lots/{id}',         [AffectationController::class, 'destroyLot'])->name('affectations.lots.destroy');
-        Route::post('lots/superficie-multiple', [AffectationController::class, 'updateSuperficieMultiple'])->name('affectations.lots.superficie-multiple');
-        
-        // ✅ IMPORT / EXPORT EXCEL DES LOTS
-        Route::get('/affectations/lots/export',   [AffectationController::class, 'exportLots'])->name('affectations.lots.export');
-        Route::get('/affectations/lots/template', [AffectationController::class, 'downloadTemplate'])->name('affectations.lots.template');
-        Route::post('/affectations/lots/import',  [AffectationController::class, 'importLots'])->name('affectations.lots.import');
-        
-        Route::post('/affectations/affecter/{dossier}',[AffectationController::class, 'affecter'])->name('affectations.affecter');
-
-        // ── API AFFECTATIONS ──
-        Route::get('/affectations/api/sites/{grandSite}', [AffectationController::class, 'apiSites'])->name('affectations.api.sites');
-        Route::get('/affectations/api/tfs/{site}',        [AffectationController::class, 'apiTfs'])->name('affectations.api.tfs');
-        Route::get('/affectations/api/blocs/{tf}',        [AffectationController::class, 'apiBlocs'])->name('affectations.api.blocs');
-        Route::get('/affectations/api/lots/{bloc}',       [AffectationController::class, 'apiLots'])->name('affectations.api.lots');
-
-        // ── COMMERCIAUX (CRUD complet) ──
+        // ── COMMERCIAUX ──
         Route::get('/commerciaux',         [CommercialController::class, 'index'])->name('commerciaux.index');
         Route::post('/commerciaux',        [CommercialController::class, 'store'])->name('commerciaux.store');
         Route::put('/commerciaux/{id}',    [CommercialController::class, 'update'])->name('commerciaux.update');
         Route::delete('/commerciaux/{id}', [CommercialController::class, 'destroy'])->name('commerciaux.destroy');
 
-        // ── AGENTS COMMERCIAUX (CRUD complet) ──
+        // ── AGENTS COMMERCIAUX ──
         Route::get('/agents',              [AgentCommercialController::class, 'index'])->name('agents.index');
         Route::post('/agents',             [AgentCommercialController::class, 'store'])->name('agents.store');
         Route::put('/agents/{id}',         [AgentCommercialController::class, 'update'])->name('agents.update');
         Route::delete('/agents/{id}',      [AgentCommercialController::class, 'destroy'])->name('agents.destroy');
 
-        // ── SUIVI CLIENT (CRUD complet) ──
+        // ── SUIVI CLIENT ──
         Route::get('/suivi-client',               [SuiviClientController::class, 'index'])->name('suivi-client.index');
         Route::get('/suivi-client/create',        [SuiviClientController::class, 'create'])->name('suivi-client.create');
         Route::post('/suivi-client',              [SuiviClientController::class, 'store'])->name('suivi-client.store');
@@ -178,7 +181,7 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::get('/suivi-client/{id}/dossiers', [SuiviClientController::class, 'dossiers'])->name('suivi-client.dossiers');
         Route::delete('/suivi-client/{id}',       [SuiviClientController::class, 'destroy'])->name('suivi-client.destroy');
 
-        // ── SUIVI CLIENT - ACTIONS SPÉCIFIQUES ──
+        // ── SUIVI CLIENT — ACTIONS SPÉCIFIQUES ──
         Route::post('/suivi-client/toggle-new/{client}', [SuiviClientController::class, 'toggleNew'])->name('suivi-client.toggle-new');
         Route::post('/suivi-client/actions-group',       [SuiviClientController::class, 'actionsGroup'])->name('suivi-client.actions-group');
         Route::get('/suivi-client/export-pdf',           [SuiviClientController::class, 'exportPdf'])->name('suivi-client.export-pdf');
@@ -188,11 +191,7 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
 
         // ── CLIENTS ──
         Route::post('/clients/{clientId}/modifier-nom', [SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
-
-        // ✅ WHATSAPP CLIENT INDIVIDUEL
-        Route::get('/clients/{client}/whatsapp',
-            [SuiviClientController::class, 'whatsappClient'])
-            ->name('clients.whatsapp');
+        Route::get('/clients/{client}/whatsapp',        [SuiviClientController::class, 'whatsappClient'])->name('clients.whatsapp');
 
         // ── DOSSIERS ──
         Route::post('/dossiers/{dossierId}/maj-prix', [DossierClientController::class, 'majPrix'])->name('dossiers.maj-prix');
@@ -201,8 +200,6 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::delete('/dossiers/{dossier}/cni',      [DossierClientController::class, 'deleteCniImage'])->name('dossiers.cni.delete');
         Route::delete('/dossiers/{dossier}/supprimer',[DossierClientController::class, 'supprimerDossier'])->name('dossiers.supprimer');
         Route::delete('/suivi-client/dossiers/{dossier}',[SuiviClientController::class, 'destroyDossier'])->name('suivi-client.dossiers.destroy');
-
-        // ── EXPORT EXCEL ──
         Route::get('/dossiers/export-excel', [DossierClientController::class, 'exportExcel'])->name('dossiers.export-excel');
 
         // ── PAIEMENTS ──
@@ -210,9 +207,9 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::get('/paiements-dossier/{dossierId}', [PaiementDossierController::class, 'index']);
         Route::post('/paiements-technique/{dossierId}', [PaiementTechniqueController::class, 'store']);
         Route::post('/paiements-morcellement/{dossierId}', [PaiementMorcellementController::class, 'store']);
-        Route::delete('/admin/paiements-techniques/{id}', [PaiementTechniqueController::class, 'destroy'])->name('paiements-techniques.destroy');
-        Route::delete('/admin/paiements-morcellements/{id}', [PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellements.destroy');
-        Route::delete('/admin/paiements-dossiers/{id}', [PaiementDossierController::class, 'destroy'])->name('paiements-dossiers.destroy');
+        Route::delete('/paiements-techniques/{id}', [PaiementTechniqueController::class, 'destroy'])->name('paiements-techniques.destroy');
+        Route::delete('/paiements-morcellements/{id}', [PaiementMorcellementController::class, 'destroy'])->name('paiements-morcellements.destroy');
+        Route::delete('/paiements-dossiers/{id}', [PaiementDossierController::class, 'destroy'])->name('paiements-dossiers.destroy');
 
         // ── BONS DE PAIEMENT ──
         Route::get('bons/{dossier}',          [BonPaiementController::class, 'index'])->name('bons.index');
@@ -250,12 +247,12 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
             $reference = trim($request->input('reference'));
             $existe = User::where('reference', $reference)->exists();
             return response()->json([
-                'existe' => $existe,
+                'existe'    => $existe,
                 'reference' => $reference
             ]);
         });
 
-        // ── FEB ADMIN (admin uniquement) ──
+        // ── FEB ADMIN ──
         Route::get('/feb', [App\Http\Controllers\Feb\AdminController::class, 'index'])->name('admin.feb.index');
         Route::resource('feb/agences',      App\Http\Controllers\Feb\AgenceController::class)->names('admin.feb.agences');
         Route::resource('feb/colonnes',     App\Http\Controllers\Feb\ColonneController::class)->names('admin.feb.colonnes');
@@ -266,75 +263,226 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial'])->
         Route::get('feb/fiches/{fiche}/pdf',      [App\Http\Controllers\Feb\AdminFicheController::class, 'pdf'])->name('admin.feb.fiches.pdf');
         Route::post('feb/fiches/{fiche}/marquer', [App\Http\Controllers\Feb\AdminFicheController::class, 'marquerVue'])->name('admin.feb.fiches.marquer');
 
-        // ════════════════════════════════════════════════════════════════
-        // ✅ BÉNÉFICIAIRES + AFFECTATIONS
-        // ════════════════════════════════════════════════════════════════
-        
-        // ── BÉNÉFICIAIRES (CRUD) ──
-        Route::post  ('dossiers/{dossier}/beneficiaires',
-                      [BeneficiaireController::class, 'store'])
-                      ->name('beneficiaires.store');
+        // ── BÉNÉFICIAIRES + AFFECTATIONS (commercial) ──
+        Route::post  ('dossiers/{dossier}/beneficiaires',           [BeneficiaireController::class, 'store'])->name('beneficiaires.store');
+        Route::put   ('beneficiaires/{beneficiaire}',               [BeneficiaireController::class, 'update'])->name('beneficiaires.update');
+        Route::delete('beneficiaires/{beneficiaire}',               [BeneficiaireController::class, 'destroy'])->name('beneficiaires.destroy');
+        Route::post  ('beneficiaires/{beneficiaire}/maj-etape',     [BeneficiaireController::class, 'majEtape'])->name('beneficiaires.maj-etape');
+        Route::post  ('beneficiaires/{beneficiaire}/affecter-lots', [AffectationController::class, 'affecterBeneficiaire'])->name('beneficiaires.affecter-lots');
+        Route::get   ('beneficiaires/{beneficiaire}/historique',    [AffectationController::class, 'historiqueBeneficiaire'])->name('beneficiaires.historique');
+        Route::get   ('beneficiaires/{beneficiaire}/whatsapp',      [BeneficiaireController::class, 'whatsappBeneficiaire'])->name('beneficiaires.whatsapp');
 
-        Route::put   ('beneficiaires/{beneficiaire}',
-                      [BeneficiaireController::class, 'update'])
-                      ->name('beneficiaires.update');
+        Route::delete('affectations/{affectation}',                 [AffectationController::class, 'destroy'])->name('affectations.destroy');
+        Route::put   ('affectations/{affectation}',                 [AffectationController::class, 'update'])->name('affectations.update');
+        Route::get   ('dossiers/{dossier}/historique',              [AffectationController::class, 'historique'])->name('dossiers.historique');
+        Route::get   ('dossiers/{dossier}/whatsapp',                [SuiviClientController::class, 'whatsappDossier'])->name('dossiers.whatsapp');
 
-        Route::delete('beneficiaires/{beneficiaire}',
-                      [BeneficiaireController::class, 'destroy'])
-                      ->name('beneficiaires.destroy');
+        Route::post('beneficiaires/{beneficiaire}/modifier-lots',   [AffectationController::class, 'modifierLots'])->name('beneficiaires.modifier-lots');
+        Route::post('/etape-groupee',                               [SuiviClientController::class, 'etapeGroupee'])->name('etapes.groupee');
 
-        // ── ÉTAPES DU BÉNÉFICIAIRE ──
-        Route::post('beneficiaires/{beneficiaire}/maj-etape',
-                    [BeneficiaireController::class, 'majEtape'])
-                    ->name('beneficiaires.maj-etape');
-
-        // ── ✅ AFFECTATION DE LOTS AU BÉNÉFICIAIRE ──
-        Route::post('beneficiaires/{beneficiaire}/affecter-lots',
-                    [AffectationController::class, 'affecterBeneficiaire'])
-                    ->name('beneficiaires.affecter-lots');
-
-        // ── ✅ HISTORIQUE D'UN BÉNÉFICIAIRE ──
-        Route::get('beneficiaires/{beneficiaire}/historique',
-                   [AffectationController::class, 'historiqueBeneficiaire'])
-                   ->name('beneficiaires.historique');
-
-        // ── ✅ WHATSAPP BÉNÉFICIAIRE INDIVIDUEL ──
-        Route::get('beneficiaires/{beneficiaire}/whatsapp',
-                   [BeneficiaireController::class, 'whatsappBeneficiaire'])
-                   ->name('beneficiaires.whatsapp');
-
-        // ── AFFECTATIONS (annulation / suppression) ──
-        Route::delete('affectations/{affectation}',
-                      [AffectationController::class, 'destroy'])
-                      ->name('affectations.destroy');
-
-        // ── HISTORIQUE D'UN DOSSIER ──
-        Route::get('dossiers/{dossier}/historique',
-                   [AffectationController::class, 'historique'])
-                   ->name('dossiers.historique');
-
-        // ── ✅ WHATSAPP PAR DOSSIER ──
-        Route::get('dossiers/{dossier}/whatsapp',
-                   [SuiviClientController::class, 'whatsappDossier'])
-                   ->name('dossiers.whatsapp');
-        // ── ✅ MODIFIER UNE AFFECTATION ──
-Route::put('affectations/{affectation}',
-           [AffectationController::class, 'update'])
-           ->name('affectations.update');
-
-           // ✅ Modifier les lots d'un bénéficiaire (multi-lots)
-Route::post('beneficiaires/{beneficiaire}/modifier-lots',
-            [AffectationController::class, 'modifierLots'])
-            ->name('beneficiaires.modifier-lots');
-
-            // ✅ ÉTAPE GROUPÉE (clients + bénéficiaires)
-Route::post('/etape-groupee',
-    [SuiviClientController::class, 'etapeGroupee'])
-    ->name('etapes.groupee');
+        // ✅ Affichage du dossier d'affectation (commercial peut voir)
+        Route::get('/affectations/affecter/{dossier}', [AffectationController::class, 'affecter'])
+            ->name('affectations.affecter-form');
     });
 
     // ═════════════════════════════════════════════════════════════════
-    // ✅ 3. ROUTES RH UNIQUEMENT (admin + rh)
+    // ✅ 3. ROUTES ADMIN + COMMERCIAL + GÉOMÈTRE
+    // ═════════════════════════════════════════════════════════════════
+    Route::middleware('check.role:admin,commercial,geometre')->group(function () {
+
+        // ── DASHBOARD AFFECTATIONS ──
+        Route::get('/affectations',       [AffectationController::class, 'index'])->name('affectations.index');
+        Route::get('/affectations/blocs', [AffectationController::class, 'blocs'])->name('affectations.blocs');
+        Route::get('/affectations/lots',  [AffectationController::class, 'lots'])->name('affectations.lots');
+
+        // ── BLOCS (CRUD) ──
+        Route::post  ('blocs',      [AffectationController::class, 'storeBloc'])->name('affectations.blocs.store');
+        Route::put   ('blocs/{id}', [AffectationController::class, 'updateBloc'])->name('affectations.blocs.update');
+        Route::delete('blocs/{id}', [AffectationController::class, 'destroyBloc'])->name('affectations.blocs.destroy');
+
+        // ── LOTS (CRUD) ──
+        Route::post  ('lots',                    [AffectationController::class, 'storeLots'])->name('affectations.lots.store');
+        Route::put   ('lots/{id}',               [AffectationController::class, 'updateLot'])->name('affectations.lots.update');
+        Route::delete('lots/{id}',               [AffectationController::class, 'destroyLot'])->name('affectations.lots.destroy');
+        Route::post  ('lots/superficie-multiple',[AffectationController::class, 'updateSuperficieMultiple'])->name('affectations.lots.superficie-multiple');
+
+        // ── IMPORT / EXPORT EXCEL DES LOTS ──
+        Route::get ('/affectations/lots/export',   [AffectationController::class, 'exportLots'])->name('affectations.lots.export');
+        Route::get ('/affectations/lots/template', [AffectationController::class, 'downloadTemplate'])->name('affectations.lots.template');
+        Route::post('/affectations/lots/import',   [AffectationController::class, 'importLots'])->name('affectations.lots.import');
+
+        // ── AFFECTATION À UN DOSSIER ──
+        Route::post('/affectations/affecter/{dossier}', [AffectationController::class, 'affecter'])->name('affectations.affecter');
+
+        // ── API CASCADE ──
+        Route::get('/affectations/api/sites/{grandSite}', [AffectationController::class, 'apiSites'])->name('affectations.api.sites');
+        Route::get('/affectations/api/tfs/{site}',        [AffectationController::class, 'apiTfs'])->name('affectations.api.tfs');
+        Route::get('/affectations/api/blocs/{tf}',        [AffectationController::class, 'apiBlocs'])->name('affectations.api.blocs');
+        Route::get('/affectations/api/lots/{bloc}',       [AffectationController::class, 'apiLots'])->name('affectations.api.lots');
+
+        // ── 🎯 AFFECTATION RAPIDE ──
+        Route::prefix('affectation-rapide')
+            ->name('affectation-rapide.')
+            ->group(function () {
+                Route::get('/',           [AffectationController::class, 'affectationRapide'])->name('index');
+                Route::get('/rechercher', [AffectationController::class, 'rechercherPersonne'])->name('rechercher');
+                Route::post('/affecter',  [AffectationController::class, 'affecterRapide'])->name('affecter');
+            });
+
+        // ── 📋 LISTE DES AFFECTATIONS ──
+        Route::get('/affectations/liste', [AffectationController::class, 'listeAffectations'])
+            ->name('affectations.liste');
+
+        Route::get('/affectations/groupe/details', [AffectationController::class, 'detailsGroupe'])
+            ->name('affectations.groupe.details');
+
+        Route::post('/affectations/groupe/ajouter-lots', [AffectationController::class, 'ajouterLotsAuGroupe'])
+            ->name('affectations.groupe.ajouter-lots');
+
+        Route::post('/affectations/groupe/implantation',
+            [AffectationController::class, 'updateImplantationGroupe'])
+            ->name('affectations.groupe.implantation');
+
+        Route::post('/affectations/groupe/implantation-multiple',
+            [AffectationController::class, 'updateImplantationMultiple'])
+            ->name('affectations.groupe.implantation-multiple');
+
+        // ═════════════════════════════════════════════════════════════
+        // ✅ PROGRAMMATION — CHOIX DE LA DATE + ÉTAPE 1 & 2
+        // ═════════════════════════════════════════════════════════════
+
+        // 📅 Choix de la date
+        Route::get('/affectations/programmation-choix',
+            [AffectationController::class, 'choixDimanche'])
+            ->name('affectations.programmation-choix');
+
+        Route::post('/affectations/programmation-set-dimanche',
+            [AffectationController::class, 'setDimanche'])
+            ->name('affectations.programmation-set-dimanche');
+
+        // 📝 Étape 1 — Programmation initiale (Rapport d'implantation)
+        Route::get('/affectations/programmation',
+            [AffectationController::class, 'programmationInitiale'])
+            ->name('affectations.programmation');
+
+        // 🎯 Étape 2 — Programmation active (Rapport des appréciations)
+        Route::get('/affectations/programmation-active',
+            [AffectationController::class, 'programmationActive'])
+            ->name('affectations.programmation-active');
+
+        // ✅ Validation des étapes (génèrent les PDF)
+        Route::post('/affectations/valider-etape-1',
+            [AffectationController::class, 'validerEtape1'])
+            ->name('affectations.valider-etape-1');
+
+        Route::post('/affectations/valider-etape-2',
+            [AffectationController::class, 'validerEtape2'])
+            ->name('affectations.valider-etape-2');
+
+        Route::post('/affectations/valider-etape-3',
+            [AffectationController::class, 'validerEtape3'])
+            ->name('affectations.valider-etape-3');
+
+        // ✅ Autosave programmation (géomètre / heure / présence)
+        Route::post('/affectations/groupe/programmation',
+            [AffectationController::class, 'updateProgrammation'])
+            ->name('affectations.groupe.programmation');
+
+        // ✅ Programmation multiple (modification groupée)
+        Route::post('/affectations/groupe/programmation-multiple',
+            [AffectationController::class, 'updateProgrammationMultiple'])
+            ->name('affectations.groupe.programmation-multiple');
+
+        // ✅ Accepter / refuser groupés
+        Route::post('/affectations/groupe/programmation-accepter-multiple',
+            [AffectationController::class, 'accepterProgrammationMultiple'])
+            ->name('affectations.groupe.programmation-accepter-multiple');
+
+        Route::post('/affectations/groupe/programmation-refuser-multiple',
+            [AffectationController::class, 'refuserProgrammationMultiple'])
+            ->name('affectations.groupe.programmation-refuser-multiple');
+
+        // ✅ Accepter / refuser individuels
+        Route::post('/affectations/groupe/accepter',
+            [AffectationController::class, 'accepterAffectation'])
+            ->name('affectations.groupe.accepter');
+
+        Route::post('/affectations/groupe/refuser',
+            [AffectationController::class, 'refuserAffectation'])
+            ->name('affectations.groupe.refuser');
+
+        // ✅ Frais logistique
+        Route::post('/affectations/groupe/frais-logistique',
+            [AffectationController::class, 'toggleFraisLogistique'])
+            ->name('affectations.groupe.frais-logistique');
+
+        // ✅ Check semaine dernière
+        Route::get('/affectations/semaine-derniere-attente',
+            [AffectationController::class, 'checkSemaineDerniere'])
+            ->name('affectations.check-semaine');
+
+        // ✅ Historique
+        Route::get('/affectations/historique',
+            [AffectationController::class, 'historiqueAffectations'])
+            ->name('affectations.historique');
+
+        // ── 📄 RAPPORTS PDF — AFFECTATIONS PROGRAMMÉES ──
+        Route::post('/affectations/rapport-programmation',
+            [AffectationController::class, 'rapportProgrammationPdf'])
+            ->name('affectations.rapport-programmation-pdf');
+
+        Route::post('/affectations/rapport-programmation-geometre',
+            [AffectationController::class, 'rapportProgrammationGeometrePdf'])
+            ->name('affectations.rapport-programmation-geometre-pdf');
+
+        // ═════════════════════════════════════════════════════════════════
+        // 📄 DOCUMENTS PDF — 6 ROUTES (5 types + "tous")
+        // ═════════════════════════════════════════════════════════════════
+        Route::get('/affectations/documents/initiales',
+            [AffectationController::class, 'documentsInitiales'])
+            ->name('affectations.documents.initiales');
+
+        Route::get('/affectations/documents/avant-date',
+            [AffectationController::class, 'documentsAvantDate'])
+            ->name('affectations.documents.avant-date');
+
+        Route::get('/affectations/documents/actives',
+            [AffectationController::class, 'documentsActives'])
+            ->name('affectations.documents.actives');
+
+        Route::get('/affectations/documents/avec-date',
+            [AffectationController::class, 'documentsAvecDate'])
+            ->name('affectations.documents.avec-date');
+
+        Route::get('/affectations/documents/finales',
+            [AffectationController::class, 'documentsFinales'])
+            ->name('affectations.documents.finales');
+
+        Route::get('/affectations/documents/tous',
+            [AffectationController::class, 'documentsTous'])
+            ->name('affectations.documents.tous');
+            // 🗑️ Suppression d'un document PDF (avec mot de passe)
+Route::delete('/affectations/documents/{document}',
+    [AffectationController::class, 'destroyDocument'])
+    ->name('affectations.documents.destroy');
+
+        // Ancienne route — redirige vers "tous" (compatibilité)
+        Route::get('/affectations/documents-pdf', function () {
+            return redirect()->route('affectations.documents.tous');
+        })->name('affectations.documents-pdf');
+
+        // ✅ Export PDF (ancien système — conservé au cas où)
+        Route::get('/affectations/programmation/pdf',
+            [AffectationController::class, 'programmationImplantationPdf'])
+            ->name('affectations.programmation.pdf');
+
+        // ✅ Update / Destroy affectations
+        Route::put   ('affectations/{affectation}', [AffectationController::class, 'update'])->name('affectations.update');
+        Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy'])->name('affectations.destroy');
+    });
+
+    // ═════════════════════════════════════════════════════════════════
+    // ✅ 4. ROUTES RH UNIQUEMENT (admin + rh)
     // ═════════════════════════════════════════════════════════════════
     Route::prefix('rh')->middleware('check.role:admin,rh')->group(function () {
 
@@ -372,7 +520,7 @@ Route::post('/etape-groupee',
         // ── ABSENCES ──
         Route::get('/absences',                   [AbsenceController::class, 'index'])->name('rh.absences.index');
         Route::post('/absences',                  [AbsenceController::class, 'store'])->name('rh.absences.store');
-        Route::post('/absences/nettoyer-doublons', [AbsenceController::class, 'nettoyerAbsencesDoublons'])->name('rh.absences.nettoyer-doublons');
+        Route::post('/absences/nettoyer-doublons',[AbsenceController::class, 'nettoyerAbsencesDoublons'])->name('rh.absences.nettoyer-doublons');
         Route::put('/absences/{id}',              [AbsenceController::class, 'update'])->name('rh.absences.update');
         Route::delete('/absences/{id}',           [AbsenceController::class, 'destroy'])->name('rh.absences.destroy');
         Route::post('/absences/{id}/approuver',   [AbsenceController::class, 'approuver'])->name('rh.absences.approuver');
@@ -531,7 +679,7 @@ Route::post('/etape-groupee',
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// MODULE FEB — Espace utilisateur (accessible à tous les rôles)
+// MODULE FEB — Espace utilisateur
 // ═══════════════════════════════════════════════════════════════════
 Route::prefix('feb')->name('feb.')->group(function () {
 
@@ -544,17 +692,14 @@ Route::prefix('feb')->name('feb.')->group(function () {
         Route::get('/',      [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('index');
         Route::get('fiches', [App\Http\Controllers\Feb\FicheController::class, 'index'])->name('fiches.index');
 
-        // Destinataires
         Route::get('destinataires', [DestinataireController::class, 'index'])->name('destinataires.index');
         Route::get('destinataires/search', [DestinataireController::class, 'search'])->name('destinataires.search');
         Route::post('destinataires', [DestinataireController::class, 'store'])->name('destinataires.store');
         Route::delete('destinataires/{id}', [DestinataireController::class, 'destroy'])->name('destinataires.destroy');
 
-        // Fiches - routes fixes AVANT les routes avec paramètres
         Route::get('fiches/creer',            [App\Http\Controllers\Feb\FicheController::class, 'creer'])->name('fiches.creer');
         Route::post('fiches/creer-soumettre', [App\Http\Controllers\Feb\FicheController::class, 'creerEtSoumettre'])->name('fiches.creer-soumettre');
 
-        // Routes avec paramètres APRÈS
         Route::get('fiches/{fiche}/continuer',[App\Http\Controllers\Feb\FicheController::class, 'continuer'])->name('fiches.continuer');
         Route::get('fiches/{fiche}/utiliser', [App\Http\Controllers\Feb\FicheController::class, 'utiliserModele'])->name('fiches.utiliser');
         Route::get('fiches/{fiche}/pdf',      [App\Http\Controllers\Feb\FicheController::class, 'pdf'])->name('fiches.pdf');

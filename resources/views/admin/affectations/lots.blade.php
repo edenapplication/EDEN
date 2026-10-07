@@ -1,4 +1,5 @@
-@extends('admin.layout')
+{{-- APRÈS --}}
+@extends('admin.affectations.layout')
 @section('content')
 
 <style>

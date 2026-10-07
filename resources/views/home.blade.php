@@ -92,6 +92,8 @@
 </head>
 <body>
 
+@php $role = auth()->user()->role; @endphp
+
 {{-- TOPBAR --}}
 <div class="topbar">
     <div class="brand">
@@ -101,7 +103,12 @@
     <div class="user-info">
         <span>👤 {{ auth()->user()->name }}</span>
         <span class="role-badge">
-            {{ ['admin' => '🔑 Admin', 'rh' => '👥 RH', 'commercial' => '💼 Commercial'][auth()->user()->role] }}
+            {{ [
+                'admin'      => '🔑 Admin',
+                'rh'         => '👥 RH',
+                'commercial' => '💼 Commercial',
+                'geometre'   => '📐 Géomètre'
+            ][$role] ?? $role }}
         </span>
         <form method="POST" action="{{ route('logout') }}" style="display:inline;">
             @csrf
@@ -113,15 +120,55 @@
 {{-- HERO --}}
 <div class="hero">
     <h2>Bienvenue, {{ auth()->user()->name }} 👋</h2>
-    <p>Choisissez un module pour commencer</p>
+    <p>
+        @if($role === 'geometre')
+            Votre espace terrain — Affectation de lots
+        @else
+            Choisissez un module pour commencer
+        @endif
+    </p>
 </div>
 
 {{-- MODULES --}}
 <div class="modules">
 
-    @php $role = auth()->user()->role; @endphp
+    {{-- 🎯 GÉOMÈTRE — Section dédiée --}}
+    @if($role === 'geometre')
+    <div class="section-title">📐 Espace Géomètre</div>
+    <div class="modules-grid" style="margin-bottom:32px;">
 
-    {{-- FONCIER --}}
+        <a href="{{ route('affectation-rapide.index') }}" class="module-card">
+            <div class="icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🎯</div>
+            <h3>Affectation rapide</h3>
+            <p>Rechercher une personne par nom ou téléphone et lui affecter des lots</p>
+            <div class="arrow">Accéder →</div>
+        </a>
+
+        <a href="{{ route('affectations.index') }}" class="module-card">
+            <div class="icon" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">🗺️</div>
+            <h3>Blocs & Lots</h3>
+            <p>Créer, modifier et organiser les blocs et lots des sites</p>
+            <div class="arrow">Accéder →</div>
+        </a>
+
+        <a href="{{ route('affectations.blocs') }}" class="module-card">
+            <div class="icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">🏗️</div>
+            <h3>Gestion des Blocs</h3>
+            <p>Vue détaillée des blocs par grand site et TF</p>
+            <div class="arrow">Accéder →</div>
+        </a>
+
+        <a href="{{ route('affectations.lots') }}" class="module-card">
+            <div class="icon" style="background:linear-gradient(135deg,#0891b2,#06b6d4);">📦</div>
+            <h3>Gestion des Lots</h3>
+            <p>Liste complète des lots, disponibilité et superficie</p>
+            <div class="arrow">Accéder →</div>
+        </a>
+
+    </div>
+    @endif
+
+    {{-- FONCIER — admin + commercial --}}
     @if(in_array($role, ['admin', 'commercial']))
     <div class="section-title">🏗️ Gestion Foncière</div>
     <div class="modules-grid" style="margin-bottom:32px;">
@@ -181,7 +228,7 @@
     </div>
     @endif
 
-    {{-- RH --}}
+    {{-- RH — admin + rh --}}
     @if(in_array($role, ['admin', 'rh']))
     <div class="section-title">👔 Ressources Humaines</div>
     <div class="modules-grid" style="margin-bottom:32px;">
@@ -244,7 +291,7 @@
     </div>
     @endif
 
-    {{-- ADMINISTRATION --}}
+    {{-- ADMINISTRATION — admin uniquement --}}
     @if($role === 'admin')
     <div class="section-title">🔑 Administration système</div>
     <div class="modules-grid">

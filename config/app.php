@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'delete_document_password' => env('DELETE_DOCUMENT_PASSWORD', 'EDEN@Suppression2026'),
+
 ];

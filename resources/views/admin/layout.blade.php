@@ -98,6 +98,7 @@
         .role-tag.admin    { background:rgba(220,38,38,0.2); color:#fca5a5; }
         .role-tag.rh       { background:rgba(124,58,237,0.2); color:#c4b5fd; }
         .role-tag.commercial { background:rgba(16,185,129,0.2); color:#6ee7b7; }
+        .role-tag.geometre { background:rgba(245,158,11,0.2); color:#fcd34d; }
 
         @keyframes badgePulse {
             0%,100% { background:#dc2626; }
@@ -473,6 +474,7 @@
                     @php $role = auth()->user()?->role; @endphp
                     @if($role === 'admin') Administration
                     @elseif($role === 'rh') Ressources Humaines
+                    @elseif($role === 'geometre') Géomètre
                     @else Commercial
                     @endif
                 </div>
@@ -485,7 +487,7 @@
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <span>📊</span> Dashboard
                 <span class="role-tag {{ $role }}">
-                    {{ ['admin'=>'Admin','rh'=>'RH','commercial'=>'Commercial'][$role] ?? '' }}
+                    {{ ['admin'=>'Admin','rh'=>'RH','commercial'=>'Commercial','geometre'=>'Géomètre'][$role] ?? '' }}
                 </span>
             </a>
         </div>
@@ -500,19 +502,75 @@
         </div>
         @endif
 
-        {{-- ✅ BLOCS & LOTS — admin + commercial --}}
-        @if(in_array($role, ['admin', 'commercial']))
+        {{-- ✅ AFFECTATION RAPIDE — admin + géomètre (lien direct) --}}
+        @if(in_array($role, ['admin', 'geometre']))
         <div style="padding:4px 0;">
-            <a href="{{ route('affectations.index') }}" onclick="fermerSidebar()"
-               class="{{ request()->is('admin/affectations*') ? 'active' : '' }}">
-                <span>🗺️</span> Blocs & Lots
+            <a href="{{ route('affectation-rapide.index') }}" onclick="fermerSidebar()"
+               class="{{ request()->routeIs('affectation-rapide.*') ? 'active' : '' }}"
+               style="background:linear-gradient(90deg,rgba(245,158,11,0.15),transparent);border-left:3px solid #f59e0b;">
+                <span>🎯</span> Affectation rapide
             </a>
         </div>
         @endif
 
         <div class="nav-section">
 
-            {{-- ✅ GESTION FONCIÈRE — admin + commercial --}}
+            {{-- ✅ AFFECTATIONS (BLOCS, LOTS, LISTE) — admin + commercial + géomètre --}}
+            @if(in_array($role, ['admin', 'commercial', 'geometre']))
+            <button class="nav-group-btn" onclick="toggleGroup('group-affectations', this)">
+                <span>🗺️ Affectations</span>
+                <span class="chevron">›</span>
+            </button>
+            <div class="nav-group-items" id="group-affectations">
+
+                <a href="{{ route('affectations.index') }}" onclick="fermerSidebar()"
+                   class="{{ request()->routeIs('affectations.index') ? 'active' : '' }}">
+                    <span>📊</span> Dashboard Blocs & Lots
+                </a>
+
+                <a href="{{ route('affectations.liste') }}" onclick="fermerSidebar()"
+                   class="{{ request()->routeIs('affectations.liste') ? 'active' : '' }}">
+                    <span>📋</span> Liste des affectations
+                </a>
+
+                {{-- 📝 ÉTAPE 1 : Programmation initiale --}}
+                {{-- 📝 ÉTAPE 1 : Programmation initiale --}}
+<a href="{{ route('affectations.programmation-choix') }}" onclick="fermerSidebar()"
+   class="{{ request()->routeIs('affectations.programmation-choix') || request()->routeIs('affectations.programmation') ? 'active' : '' }}"
+   style="background:linear-gradient(90deg,rgba(124,58,237,0.15),transparent);border-left:3px solid #7c3aed;">
+    <span>📝</span> Étape 1 — Programmation initiale
+</a>
+
+{{-- 🎯 ÉTAPE 2 : Programmation active --}}
+<a href="{{ route('affectations.programmation-active') }}" onclick="fermerSidebar()"
+   class="{{ request()->routeIs('affectations.programmation-active') ? 'active' : '' }}"
+   style="background:linear-gradient(90deg,rgba(245,158,11,0.15),transparent);border-left:3px solid #f59e0b;">
+    <span>🎯</span> Étape 2 — Programmation active
+</a>
+                <a href="{{ route('affectations.documents-pdf') }}" onclick="fermerSidebar()"
+   class="{{ request()->routeIs('affectations.documents-pdf') ? 'active' : '' }}"
+   style="background:linear-gradient(90deg,rgba(16,185,129,0.15),transparent);border-left:3px solid #16a34a;">
+    <span>📄</span> Documents PDF archivés
+</a>
+                <a href="{{ route('affectations.historique') }}" onclick="fermerSidebar()"
+                   class="{{ request()->routeIs('affectations.historique') ? 'active' : '' }}">
+                    <span>📜</span> Historique des affectations
+                </a>
+
+                <a href="{{ route('affectations.blocs') }}" onclick="fermerSidebar()"
+                   class="{{ request()->routeIs('affectations.blocs') ? 'active' : '' }}">
+                    <span>🏗️</span> Gestion des blocs
+                </a>
+
+                <a href="{{ route('affectations.lots') }}" onclick="fermerSidebar()"
+                   class="{{ request()->routeIs('affectations.lots') ? 'active' : '' }}">
+                    <span>📦</span> Gestion des lots
+                </a>
+
+            </div>
+            @endif
+
+            {{-- ✅ GESTION FONCIÈRE — admin + commercial uniquement --}}
             @if(in_array($role, ['admin', 'commercial']))
             <button class="nav-group-btn" onclick="toggleGroup('group-foncier', this)">
                 <span>🏢 Gestion foncière</span>
@@ -528,7 +586,7 @@
             </div>
             @endif
 
-            {{-- ✅ CLIENTS & ÉQUIPES — admin + commercial --}}
+            {{-- ✅ CLIENTS & ÉQUIPES — admin + commercial uniquement --}}
             @if(in_array($role, ['admin', 'commercial']))
             <button class="nav-group-btn" onclick="toggleGroup('group-clients', this)">
                 <span>👥 Clients & Équipes</span>
@@ -571,7 +629,7 @@
             </div>
             @endif
 
-            {{-- ✅ RAPPORTS & DONNÉES — admin + commercial --}}
+            {{-- ✅ RAPPORTS & DONNÉES — admin + commercial uniquement --}}
             @if(in_array($role, ['admin', 'commercial']))
             <button class="nav-group-btn" onclick="toggleGroup('group-rapports', this)">
                 <span>📊 Rapports & Données</span>
@@ -630,6 +688,11 @@
         <a href="{{ route('rh.dashboard') }}" class="topbar-link">🏢 RH</a>
         @endif
 
+        {{-- Raccourci Affectation rapide — admin + géomètre --}}
+        @if(in_array($role, ['admin', 'geometre']))
+        <a href="{{ route('affectation-rapide.index') }}" class="topbar-link">🎯 Affectation</a>
+        @endif
+
         {{-- Utilisateur --}}
         <div class="topbar-user">
             <span>👤</span>
@@ -637,6 +700,7 @@
             <span class="role-badge" style="font-size:10px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;">
                 @if($role === 'admin') 🔴 Admin
                 @elseif($role === 'rh') 🟣 RH
+                @elseif($role === 'geometre') 🟡 Géomètre
                 @else 🟢 Commercial
                 @endif
             </span>
@@ -705,9 +769,10 @@ function toggleGroup(id, btn) {
 document.addEventListener('DOMContentLoaded', function() {
     const url = window.location.pathname;
     const groupes = {
-        'group-foncier' : ['/admin/grand-sites','/admin/sites','/admin/tf','/admin/lots'],
-        'group-clients' : ['/admin/suivi-client','/admin/commerciaux','/admin/agents'],
-        'group-rapports': ['/admin/rapport','/admin/visites'],
+        'group-affectations': ['/admin/affectations'],
+        'group-foncier'     : ['/admin/grand-sites','/admin/sites','/admin/tf'],
+        'group-clients'     : ['/admin/suivi-client','/admin/commerciaux','/admin/agents'],
+        'group-rapports'    : ['/admin/rapport','/admin/visites'],
     };
     Object.entries(groupes).forEach(([groupId, prefixes]) => {
         const el = document.getElementById(groupId); if (!el) return;

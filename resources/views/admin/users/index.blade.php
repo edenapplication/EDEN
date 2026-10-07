@@ -8,6 +8,7 @@
 .role-admin      { background:#fee2e2; color:#b91c1c; }
 .role-rh         { background:#f3e8ff; color:#7c3aed; }
 .role-commercial { background:#dbeafe; color:#1d4ed8; }
+.role-geometre   { background:#fef3c7; color:#92400e; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -53,7 +54,7 @@
             </td>
             <td>
                 <span class="role-badge role-{{ $user->role }}">
-                    {{ ['admin' => '🔑 Admin', 'rh' => '👥 RH', 'commercial' => '💼 Commercial'][$user->role] }}
+                    {{ ['admin' => '🔑 Admin', 'rh' => '👥 RH', 'commercial' => '💼 Commercial', 'geometre' => '📐 Géomètre'][$user->role] ?? $user->role }}
                 </span>
             </td>
             <td>
@@ -97,6 +98,8 @@
     <span class="role-badge role-rh">👥 RH</span> — Module Ressources Humaines uniquement
     &nbsp;|&nbsp;
     <span class="role-badge role-commercial">💼 Commercial</span> — Clients, dossiers, paiements, visites
+    &nbsp;|&nbsp;
+    <span class="role-badge role-geometre">📐 Géomètre</span> — Affectation rapide de lots
 </div>
 
 {{-- MODAL AJOUT --}}
@@ -134,6 +137,7 @@
                 <select name="role" class="form-control" required>
                     <option value="commercial">💼 Commercial</option>
                     <option value="rh">👥 RH</option>
+                    <option value="geometre">📐 Géomètre</option>
                     <option value="admin">🔑 Admin</option>
                 </select>
             </div>
@@ -142,7 +146,8 @@
             <strong>Droits par rôle :</strong><br>
             🔑 <strong>Admin</strong> : tout<br>
             👥 <strong>RH</strong> : employés, paie, absences, prêts, sanctions, retards<br>
-            💼 <strong>Commercial</strong> : clients, dossiers, paiements, visites
+            💼 <strong>Commercial</strong> : clients, dossiers, paiements, visites<br>
+            📐 <strong>Géomètre</strong> : affectation rapide de lots
         </div>
         <div class="d-flex justify-content-end gap-2 mt-4">
             <button type="button" onclick="closeAll()" class="btn btn-light">Annuler</button>
@@ -186,6 +191,7 @@
                 <select name="role" class="form-control" id="edit_role">
                     <option value="commercial">💼 Commercial</option>
                     <option value="rh">👥 RH</option>
+                    <option value="geometre">📐 Géomètre</option>
                     <option value="admin">🔑 Admin</option>
                 </select>
             </div>

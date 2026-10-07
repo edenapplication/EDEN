@@ -21,7 +21,7 @@ class UserController extends Controller
             'email'     => 'required|email|unique:users,email',
             'reference' => 'required|string|unique:users,reference|max:50',
             'password'  => 'required|string|min:6',
-            'role'      => 'required|in:admin,rh,commercial',
+             'role'      => 'required|in:admin,rh,commercial,geometre',
         ]);
 
         User::create([
@@ -45,7 +45,7 @@ class UserController extends Controller
             'email'     => 'required|email|unique:users,email,' . $id,
             'reference' => 'required|string|unique:users,reference,' . $id . '|max:50',
             'password'  => 'nullable|string|min:6',
-            'role'      => 'required|in:admin,rh,commercial',
+             'role'      => 'required|in:admin,rh,commercial,geometre',
         ]);
 
         $data = [
