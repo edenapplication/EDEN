@@ -23,6 +23,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\LotsImport;
 use App\Exports\LotsExport;
 use App\Exports\LotsTemplateExport;
+use Mpdf\Mpdf;
 
 class AffectationController extends Controller
 {
@@ -1609,9 +1610,12 @@ class AffectationController extends Controller
             'refusePar',
             'geometre',
         ])
-        ->where('statut', 'actif')
-        ->whereIn('etape_programmation', ['nouvelle', 'date_attribuee', 'programmee', 'finalisee']);
-
+       ->whereIn('statut', ['actif', 'annule'])   // ✅ inclut les refusées
+->whereIn('etape_programmation', ['nouvelle', 'date_attribuee', 'programmee', 'finalisee'])
+->where(function ($q) {
+    $q->where('statut_acceptation', '!=', 'accepte')
+      ->orWhereNull('statut_acceptation');
+});
     // ─── Recherche ───
     if ($request->filled('q')) {
         $q = $request->q;
@@ -1631,13 +1635,11 @@ class AffectationController extends Controller
     }
 
     // ─── 📄 Filtre ATTRIBUTION (nouveau) ───
-    // Filtre sur la date d'affectation
     if ($request->filled('jour_attribution')) {
         $query->whereDate('date_affectation', $request->jour_attribution);
     }
 
     // ─── 📅 Filtre PLANIFICATION (existant) ───
-    // Filtre sur la date d'implantation
     if ($request->filled('jour')) {
         $query->whereDate('date_implantation', $request->jour);
     }
@@ -1723,56 +1725,6 @@ class AffectationController extends Controller
         'affectations', 'stats', 'grandSites', 'blocs'
     ));
 }
-
-    // ============================================================
-    // ✅ DÉTAILS D'UN GROUPE
-    // ============================================================
-    public function detailsGroupe(Request $request)
-    {
-        $ids = $request->input('ids', []);
-        if (empty($ids)) {
-            return response()->json(['success' => false, 'message' => 'IDs manquants'], 422);
-        }
-
-        $affs = Affectation::with(['beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot'])
-            ->whereIn('id', $ids)
-            ->where('statut', 'actif')
-            ->get();
-
-        if ($affs->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'Aucune affectation trouvée'], 404);
-        }
-
-        $premier = $affs->first();
-        $grandSites = GrandSite::orderBy('nom')->get(['id', 'nom']);
-
-        return response()->json([
-            'success' => true,
-            'groupe' => [
-                'affectation_ids'   => $affs->pluck('id')->toArray(),
-                'beneficiaire_id'   => $premier->beneficiaire_id,
-                'client_id'         => $premier->client_id,
-                'beneficiaire'      => $premier->beneficiaire?->nom ?? $premier->client?->name,
-                'telephone'         => $premier->beneficiaire?->telephone ?? $premier->client?->phone,
-                'dossier_client_id' => $premier->dossier_client_id,
-                'grand_site'        => $premier->grandSite?->nom,
-                'site'              => $premier->site?->name,
-                'tf'                => $premier->tf?->title,
-                'bloc'              => $premier->bloc?->code,
-                'bloc_id'           => $premier->bloc_id,
-                'date_affectation'  => $premier->date_affectation?->format('Y-m-d'),
-                'notes'             => $premier->notes,
-                'lots'              => $affs->map(fn ($a) => [
-                    'affectation_id' => $a->id,
-                    'lot_id'         => $a->lot_affectation_id,
-                    'numero'         => $a->lot?->numero,
-                    'superficie'     => $a->lot?->superficie,
-                ])->sortBy('numero')->values(),
-                'superficie_totale' => $affs->sum(fn ($a) => $a->lot?->superficie ?? 0),
-            ],
-            'grandSites' => $grandSites,
-        ]);
-    }
 
     // ============================================================
     // ✅ AJOUTER DES LOTS À UN GROUPE
@@ -2027,246 +1979,226 @@ class AffectationController extends Controller
     // ✅ REFUSER UN GROUPE D'AFFECTATIONS
     // ============================================================
     public function refuserAffectation(Request $request)
-    {
-        $request->validate([
-            'affectation_ids'   => 'required|array|min:1',
-            'affectation_ids.*' => 'integer|exists:affectations,id',
-            'date_refus'        => 'required|date',
-            'motif_refus'       => 'required|string|min:5|max:1000',
-        ], [
-            'date_refus.required'  => 'La date du refus est obligatoire.',
-            'motif_refus.required' => 'Le motif du refus est obligatoire.',
-            'motif_refus.min'      => 'Le motif doit contenir au moins 5 caractères.',
-        ]);
+{
+    $request->validate([
+        'affectation_ids'   => 'required|array|min:1',
+        'affectation_ids.*' => 'integer|exists:affectations,id',
+        'date_refus'        => 'required|date',
+        'motif_refus'       => 'required|string|min:5|max:1000',
+    ]);
 
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            $ids  = $request->affectation_ids;
-            $affs = Affectation::with(['beneficiaire', 'lot', 'bloc', 'dossier'])
-                ->whereIn('id', $ids)
-                ->where('statut_acceptation', 'en_attente')
-                ->get();
-
-            if ($affs->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Aucune affectation en attente trouvée.',
-                ], 422);
-            }
-
-            $lotsRefuses = $affs->map(fn ($aff) => [
-                'numero'     => $aff->lot?->numero,
-                'bloc'       => $aff->bloc?->code,
-                'superficie' => $aff->lot?->superficie,
-            ])->values()->toArray();
-
-            foreach ($affs as $aff) {
-                $aff->lot?->update(['disponible' => true]);
-            }
-
-            Affectation::whereIn('id', $ids)
-    ->where('statut_acceptation', 'en_attente')
-    ->update([
-        'statut'             => 'annule',
-                    'statut_acceptation' => 'refuse',
-                    'date_refus'         => $request->date_refus,
-                    'refuse_le'          => now(),
-                    'motif_refus'        => $request->motif_refus,
-                    'refuse_par'         => auth()->id(),
-                    'date_acceptation'   => null,
-                    'accepte_le'         => null,
-                    'accepte_par'        => null,
-                ]);
-
-            $benefIds = $affs->pluck('beneficiaire_id')->filter()->unique()->toArray();
-
-            foreach ($benefIds as $benefId) {
-                $benef = Beneficiaire::find($benefId);
-                if ($benef) {
-                    $nouvelleSuperficie = Affectation::where('beneficiaire_id', $benef->id)
-                        ->where('statut', 'actif')
-                        ->where('statut_acceptation', '!=', 'refuse')
-                        ->join('lots_affectation', 'affectations.lot_affectation_id', '=', 'lots_affectation.id')
-                        ->sum('lots_affectation.superficie');
-
-                    $nouveauxLotsTexte = Affectation::where('beneficiaire_id', $benef->id)
-                        ->where('statut', 'actif')
-                        ->where('statut_acceptation', '!=', 'refuse')
-                        ->with('lot')
-                        ->get()
-                        ->pluck('lot.numero')
-                        ->filter()
-                        ->unique()
-                        ->implode(', ');
-
-                    $benef->update([
-                        'superficie_attribuee' => $nouvelleSuperficie,
-                        'lots_texte'           => $nouveauxLotsTexte,
-                    ]);
-                }
-            }
-
-            $premier = $affs->first();
-            $nom     = $premier->beneficiaire?->nom ?? '—';
-            $nbLots  = $affs->count();
-            $dateFmt = \Carbon\Carbon::parse($request->date_refus)->format('d/m/Y');
-
-            HistoriqueService::log(
-                $premier->dossier_client_id,
-                'annulation_affectation',
-                "❌ Affectation REFUSÉE le {$dateFmt} — « {$nom} » — {$nbLots} lot(s)"
-                    . " — Motif : {$request->motif_refus}",
-                'beneficiaire',
-                $premier->beneficiaire_id,
-                [
-                    'statut_acceptation' => 'en_attente',
-                    'lots'               => $lotsRefuses,
-                ],
-                [
-                    'statut'             => 'annule',
-                    'statut_acceptation' => 'refuse',
-                    'date_refus'         => $request->date_refus,
-                    'motif'              => $request->motif_refus,
-                    'lots'               => $lotsRefuses,
-                ],
-                $premier->beneficiaire_id
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => "❌ {$nbLots} affectation(s) refusée(s) le {$dateFmt}",
+        Affectation::whereIn('id', $request->affectation_ids)
+            ->where('statut_acceptation', 'en_attente')
+            ->update([
+                'refus_en_attente'  => true,
+                'date_refus_prevue' => $request->date_refus,
+                'motif_refus_prevu' => $request->motif_refus,
             ]);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur refuserAffectation : ' . $e->getMessage());
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refus enregistré en attente.',
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['success' => false, 'message' => '❌ Erreur : ' . $e->getMessage()], 500);
+    }
+}
+
+public function annulerRefusEnAttente(Request $request)
+{
+    $request->validate([
+        'affectation_ids'   => 'required|array|min:1',
+        'affectation_ids.*' => 'integer|exists:affectations,id',
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        Affectation::whereIn('id', $request->affectation_ids)
+            ->update([
+                'refus_en_attente'  => false,
+                'date_refus_prevue' => null,
+                'motif_refus_prevu' => null,
+            ]);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refus en attente annulé.',
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['success' => false, 'message' => '❌ Erreur : ' . $e->getMessage()], 500);
+    }
+}
+
+ public function updateImplantationGroupe(Request $request)
+{
+    $request->validate([
+        'affectation_ids'   => 'required|array|min:1',
+        'affectation_ids.*' => 'integer|exists:affectations,id',
+        'date_implantation' => 'nullable|date',
+        'geometre_id'       => 'nullable|exists:users,id',
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $ids  = $request->affectation_ids;
+        $affs = Affectation::with(['beneficiaire', 'geometre', 'lot', 'bloc'])
+            ->whereIn('id', $ids)
+            ->get();
+
+        if ($affs->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
-            ], 500);
+                'message' => '❌ Aucune affectation trouvée.',
+            ], 422);
         }
-    }
 
-    // ============================================================
-    // ✅ METTRE À JOUR L'IMPLANTATION D'UN GROUPE
-    // ============================================================
-    public function updateImplantationGroupe(Request $request)
-    {
-        $request->validate([
-            'affectation_ids'   => 'required|array|min:1',
-            'affectation_ids.*' => 'integer|exists:affectations,id',
-            'date_implantation' => 'nullable|date',
-            'geometre_id'       => 'nullable|exists:users,id',
-        ]);
+        $premier = $affs->first();
 
-        try {
-            DB::beginTransaction();
+        // ✅ Détecter le changement de date AVANT le contrôle d'état
+        $ancienneDate = $premier->date_implantation?->format('Y-m-d H:i');
+        $nouvelleDate = $request->date_implantation
+            ? \Carbon\Carbon::parse($request->date_implantation)->format('Y-m-d H:i')
+            : null;
 
-            $ids  = $request->affectation_ids;
-            $affs = Affectation::with(['beneficiaire', 'geometre', 'lot', 'bloc'])
-                ->whereIn('id', $ids)
-                ->get();
+        $dateChangee = ($ancienneDate !== $nouvelleDate);
 
-            if ($affs->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Aucune affectation trouvée.',
-                ], 422);
-            }
+        // ⚠️ Autorisé si :
+        //   - Toutes en attente (cas normal)
+        //   - OU la date change (reset)
+        $nonEnAttente = $affs->where('statut_acceptation', '!=', 'en_attente');
 
-            $nonEnAttente = $affs->where('statut_acceptation', '!=', 'en_attente');
+        if ($nonEnAttente->isNotEmpty() && !$dateChangee) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Impossible de modifier : affectation déjà acceptée ou refusée. Changez la date pour réinitialiser.',
+            ], 422);
+        }
 
-            if ($nonEnAttente->isNotEmpty()) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Impossible de modifier : affectation déjà acceptée ou refusée.',
-                ], 422);
-            }
+        $lotsImplantes = $affs->map(fn ($aff) => [
+            'numero'     => $aff->lot?->numero,
+            'bloc'       => $aff->bloc?->code,
+            'superficie' => $aff->lot?->superficie,
+        ])->values()->toArray();
 
-            $premier = $affs->first();
+        $avant = [
+            'date_implantation' => $ancienneDate,
+            'geometre_id'       => $premier->geometre_id,
+            'geometre_nom'      => $premier->geometre?->name,
+            'lots'              => $lotsImplantes,
+        ];
 
-            $lotsImplantes = $affs->map(fn ($aff) => [
-                'numero'     => $aff->lot?->numero,
-                'bloc'       => $aff->bloc?->code,
-                'superficie' => $aff->lot?->superficie,
-            ])->values()->toArray();
-
-            $avant = [
-                'date_implantation' => $premier->date_implantation?->format('Y-m-d H:i'),
-                'geometre_id'       => $premier->geometre_id,
-                'geometre_nom'      => $premier->geometre?->name,
-                'lots'              => $lotsImplantes,
-            ];
-
+        // ═══════════════════════════════════════════════════════════
+        // ✅ SI LA DATE CHANGE → RÉINITIALISER LA PROGRAMMATION
+        // ═══════════════════════════════════════════════════════════
+        if ($dateChangee) {
+            Affectation::whereIn('id', $ids)->update([
+                'date_implantation'     => $request->date_implantation,
+                'statut'                => 'actif',  
+                // ✅ Reset complet
+                'geometre_id'           => null,
+                'heure_implantation'    => null,
+                'statut_presence'       => 'en_attente',
+                'etape_programmation'   => 'nouvelle',
+                'frais_logistique_paye' => false,
+                'statut_acceptation'    => 'en_attente',
+                'date_acceptation'      => null,
+                'date_refus'            => null,
+                'motif_refus'           => null,
+                'accepte_le'            => null,
+                'refuse_le'             => null,
+                'accepte_par'           => null,
+                'refuse_par'            => null,
+                'refus_en_attente'      => false,
+                'date_refus_prevue'     => null,
+                'motif_refus_prevu'     => null,
+            ]);
+        } else {
+            // ✅ Mise à jour normale
             Affectation::whereIn('id', $ids)->update([
                 'date_implantation' => $request->date_implantation,
                 'geometre_id'       => $request->geometre_id,
             ]);
+        }
 
-            $apres = [
-                'date_implantation' => $request->date_implantation
-                    ? \Carbon\Carbon::parse($request->date_implantation)->format('Y-m-d H:i')
-                    : null,
-                'geometre_id'       => $request->geometre_id,
-                'geometre_nom'      => $request->geometre_id
-                    ? \App\Models\User::find($request->geometre_id)?->name
-                    : null,
-                'lots'              => $lotsImplantes,
-            ];
+        $apres = [
+            'date_implantation' => $nouvelleDate,
+            'geometre_id'       => $dateChangee ? null : $request->geometre_id,
+            'geometre_nom'      => $dateChangee
+                ? null
+                : ($request->geometre_id ? \App\Models\User::find($request->geometre_id)?->name : null),
+            'lots'              => $lotsImplantes,
+            'reset_effectue'    => $dateChangee,
+        ];
 
-            $hasChanges = ($avant['date_implantation'] !== $apres['date_implantation'])
-                       || ($avant['geometre_id']       !== $apres['geometre_id']);
+        $hasChanges = ($avant['date_implantation'] !== $apres['date_implantation'])
+                   || ($avant['geometre_id']       !== $apres['geometre_id']);
 
-            if ($hasChanges && $premier->dossier_client_id) {
-                $changements = [];
+        if ($hasChanges && $premier->dossier_client_id) {
+            $changements = [];
 
-                if ($avant['date_implantation'] !== $apres['date_implantation']) {
-                    $changements[] = "Implantation : "
-                        . ($avant['date_implantation'] ?? '—')
-                        . " → " . ($apres['date_implantation'] ?? '—');
+            if ($avant['date_implantation'] !== $apres['date_implantation']) {
+                $changements[] = "Implantation : "
+                    . ($avant['date_implantation'] ?? '—')
+                    . " → " . ($apres['date_implantation'] ?? '—');
+                if ($dateChangee) {
+                    $changements[] = "⚠️ Programmation réinitialisée (géomètre + heure effacés)";
                 }
-                if ($avant['geometre_id'] !== $apres['geometre_id']) {
-                    $changements[] = "Géomètre : "
-                        . ($avant['geometre_nom'] ?? '—')
-                        . " → " . ($apres['geometre_nom'] ?? '—');
-                }
-
-                HistoriqueService::log(
-                    $premier->dossier_client_id,
-                    'modification_affectation',
-                    "🔧 Implantation (" . count($ids) . " lot(s)) — " . implode(' ; ', $changements)
-                        . ($premier->beneficiaire ? " — Bénéficiaire : « {$premier->beneficiaire->nom} »" : ''),
-                    'affectation',
-                    $premier->id,
-                    $avant,
-                    $apres,
-                    $premier->beneficiaire_id
-                );
+            }
+            if ($avant['geometre_id'] !== $apres['geometre_id']) {
+                $changements[] = "Géomètre : "
+                    . ($avant['geometre_nom'] ?? '—')
+                    . " → " . ($apres['geometre_nom'] ?? '—');
             }
 
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => '✅ Implantation mise à jour sur ' . count($ids) . ' affectation(s).',
-                'avant'   => $avant,
-                'apres'   => $apres,
-                'updated' => count($ids),
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur updateImplantationGroupe : ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
-            ], 500);
+            HistoriqueService::log(
+                $premier->dossier_client_id,
+                'modification_affectation',
+                "🔧 Implantation (" . count($ids) . " lot(s)) — " . implode(' ; ', $changements)
+                    . ($premier->beneficiaire ? " — Bénéficiaire : « {$premier->beneficiaire->nom} »" : ''),
+                'affectation',
+                $premier->id,
+                $avant,
+                $apres,
+                $premier->beneficiaire_id
+            );
         }
+
+        DB::commit();
+
+        $message = $dateChangee
+            ? '✅ Date modifiée — Programmation réinitialisée (géomètre + heure effacés).'
+            : '✅ Implantation mise à jour sur ' . count($ids) . ' affectation(s).';
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'avant'   => $avant,
+            'apres'   => $apres,
+            'updated' => count($ids),
+            'reset'   => $dateChangee,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur updateImplantationGroupe : ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur : ' . $e->getMessage(),
+        ], 500);
     }
+}
 
     // ============================================================
     // ✅ METTRE À JOUR LA PROGRAMMATION D'UN GROUPE
@@ -2404,104 +2336,138 @@ class AffectationController extends Controller
         ]);
     }
 
-    // ============================================================
-    // ✅ IMPLANTATION MULTIPLE
-    // ============================================================
     public function updateImplantationMultiple(Request $request)
-    {
-        $request->validate([
-            'lignes'            => 'required|array|min:1',
-            'lignes.*.ids'      => 'required|array|min:1',
-            'lignes.*.ids.*'    => 'integer|exists:affectations,id',
-            'date_implantation' => 'required|date',
-        ]);
+{
+    $request->validate([
+        'lignes'            => 'required|array|min:1',
+        'lignes.*.ids'      => 'required|array|min:1',
+        'lignes.*.ids.*'    => 'integer|exists:affectations,id',
+        'date_implantation' => 'required|date',
+    ]);
 
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            $dateImplantation = $request->date_implantation;
-            $totalMisAJour    = 0;
-            $totalBloques     = 0;
+        $dateImplantation = $request->date_implantation;
+        $totalMisAJour    = 0;
+        $totalBloques     = 0;
+        $totalReset       = 0;
 
-            foreach ($request->lignes as $ligne) {
-                $ids  = $ligne['ids'];
-                $affs = Affectation::with(['beneficiaire', 'lot', 'bloc'])
-                    ->whereIn('id', $ids)
-                    ->get();
+        foreach ($request->lignes as $ligne) {
+            $ids  = $ligne['ids'];
+            $affs = Affectation::with(['beneficiaire', 'lot', 'bloc'])
+                ->whereIn('id', $ids)
+                ->get();
 
-                $enAttente = $affs->where('statut_acceptation', 'en_attente');
+            $enAttente = $affs->where('statut_acceptation', 'en_attente');
 
-                if ($enAttente->isEmpty()) {
-                    $totalBloques += $affs->count();
-                    continue;
-                }
+            if ($enAttente->isEmpty()) {
+                $totalBloques += $affs->count();
+                continue;
+            }
 
-                $idsModifiables = $enAttente->pluck('id')->toArray();
+            $idsModifiables = $enAttente->pluck('id')->toArray();
 
-                $lotsImplantes = $enAttente->map(fn ($aff) => [
-                    'numero'     => $aff->lot?->numero,
-                    'bloc'       => $aff->bloc?->code,
-                    'superficie' => $aff->lot?->superficie,
-                ])->values()->toArray();
+            // ✅ Détecter si la date a changé (par rapport à la première affectation)
+            $premier = $enAttente->first();
+            $ancienneDate = $premier->date_implantation?->format('Y-m-d H:i');
+            $nouvelleDate = \Carbon\Carbon::parse($dateImplantation)->format('Y-m-d H:i');
+            $dateChangee = ($ancienneDate !== $nouvelleDate);
 
-                $avant = [
-                    'date_implantation' => $enAttente->first()?->date_implantation?->format('Y-m-d H:i'),
-                    'lots'              => $lotsImplantes,
-                ];
+            $lotsImplantes = $enAttente->map(fn ($aff) => [
+                'numero'     => $aff->lot?->numero,
+                'bloc'       => $aff->bloc?->code,
+                'superficie' => $aff->lot?->superficie,
+            ])->values()->toArray();
 
+            $avant = [
+                'date_implantation' => $ancienneDate,
+                'lots'              => $lotsImplantes,
+            ];
+
+            if ($dateChangee) {
+                // ✅ Reset complet
+                Affectation::whereIn('id', $idsModifiables)->update([
+                    'date_implantation'     => $dateImplantation,
+                    'statut'                => 'actif',
+                    'geometre_id'           => null,
+                    'heure_implantation'    => null,
+                    'statut_presence'       => 'en_attente',
+                    'etape_programmation'   => 'nouvelle',
+                    'frais_logistique_paye' => false,
+                    'statut_acceptation'    => 'en_attente',
+                    'date_acceptation'      => null,
+                    'date_refus'            => null,
+                    'motif_refus'           => null,
+                    'accepte_le'            => null,
+                    'refuse_le'             => null,
+                    'accepte_par'           => null,
+                    'refuse_par'            => null,
+                    'refus_en_attente'      => false,
+                    'date_refus_prevue'     => null,
+                    'motif_refus_prevu'     => null,
+                ]);
+                $totalReset += count($idsModifiables);
+            } else {
                 Affectation::whereIn('id', $idsModifiables)->update([
                     'date_implantation' => $dateImplantation,
                 ]);
-
-                $apres = [
-                    'date_implantation' => \Carbon\Carbon::parse($dateImplantation)->format('Y-m-d H:i'),
-                    'lots'              => $lotsImplantes,
-                ];
-
-                $premier = $enAttente->first();
-                if ($premier && $premier->dossier_client_id) {
-                    HistoriqueService::log(
-                        $premier->dossier_client_id,
-                        'modification_affectation',
-                        "🔧 Implantation multiple (" . count($idsModifiables) . " lot(s)) — Date : "
-                            . ($avant['date_implantation'] ?? '—')
-                            . " → " . $apres['date_implantation']
-                            . ($premier->beneficiaire ? " — Bénéficiaire : « {$premier->beneficiaire->nom} »" : ''),
-                        'affectation',
-                        $premier->id,
-                        $avant,
-                        $apres,
-                        $premier->beneficiaire_id
-                    );
-                }
-
-                $totalMisAJour += count($idsModifiables);
-                $totalBloques  += ($affs->count() - count($idsModifiables));
             }
 
-            DB::commit();
+            $apres = [
+                'date_implantation' => $nouvelleDate,
+                'lots'              => $lotsImplantes,
+                'reset_effectue'    => $dateChangee,
+            ];
 
-            $msg = "✅ Implantation mise à jour sur {$totalMisAJour} affectation(s).";
-            if ($totalBloques > 0) {
-                $msg .= " — {$totalBloques} ignorée(s) (déjà acceptée/refusée).";
+            if ($premier && $premier->dossier_client_id) {
+                HistoriqueService::log(
+                    $premier->dossier_client_id,
+                    'modification_affectation',
+                    "🔧 Implantation multiple (" . count($idsModifiables) . " lot(s)) — Date : "
+                        . ($ancienneDate ?? '—')
+                        . " → " . $nouvelleDate
+                        . ($dateChangee ? " ⚠️ Programmation réinitialisée" : '')
+                        . ($premier->beneficiaire ? " — Bénéficiaire : « {$premier->beneficiaire->nom} »" : ''),
+                    'affectation',
+                    $premier->id,
+                    $avant,
+                    $apres,
+                    $premier->beneficiaire_id
+                );
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => $msg,
-                'updated' => $totalMisAJour,
-                'ignored' => $totalBloques,
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur updateImplantationMultiple : ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
-            ], 500);
+            $totalMisAJour += count($idsModifiables);
+            $totalBloques  += ($affs->count() - count($idsModifiables));
         }
+
+        DB::commit();
+
+        $msg = "✅ Implantation mise à jour sur {$totalMisAJour} affectation(s).";
+        if ($totalReset > 0) {
+            $msg .= " — ⚠️ {$totalReset} réinitialisée(s) (géomètre + heure effacés).";
+        }
+        if ($totalBloques > 0) {
+            $msg .= " — {$totalBloques} ignorée(s) (déjà acceptée/refusée).";
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $msg,
+            'updated' => $totalMisAJour,
+            'ignored' => $totalBloques,
+            'reset'   => $totalReset,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur updateImplantationMultiple : ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur : ' . $e->getMessage(),
+        ], 500);
     }
+}
 
     // ============================================================
     // ✅ PROGRAMMATION MULTIPLE
@@ -2676,127 +2642,38 @@ class AffectationController extends Controller
         }
     }
 
-    // ============================================================
-    // ✅ REFUSER PROGRAMMATION MULTIPLE
-    // ============================================================
     public function refuserProgrammationMultiple(Request $request)
-    {
-        $request->validate([
-            'affectation_ids'   => 'required|array|min:1',
-            'affectation_ids.*' => 'integer|exists:affectations,id',
-            'date_refus'        => 'required|date',
-            'motif_refus'       => 'required|string|min:5|max:1000',
-        ]);
+{
+    $request->validate([
+        'affectation_ids'   => 'required|array|min:1',
+        'affectation_ids.*' => 'integer|exists:affectations,id',
+        'date_refus'        => 'required|date',
+        'motif_refus'       => 'required|string|min:5|max:1000',
+    ]);
 
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            $ids  = $request->affectation_ids;
-            $affs = Affectation::with(['beneficiaire', 'lot', 'bloc'])
-                ->whereIn('id', $ids)
-                ->where('statut_acceptation', 'en_attente')
-                ->get();
-
-            if ($affs->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Aucune affectation en attente trouvée.',
-                ], 422);
-            }
-
-            $lotsRefuses = $affs->map(fn ($aff) => [
-                'numero'     => $aff->lot?->numero,
-                'bloc'       => $aff->bloc?->code,
-                'superficie' => $aff->lot?->superficie,
-            ])->values()->toArray();
-
-            foreach ($affs as $aff) {
-                $aff->lot?->update(['disponible' => true]);
-            }
-
-           Affectation::whereIn('id', $ids)
-    ->where('statut_acceptation', 'en_attente')
-    ->update([
-        'statut'             => 'annule',
-                    'statut_acceptation' => 'refuse',
-                    'date_refus'         => $request->date_refus,
-                    'refuse_le'          => now(),
-                    'motif_refus'        => $request->motif_refus,
-                    'refuse_par'         => auth()->id(),
-                    'date_acceptation'   => null,
-                    'accepte_le'         => null,
-                    'accepte_par'        => null,
-                ]);
-
-            $benefIds = $affs->pluck('beneficiaire_id')->filter()->unique()->toArray();
-
-            foreach ($benefIds as $benefId) {
-                $benef = Beneficiaire::find($benefId);
-                if ($benef) {
-                    $nouvelleSuperficie = Affectation::where('beneficiaire_id', $benef->id)
-                        ->where('statut', 'actif')
-                        ->where('statut_acceptation', '!=', 'refuse')
-                        ->join('lots_affectation', 'affectations.lot_affectation_id', '=', 'lots_affectation.id')
-                        ->sum('lots_affectation.superficie');
-
-                    $nouveauxLotsTexte = Affectation::where('beneficiaire_id', $benef->id)
-                        ->where('statut', 'actif')
-                        ->where('statut_acceptation', '!=', 'refuse')
-                        ->with('lot')
-                        ->get()
-                        ->pluck('lot.numero')
-                        ->filter()
-                        ->unique()
-                        ->implode(', ');
-
-                    $benef->update([
-                        'superficie_attribuee' => $nouvelleSuperficie,
-                        'lots_texte'           => $nouveauxLotsTexte,
-                    ]);
-                }
-            }
-
-            $premier = $affs->first();
-            $dateFmt = \Carbon\Carbon::parse($request->date_refus)->format('d/m/Y');
-
-            HistoriqueService::log(
-                $premier->dossier_client_id,
-                'annulation_affectation',
-                "❌ Programmation REFUSÉE le {$dateFmt} — « "
-                    . ($premier->beneficiaire?->nom ?? '—')
-                    . " » — {$affs->count()} lot(s) — Motif : {$request->motif_refus}",
-                'beneficiaire',
-                $premier->beneficiaire_id,
-                [
-                    'statut_acceptation' => 'en_attente',
-                    'lots'               => $lotsRefuses,
-                ],
-                [
-                    'statut'             => 'annule',
-                    'statut_acceptation' => 'refuse',
-                    'date_refus'         => $request->date_refus,
-                    'motif'              => $request->motif_refus,
-                    'lots'               => $lotsRefuses,
-                ],
-                $premier->beneficiaire_id
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => "❌ {$affs->count()} affectation(s) refusée(s) le {$dateFmt}",
+        Affectation::whereIn('id', $request->affectation_ids)
+            ->where('statut_acceptation', 'en_attente')
+            ->update([
+                'refus_en_attente'  => true,
+                'date_refus_prevue' => $request->date_refus,
+                'motif_refus_prevu' => $request->motif_refus,
             ]);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur refuserProgrammationMultiple : ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
-            ], 500);
-        }
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refus enregistré en attente — sera appliqué à la génération du rapport.',
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur refuserProgrammationMultiple : ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => '❌ Erreur : ' . $e->getMessage()], 500);
     }
+}
 
     // ============================================================
     // ✅ HISTORIQUE DES AFFECTATIONS
@@ -2869,8 +2746,7 @@ class AffectationController extends Controller
 
         return null;
     }
-
-   public function choixDimanche(Request $request)
+public function choixDimanche(Request $request)
 {
     $moisParam = $request->input('mois', now()->format('Y-m'));
     try {
@@ -2895,14 +2771,15 @@ class AffectationController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 🔒 DATE LIMITE : Dernière date non-terminée
-    //    Toute date > cette limite est VERROUILLÉE
+    // 🔒 DATE LIMITE : Plus ancienne affectation non-terminée
     // ═══════════════════════════════════════════════════════════
-
-    // Cherche la PLUS ANCIENNE affectation non-terminée
-    // (statut_acceptation = 'en_attente' sur une date passée)
+    // ✅ Correction : exclure aussi les refus_en_attente
     $dateLimite = Affectation::where('statut', 'actif')
         ->where('statut_acceptation', 'en_attente')
+        ->where(function ($q) {
+            $q->where('refus_en_attente', false)
+              ->orWhereNull('refus_en_attente');
+        })
         ->whereNotNull('date_implantation')
         ->whereDate('date_implantation', '<', now()->format('Y-m-d'))
         ->min('date_implantation');
@@ -2915,8 +2792,13 @@ class AffectationController extends Controller
     $nbEnAttente = 0;
     $datesEnAttente = [];
     if ($dateVerrouillage) {
+        // ✅ Exclusion des refus_en_attente
         $queryAttente = Affectation::where('statut', 'actif')
             ->where('statut_acceptation', 'en_attente')
+            ->where(function ($q) {
+                $q->where('refus_en_attente', false)
+                  ->orWhereNull('refus_en_attente');
+            })
             ->whereNotNull('date_implantation')
             ->whereDate('date_implantation', '<=', $dateVerrouillage);
 
@@ -2941,11 +2823,21 @@ class AffectationController extends Controller
         ->get()
         ->groupBy(fn ($aff) => \Carbon\Carbon::parse($aff->date_implantation)->format('Y-m-d'))
         ->map(function ($affs) {
+            // ✅ En attente = statut 'en_attente' ET PAS en refus en attente
+            $vraimentEnAttente = $affs->filter(function ($aff) {
+                return $aff->statut_acceptation === 'en_attente'
+                    && !$aff->refus_en_attente;
+            })->count();
+
+            // ✅ Refus en attente comptés comme "traités"
+            $refusEnAttente    = $affs->where('refus_en_attente', true)->count();
+            $refusesDefinitif  = $affs->where('statut_acceptation', 'refuse')->count();
+
             return [
                 'total'      => $affs->count(),
-                'en_attente' => $affs->where('statut_acceptation', 'en_attente')->count(),
-                'acceptees'  => $affs->where('statut_acceptation', 'accepte')->count(),
-                'refusees'   => $affs->where('statut_acceptation', 'refuse')->count(),
+                'en_attente' => $vraimentEnAttente,                     // ⏳
+                'acceptees'  => $affs->where('statut_acceptation', 'accepte')->count(), // ✅
+                'refusees'   => $refusesDefinitif + $refusEnAttente,    // ❌
             ];
         });
 
@@ -2971,8 +2863,6 @@ class AffectationController extends Controller
             // ✅ Détermine si cette date est verrouillée
             $verrouillee = false;
             if ($dateVerrouillage) {
-                // Une date est verrouillée si elle est APRÈS la date limite
-                // ET que ce n'est pas la date limite elle-même
                 $verrouillee = \Carbon\Carbon::parse($dateStr)->gt(\Carbon\Carbon::parse($dateVerrouillage));
             }
 
@@ -3007,9 +2897,9 @@ class AffectationController extends Controller
         'moisPrecedent',
         'moisSuivant',
         'dateSelectionnee',
-        'dateVerrouillage',   // ✅ Nouveau
-        'nbEnAttente',        // ✅ Nouveau
-        'datesEnAttente'      // ✅ Nouveau
+        'dateVerrouillage',
+        'nbEnAttente',
+        'datesEnAttente'
     ));
 }
 
@@ -3174,6 +3064,8 @@ class AffectationController extends Controller
             'statut_acceptation' => $premier->statut_acceptation,
             'date_acceptation'   => $premier->date_acceptation,
             'motif_refus'        => $premier->motif_refus,
+            'refus_en_attente'  => $premier->refus_en_attente ?? false,
+    'motif_refus_prevu' => $premier->motif_refus_prevu ?? null,
         ];
     })->values();
 
@@ -3260,52 +3152,89 @@ class AffectationController extends Controller
         })->values();
     }
 
-    private function genererEtStockerPdf(
-        string $type,
-        $dateSemaine,
-        $lignes,
-        array $stats,
-        string $titreDocument = null,
-        bool $avecGeometre = false
-    ): DocumentPdf {
-        $titreDocument = $titreDocument ?: 'Rapport programmation';
+   private function genererEtStockerPdf(
+    string $type,
+    $dateSemaine,
+    $lignes,
+    array $stats,
+    string $titreDocument = null,
+    bool $avecGeometre = false,
+    bool $avecStatut = false,
+    array $extra = []      // ✅ NOUVEAU : données narratives
+): DocumentPdf {
+    $titreDocument = $titreDocument ?: 'Rapport programmation';
 
-        $slug = \Illuminate\Support\Str::slug($titreDocument);
-        if (empty($slug)) {
-            $slug = 'rapport';
-        }
-
-        $nomFichier    = $slug . '-' . now()->format('Y-m-d-His') . '.pdf';
-        $cheminRelatif = 'documents_pdf/' . $nomFichier;
-
-        $data = [
-            'type'           => $type,
-            'dateSemaine'    => $dateSemaine,
-            'lignes'         => $lignes,
-            'stats'          => $stats,
-            'titreDocument'  => $titreDocument,
-            'avecGeometre'   => $avecGeometre,
-            'dateGeneration' => now()->format('d/m/Y H:i'),
-        ];
-
-        $pdf = Pdf::loadView('admin.affectations.rapport-programmation-pdf', $data)
-            ->setPaper('A4', 'landscape');
-
-        Storage::disk('public')->put($cheminRelatif, $pdf->output());
-
-        return DocumentPdf::create([
-            'type'              => $type,
-            'nom_fichier'       => $nomFichier,
-            'date_semaine'      => $dateSemaine instanceof \Carbon\Carbon
-                                    ? $dateSemaine->format('Y-m-d')
-                                    : now()->format('Y-m-d'),
-            'chemin_fichier'    => $cheminRelatif,
-            'nb_lignes'         => $lignes->count(),
-            'nb_lots'           => $stats['total_lots'] ?? 0,
-            'superficie_totale' => $stats['total_superficie'] ?? 0,
-            'user_id'           => auth()->id(),
-        ]);
+    $slug = \Illuminate\Support\Str::slug($titreDocument);
+    if (empty($slug)) {
+        $slug = 'rapport';
     }
+
+    $nomFichier    = $slug . '-' . now()->format('Y-m-d-His') . '.pdf';
+    $cheminRelatif = 'documents_pdf/' . $nomFichier;
+
+    $data = [
+        'type'              => $type,
+        'dateSemaine'       => $dateSemaine,
+        'lignes'            => $lignes,
+        'stats'             => $stats,
+        'titreDocument'     => $titreDocument,
+        'avecGeometre'      => $avecGeometre,
+        'avecStatut'        => $avecStatut,
+        'dateGeneration'    => now()->format('d/m/Y H:i'),
+
+        // ✅ Données narratives
+        'narratif'          => $extra['narratif'] ?? [],
+        'totauxParGeometre' => $extra['totauxParGeometre'] ?? [],
+    ];
+
+    $pdf = Pdf::loadView('admin.affectations.rapport-programmation-pdf', $data)
+        ->setPaper('A4', 'portrait');
+
+    Storage::disk('public')->put($cheminRelatif, $pdf->output());
+
+    return DocumentPdf::create([
+        'type'              => $type,
+        'nom_fichier'       => $nomFichier,
+        'date_semaine'      => $dateSemaine instanceof \Carbon\Carbon
+                                ? $dateSemaine->format('Y-m-d')
+                                : now()->format('Y-m-d'),
+        'chemin_fichier'    => $cheminRelatif,
+        'nb_lignes'         => $lignes->count(),
+        'nb_lots'           => $stats['total_lots'] ?? 0,
+        'superficie_totale' => $stats['total_superficie'] ?? 0,
+        'user_id'           => auth()->id(),
+    ]);
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 👥 UPDATE STAGIAIRE (inline)
+ * ═══════════════════════════════════════════════════════════════
+ */
+public function updateStagiaireGroupe(Request $request)
+{
+    $request->validate([
+        'affectation_ids'   => 'required|array|min:1',
+        'affectation_ids.*' => 'integer|exists:affectations,id',
+        'stagiaire'         => 'nullable|string|max:150',
+    ]);
+
+    try {
+        Affectation::whereIn('id', $request->affectation_ids)
+            ->update(['stagiaire' => $request->stagiaire]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Stagiaire enregistré.',
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Erreur updateStagiaireGroupe : ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur : ' . $e->getMessage(),
+        ], 500);
+    }
+}
 
  /**
  * ✅ Valider l'Étape 1 → génère le PDF ET passe à 'programmee'
@@ -3363,7 +3292,9 @@ public function validerEtape1(Request $request)
                 $dateRef,
                 $lignes,
                 $stats,
-                $titreDocument
+                $titreDocument,
+                false,
+                $typeRapport === 'cloture'
             );
 
             DB::commit();
@@ -3488,72 +3419,357 @@ public function validerEtape1(Request $request)
     }
 }
 
-    // ============================================================
-    // ✅ ÉTAPE 3 — Génère le "Rapport des appréciations"
-    // ============================================================
-    public function validerEtape3(Request $request)
-    {
-        try {
-            DB::beginTransaction();
+   /**
+ * ═══════════════════════════════════════════════════════════════
+ * ✅ ÉTAPE 3 — Génère le "Rapport des appréciations"
+ *    avec mPDF (portrait + paysage)
+ * ═══════════════════════════════════════════════════════════════
+ */
+public function validerEtape3(Request $request)
+{
+    try {
+        // ═══════════════════════════════════════════════════════════
+        // 🔒 1. VALIDATION PRÉALABLE
+        // ═══════════════════════════════════════════════════════════
+        $affectationIds = $request->input('affectation_ids', []);
+        $titreDocument  = trim($request->input('titre_document', ''));
+        $narratif       = $request->input('narratif', []);
+        $dateActive     = $this->getDateActiveSession();
 
-            $affectationIds = $request->input('affectation_ids', []);
-            $titreDocument  = trim($request->input('titre_document', ''));
-            $dateActive     = $this->getDateActiveSession();
-
-            if (empty($titreDocument) || strlen($titreDocument) < 3) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Le titre du document est obligatoire (min. 3 caractères).',
-                ], 422);
-            }
-
-            Affectation::whereIn('id', $affectationIds)
-                ->whereIn('etape_programmation', ['nouvelle', 'date_attribuee', 'programmee'])
-                ->update(['etape_programmation' => 'finalisee']);
-
-            $affectations = Affectation::with([
-                'beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot',
-                'geometre', 'dossier.facilitateur',
-            ])
-            ->whereIn('id', $affectationIds)
-            ->get();
-
-            $lignes = $this->grouperLignesPourPdf($affectations);
-
-            $stats = [
-                'total_lots'       => $lignes->sum(fn($l) => count(array_filter(explode(',', $l['lots'] ?? '')))),
-                'total_superficie' => $lignes->sum('superficie'),
-                'acceptes'         => $lignes->where('statut_acceptation', 'accepte')->count(),
-                'refuses'          => $lignes->where('statut_acceptation', 'refuse')->count(),
-            ];
-
-            $doc = $this->genererEtStockerPdf(
-                'programmation_active',
-                $dateActive ?? now(),
-                $lignes,
-                $stats,
-                $titreDocument
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => '✅ Rapport des appréciations enregistré sous « ' . $titreDocument . ' ».',
-                'doc'     => [
-                    'id'  => $doc->id,
-                    'url' => $doc->url,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur validerEtape3: ' . $e->getMessage());
+        // ✅ Vérifier affectation_ids
+        if (!is_array($affectationIds) || empty($affectationIds)) {
             return response()->json([
                 'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
-            ], 500);
+                'message' => '❌ Aucune affectation sélectionnée.',
+            ], 422);
         }
+
+        // ✅ Réindexer proprement (supprime les clés -1, -2, etc.)
+        $affectationIds = array_values(array_filter($affectationIds, function ($id) {
+            return is_numeric($id) && (int) $id > 0;
+        }));
+
+        if (empty($affectationIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ IDs d\'affectation invalides.',
+            ], 422);
+        }
+
+        // ✅ Vérifier titre
+        if (empty($titreDocument) || strlen($titreDocument) < 3) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Le titre du document est obligatoire (min. 3 caractères).',
+            ], 422);
+        }
+
+        // ✅ Sécuriser narratif
+        if (!is_array($narratif)) {
+            $narratif = [];
+        }
+
+        DB::beginTransaction();
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 2. ENREGISTRER LES STAGIAIRES PAR LIGNE
+        // ═══════════════════════════════════════════════════════════
+        $stagiairesLignes = $narratif['stagiaires_lignes'] ?? [];
+
+        if (is_array($stagiairesLignes)) {
+            foreach ($stagiairesLignes as $item) {
+                if (!is_array($item)) continue;
+
+                $ids = $item['affectation_ids'] ?? [];
+                $nomStagiaire = trim($item['stagiaire'] ?? '');
+
+                if (is_array($ids) && !empty($ids) && !empty($nomStagiaire)) {
+                    // ✅ Filtrer les IDs valides
+                    $ids = array_values(array_filter($ids, fn($id) => is_numeric($id) && (int) $id > 0));
+                    if (!empty($ids)) {
+                        Affectation::whereIn('id', $ids)->update(['stagiaire' => $nomStagiaire]);
+                    }
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 3. APPLIQUER LES REFUS EN ATTENTE
+        // ═══════════════════════════════════════════════════════════
+        $affectationsARefuser = Affectation::whereIn('id', $affectationIds)
+            ->where('refus_en_attente', true)
+            ->get();
+
+        foreach ($affectationsARefuser as $aff) {
+            $aff->lot?->update(['disponible' => true]);
+            $aff->update([
+                'statut'             => 'annule',
+                'statut_acceptation' => 'refuse',
+                'date_refus'         => $aff->date_refus_prevue ?? now(),
+                'refuse_le'          => now(),
+                'motif_refus'        => $aff->motif_refus_prevu,
+                'refuse_par'         => auth()->id(),
+                'refus_en_attente'   => false,
+            ]);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 4. MARQUER COMME FINALISÉE
+        // ═══════════════════════════════════════════════════════════
+        Affectation::whereIn('id', $affectationIds)
+            ->whereIn('etape_programmation', ['nouvelle', 'date_attribuee', 'programmee', 'cloturee'])
+            ->update(['etape_programmation' => 'finalisee']);
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 5. RÉCUPÉRER LES AFFECTATIONS POUR LE PDF
+        // ═══════════════════════════════════════════════════════════
+        $affectations = Affectation::with([
+            'beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot',
+            'geometre', 'dossier.facilitateur',
+        ])
+        ->whereIn('id', $affectationIds)
+        ->get();
+
+        // ✅ Convertir en Collection (au cas où)
+        $lignes = $this->grouperLignesPourPdf($affectations);
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 6. CALCULER LES TOTAUX PAR GÉOMÈTRE
+        // ═══════════════════════════════════════════════════════════
+        $totauxParGeometre = [];
+        foreach ($lignes as $ligne) {
+            if (!is_array($ligne)) continue;
+
+            $geo = $ligne['geometre_nom'] ?? 'Non attribué';
+            $statut = strtolower($ligne['statut_final'] ?? '');
+
+            if (str_contains($statut, 'valid') || str_contains($statut, 'accept')) {
+                $totauxParGeometre[$geo] = ($totauxParGeometre[$geo] ?? 0) + 1;
+            }
+        }
+        arsort($totauxParGeometre);
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 7. CALCULER LES STATISTIQUES (avec sécurité)
+        // ═══════════════════════════════════════════════════════════
+        $totalLots = 0;
+        foreach ($lignes as $ligne) {
+            if (!is_array($ligne)) continue;
+            $lotsString = $ligne['lots'] ?? '';
+            if (!empty($lotsString)) {
+                $lotsArray = array_filter(explode(',', $lotsString));
+                $totalLots += count($lotsArray);
+            }
+        }
+
+        $totalSuperficie = 0;
+        foreach ($lignes as $ligne) {
+            if (!is_array($ligne)) continue;
+            $totalSuperficie += (float) ($ligne['superficie'] ?? 0);
+        }
+
+        $nbAcceptes = 0;
+        $nbRefuses  = 0;
+        foreach ($lignes as $ligne) {
+            if (!is_array($ligne)) continue;
+            $statutAccept = $ligne['statut_acceptation'] ?? null;
+            if ($statutAccept === 'accepte') $nbAcceptes++;
+            if ($statutAccept === 'refuse')  $nbRefuses++;
+        }
+
+        $stats = [
+            'total_lignes'     => $lignes->count(),
+            'total_lots'       => $totalLots,
+            'total_superficie' => $totalSuperficie,
+            'acceptes'         => $nbAcceptes,
+            'refuses'          => $nbRefuses,
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // ✅ 8. GÉNÉRER LE PDF AVEC mPDF (portrait + paysage)
+        // ═══════════════════════════════════════════════════════════
+        $doc = $this->genererPdfAppreciations(
+            $dateActive ?? now(),
+            $lignes,
+            $stats,
+            $titreDocument,
+            [
+                'narratif'          => $narratif,
+                'totauxParGeometre' => $totauxParGeometre,
+            ]
+        );
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => '✅ Rapport des appréciations enregistré sous « ' . $titreDocument . ' ».',
+            'doc'     => [
+                'id'  => $doc->id,
+                'url' => $doc->url,
+            ],
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur de validation',
+            'errors'  => $e->errors(),
+        ], 422);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('❌ Erreur validerEtape3', [
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur : ' . $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+        ], 500);
     }
+}
+
+private function genererPdfAppreciations(
+    $dateSemaine,
+    $lignes,
+    array $stats,
+    string $titreDocument,
+    array $extra = []
+): DocumentPdf {
+    try {
+        // ═══════════════════════════════════════════════════════════
+        // 1. Sécuriser les entrées
+        // ═══════════════════════════════════════════════════════════
+        if (!$lignes instanceof \Illuminate\Support\Collection) {
+            $lignes = collect($lignes ?? []);
+        }
+
+        $stats = is_array($stats) ? $stats : [];
+        $extra = is_array($extra) ? $extra : [];
+
+        $narratifExtra     = is_array($extra['narratif'] ?? null) ? $extra['narratif'] : [];
+        $totauxParGeometre = is_array($extra['totauxParGeometre'] ?? null) ? $extra['totauxParGeometre'] : [];
+
+        $statsNormalises = [
+            'total_lots'       => $stats['total_lots']       ?? 0,
+            'total_superficie' => $stats['total_superficie'] ?? 0,
+            'total_lignes'     => $stats['total_lignes']     ?? $lignes->count(),
+            'acceptes'         => $stats['acceptes']         ?? 0,
+            'refuses'          => $stats['refuses']          ?? 0,
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // 2. Préparer les données
+        // ═══════════════════════════════════════════════════════════
+        $data = [
+            'type'              => 'programmation_active',
+            'dateSemaine'       => $dateSemaine,
+            'lignes'            => $lignes,
+            'stats'             => $statsNormalises,
+            'titreDocument'     => $titreDocument,
+            'dateGeneration'    => now()->format('d/m/Y H:i'),
+            'narratif'          => $narratifExtra,
+            'totauxParGeometre' => $totauxParGeometre,
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // 3. Rendre la vue
+        // ═══════════════════════════════════════════════════════════
+        $html = view('admin.affectations.rapport-appreciations', $data)->render();
+
+        // ═══════════════════════════════════════════════════════════
+        // 4. ✅ NETTOYER LES EMOJIS
+        // ═══════════════════════════════════════════════════════════
+        $html = $this->nettoyerHtmlPourMpdf($html);
+
+        // ═══════════════════════════════════════════════════════════
+        // 5. ✅ CONFIGURER mPDF AVEC SUPPORT UTF-8 COMPLET
+        // ═══════════════════════════════════════════════════════════
+        $mpdf = new Mpdf([
+    'mode'              => 'utf-8',
+    'format'            => 'A4',
+    'orientation'       => 'P',
+    'margin_top'        => 15,
+    'margin_bottom'     => 15,
+    'margin_left'       => 14,
+    'margin_right'      => 14,
+    'default_font'      => 'dejavusans',
+    'default_font_size' => 8,
+    'autoScriptToLang'  => true,
+    'autoLangToFont'    => true,
+]);
+
+        $mpdf->WriteHTML($html);
+        $contenuPdf = $mpdf->Output('', 'S');
+
+        // ═══════════════════════════════════════════════════════════
+        // 6. Stocker
+        // ═══════════════════════════════════════════════════════════
+        $slug = \Illuminate\Support\Str::slug($titreDocument);
+        if (empty($slug)) {
+            $slug = 'rapport-appreciations';
+        }
+
+        $nomFichier    = $slug . '-' . now()->format('Y-m-d-His') . '.pdf';
+        $cheminRelatif = 'documents_pdf/' . $nomFichier;
+
+        Storage::disk('public')->put($cheminRelatif, $contenuPdf);
+
+        // ═══════════════════════════════════════════════════════════
+        // 7. Enregistrer
+        // ═══════════════════════════════════════════════════════════
+        return DocumentPdf::create([
+            'type'              => 'programmation_active',
+            'nom_fichier'       => $nomFichier,
+            'date_semaine'      => $dateSemaine instanceof \Carbon\Carbon
+                                    ? $dateSemaine->format('Y-m-d')
+                                    : now()->format('Y-m-d'),
+            'chemin_fichier'    => $cheminRelatif,
+            'nb_lignes'         => $lignes->count(),
+            'nb_lots'           => $statsNormalises['total_lots'],
+            'superficie_totale' => $statsNormalises['total_superficie'],
+            'user_id'           => auth()->id(),
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('❌ Erreur genererPdfAppreciations', [
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+        ]);
+        throw $e;
+    }
+}
+
+/**
+ * Nettoie le HTML des emojis non supportés par mPDF
+ */
+private function nettoyerHtmlPourMpdf(string $html): string
+{
+    // Supprimer les emojis (plages Unicode complètes)
+    $html = preg_replace('/[\x{1F300}-\x{1F9FF}]/u', '', $html);
+    $html = preg_replace('/[\x{2600}-\x{27BF}]/u', '', $html);
+    $html = preg_replace('/[\x{1F000}-\x{1F0FF}]/u', '', $html);
+    $html = preg_replace('/[\x{1F100}-\x{1F1FF}]/u', '', $html);
+    $html = preg_replace('/[\x{1F200}-\x{1F2FF}]/u', '', $html);
+    $html = preg_replace('/[\x{1F600}-\x{1F64F}]/u', '', $html);
+    $html = preg_replace('/[\x{1F680}-\x{1F6FF}]/u', '', $html);
+    $html = preg_replace('/[\x{1F900}-\x{1F9FF}]/u', '', $html);
+    $html = preg_replace('/[\x{1FA00}-\x{1FAFF}]/u', '', $html);
+    $html = preg_replace('/[\x{FE00}-\x{FE0F}]/u', '', $html);
+
+    // Nettoyer les espaces résiduels
+    $html = preg_replace('/\s+/', ' ', $html);
+    $html = str_replace(['> <', '>  <'], '><', $html);
+
+    return $html;
+}
 
     // ============================================================
     // ✅ RAPPORT PDF — ATTRIBUTIONS (date d'affectation)
@@ -3577,7 +3793,8 @@ public function validerEtape1(Request $request)
             $donnees['lignes'],
             $donnees['stats'],
             $titreDocument,
-            false
+            false,
+            true 
         );
 
         return response()->json([
@@ -3612,7 +3829,8 @@ public function validerEtape1(Request $request)
             $donnees['lignes'],
             $donnees['stats'],
             $titreDocument,
-            false
+            true,
+            true
         );
 
         return response()->json([
@@ -3694,6 +3912,10 @@ public function validerEtape1(Request $request)
                 'superficie'         => $affs->sum(fn ($a) => $a->lot?->superficie ?? 0),
                 'date_affectation'   => $premier->date_affectation,
                 'date_implantation'  => $premier->date_implantation,
+                'heure_implantation' => $premier->heure_implantation,     // ✅ OK
+    'geometre_id'        => $premier->geometre_id,             // ✅ OK
+    'geometre_nom'       => $premier->geometre?->name,         // ✅ OK
+    'frais_paye'         => $premier->frais_logistique_paye,   // ✅ OK
             ];
         })->values();
 

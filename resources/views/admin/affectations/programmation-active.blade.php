@@ -26,21 +26,15 @@
 .prog-table tbody tr:hover { background:#f8fafc; }
 .prog-table tbody td { padding:10px 8px; vertical-align:middle; }
 
-/* ✅ Couleurs de présence */
 .prog-table tbody tr.presence-present { background:#f0fdf4; border-left:4px solid #16a34a; }
 .prog-table tbody tr.presence-retard  { background:#fffbeb; border-left:4px solid #f59e0b; }
 .prog-table tbody tr.presence-absent  { background:#fef2f2; border-left:4px solid #dc2626; }
 .prog-table tbody tr.presence-attente { background:#f8fafc; border-left:4px solid #64748b; }
 
-/* ✅ Couleurs d'acceptation/refus (PRIORITÉ sur présence) */
-.prog-table tbody tr.row-accepte {
-    background:#f0fdf4 !important;
-    border-left:4px solid #16a34a !important;
-}
-.prog-table tbody tr.row-refuse {
-    background:#fef2f2 !important;
-    border-left:4px solid #dc2626 !important;
-}
+.prog-table tbody tr.row-accepte { background:#f0fdf4 !important; border-left:4px solid #16a34a !important; }
+.prog-table tbody tr.row-refuse { background:#fef2f2 !important; border-left:4px solid #dc2626 !important; }
+.prog-table tbody tr.row-refus-attente { background:#fef3c7 !important; border-left:4px solid #f59e0b !important; }
+.prog-table tbody tr.row-refus-attente td { opacity: 0.92; }
 
 .prog-table tbody tr.selected { background:#dbeafe !important; box-shadow:inset 0 0 0 2px #1d4ed8; }
 
@@ -64,29 +58,6 @@
 .frais-badge.paye { background:#dcfce7; color:#166534; border:2px solid #86efac; }
 .frais-badge.impaye { background:#fee2e2; color:#991b1b; border:2px solid #fca5a5; }
 
-.heure-input {
-    border:1px solid #e2e8f0; border-radius:6px;
-    padding:4px 6px; font-size:11px; font-weight:700;
-    width:80px; transition:all 0.2s;
-}
-.heure-input:hover:not(:disabled), .heure-input:focus {
-    border-color:#1d4ed8; outline:none;
-    box-shadow:0 0 0 3px rgba(29,78,216,0.1);
-}
-.heure-input:disabled { background:#f1f5f9; cursor:not-allowed; opacity:0.7; }
-
-.geo-select {
-    border:1px solid #e2e8f0; border-radius:6px;
-    padding:4px 6px; font-size:11px;
-    min-width:130px; transition:all 0.2s;
-    background:white;
-}
-.geo-select:hover:not(:disabled), .geo-select:focus {
-    border-color:#1d4ed8; outline:none;
-    box-shadow:0 0 0 3px rgba(29,78,216,0.1);
-}
-.geo-select:disabled { background:#f1f5f9; cursor:not-allowed; opacity:0.7; }
-
 .prog-action-btn {
     width:30px; height:30px; border-radius:6px; border:none;
     cursor:pointer; display:inline-flex; align-items:center;
@@ -103,6 +74,8 @@
 .prog-action-btn.retard:hover:not(:disabled)  { background:#f59e0b; color:white; }
 .prog-action-btn.absent  { background:#fecaca; color:#991b1b; }
 .prog-action-btn.absent:hover:not(:disabled)  { background:#dc2626; color:white; }
+.prog-action-btn.cancel-refus { background:#fef3c7; color:#92400e; border:1px dashed #f59e0b; }
+.prog-action-btn.cancel-refus:hover:not(:disabled) { background:#f59e0b; color:white; }
 
 .prog-action-btn::after {
     content: attr(title);
@@ -147,18 +120,9 @@
     position:sticky; top:10px; z-index:100;
 }
 .selection-bar.visible { display:block; }
-.selection-bar-header {
-    display:flex;justify-content:space-between;align-items:center;
-    flex-wrap:wrap;gap:14px;
-}
-.selection-bar-title {
-    font-weight:800;color:#1d4ed8;font-size:14px;
-    display:flex;align-items:center;gap:8px;
-}
-.selection-bar-count {
-    background:#1d4ed8;color:white;padding:2px 10px;
-    border-radius:20px;font-size:12px;font-weight:800;
-}
+.selection-bar-header { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px; }
+.selection-bar-title { font-weight:800;color:#1d4ed8;font-size:14px;display:flex;align-items:center;gap:8px; }
+.selection-bar-count { background:#1d4ed8;color:white;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:800; }
 .selection-bar-actions { display:flex;gap:8px;flex-wrap:wrap; }
 .btn-action-multiple {
     border:none;border-radius:8px;padding:10px 18px;
@@ -181,10 +145,7 @@
 }
 .btn-clear-selection:hover { border-color:#dc2626; color:#dc2626; }
 
-.checkbox-ligne {
-    width:18px; height:18px; cursor:pointer;
-    accent-color:#1d4ed8;
-}
+.checkbox-ligne { width:18px; height:18px; cursor:pointer; accent-color:#1d4ed8; }
 .checkbox-ligne:disabled { cursor:not-allowed; opacity:0.4; }
 
 .badge-statut {
@@ -199,13 +160,35 @@
 .badge-statut.retard   { background:#fef3c7; color:#92400e; }
 .badge-statut.absent   { background:#fee2e2; color:#991b1b; }
 
-/* ═══ MODALE TITRE ═══ */
-#titreModalOverlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 9998;
+.badge-refus-attente {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 10px; border-radius:8px;
+    font-size:10px; font-weight:900;
+    background:linear-gradient(135deg,#fef3c7,#fde68a);
+    color:#92400e;
+    border:1.5px dashed #f59e0b;
+    margin-left:6px;
+    animation:pulseBadge 2s ease-in-out infinite;
 }
+@keyframes pulseBadge {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.75; }
+}
+
+.motif-refus-preview {
+    font-size:10px;
+    color:#92400e;
+    font-style:italic;
+    margin-top:3px;
+    line-height:1.3;
+    padding:3px 6px;
+    background:#fffbeb;
+    border-left:2px solid #f59e0b;
+    border-radius:3px;
+}
+
+/* ═══ MODALE TITRE ═══ */
+#titreModalOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998; }
 #titreModalOverlay.visible { display: block; }
 
 #titreModal {
@@ -221,6 +204,112 @@
     overflow-y: auto;
 }
 #titreModal.visible { display: block; }
+
+/* ═══════════════════════════════════════════════════════ */
+/* 🎯 WIZARD                                               */
+/* ═══════════════════════════════════════════════════════ */
+.wizard-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(3px); z-index:99998; }
+.wizard-overlay.visible { display:block; }
+
+.wizard-modal {
+    display:none; position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:white; border-radius:16px;
+    box-shadow:0 25px 70px rgba(0,0,0,0.4);
+    z-index:99999; width:750px; max-width:95%; max-height:90vh;
+    overflow:hidden; flex-direction:column;
+}
+.wizard-modal.visible { display:flex; }
+
+.wizard-header {
+    background:linear-gradient(135deg,#7c3aed,#a855f7);
+    color:white; padding:20px 24px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+}
+.wizard-title { font-weight:900; font-size:17px; letter-spacing:0.3px; }
+.wizard-subtitle { font-size:12px; opacity:0.9; margin-top:3px; }
+.wizard-close {
+    background:rgba(255,255,255,0.2); border:none; color:white;
+    width:30px; height:30px; border-radius:50%; cursor:pointer;
+    font-size:14px; display:flex; align-items:center;
+    justify-content:center; transition:0.2s;
+}
+.wizard-close:hover { background:rgba(255,255,255,0.35); transform:rotate(90deg); }
+
+.wizard-progress { height:4px; background:#e2e8f0; }
+.wizard-progress-bar {
+    height:100%; background:linear-gradient(90deg,#7c3aed,#a855f7);
+    width:9.09%; transition:width 0.3s ease; border-radius:0 2px 2px 0;
+}
+
+.wizard-body { padding:24px; overflow-y:auto; flex:1; max-height:55vh; }
+.wizard-step { display:none; }
+.wizard-step.active { display:block; }
+
+.step-title { font-weight:800; font-size:15px; color:#1e3a5f; margin-bottom:6px; }
+.step-desc { font-size:12.5px; color:#64748b; margin-bottom:16px; line-height:1.5; }
+
+.wizard-input, .wizard-textarea {
+    width:100%; padding:11px 14px;
+    border:2px solid #e2e8f0; border-radius:10px;
+    font-size:13.5px; font-family:inherit; transition:0.2s;
+    box-sizing:border-box;
+}
+.wizard-input:focus, .wizard-textarea:focus {
+    outline:none; border-color:#7c3aed;
+    box-shadow:0 0 0 3px rgba(124,58,237,0.1);
+}
+.wizard-textarea { resize:vertical; min-height:100px; line-height:1.5; }
+.wizard-label { display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px; }
+.wizard-hint { font-size:11px; color:#94a3b8; margin-top:6px; }
+
+.wizard-btn-add {
+    margin-top:12px; background:#eff6ff; color:#1d4ed8;
+    border:1.5px dashed #93c5fd; border-radius:8px;
+    padding:8px 16px; font-size:12px; font-weight:700;
+    cursor:pointer; transition:0.2s;
+}
+.wizard-btn-add:hover { background:#dbeafe; border-color:#1d4ed8; }
+
+.autre-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+.autre-row input { flex:1; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:13px; }
+.autre-row button {
+    background:#fee2e2; color:#dc2626; border:none;
+    width:32px; height:32px; border-radius:8px;
+    cursor:pointer; font-weight:900; transition:0.2s;
+}
+.autre-row button:hover { background:#dc2626; color:white; }
+
+.stagiaire-table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+.stagiaire-table thead { background:#f3e8ff; }
+.stagiaire-table thead th {
+    padding:8px; text-align:left; font-weight:800;
+    color:#6b21a8; font-size:11px;
+}
+.stagiaire-table tbody td { padding:6px 8px; border-bottom:1px solid #e9d5ff; }
+.stagiaire-table tbody input {
+    width:100%; padding:6px 10px;
+    border:1.5px solid #e9d5ff; border-radius:6px; font-size:12px;
+}
+.stagiaire-table tbody input:focus { outline:none; border-color:#7c3aed; }
+
+.wizard-footer {
+    padding:16px 24px; background:#f8fafc;
+    border-top:1px solid #e2e8f0;
+    display:flex; justify-content:space-between; gap:10px;
+}
+.wizard-btn {
+    padding:10px 20px; border-radius:10px;
+    font-size:13px; font-weight:800;
+    cursor:pointer; border:none; transition:0.2s;
+}
+.wizard-btn-prev { background:white; color:#64748b; border:1.5px solid #e2e8f0; }
+.wizard-btn-prev:hover { border-color:#94a3b8; }
+.wizard-btn-prev:disabled { opacity:0.4; cursor:not-allowed; }
+.wizard-btn-next { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white; margin-left:auto; }
+.wizard-btn-next:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(124,58,237,0.4); }
+.wizard-btn-finish { background:linear-gradient(135deg,#15803d,#16a34a); color:white; margin-left:auto; }
+.wizard-btn-finish:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(22,163,74,0.4); }
 </style>
 
 {{-- EN-TÊTE --}}
@@ -235,23 +324,23 @@
         </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-    <a href="{{ route('affectations.programmation') }}" class="btn btn-outline-primary btn-sm">
-        ⬅️ Retour étape 1
-    </a>
-    <a href="{{ route('affectations.documents.actives') }}"
-       class="btn btn-sm"
-       style="background:linear-gradient(135deg,#d97706,#f59e0b);
-              color:white;border:none;font-weight:800;
-              box-shadow:0 3px 10px rgba(217,119,6,0.3);">
-        🎯 Mes rapports d'appréciations
-    </a>
-    <a href="{{ route('affectations.liste') }}" class="btn btn-outline-secondary btn-sm">
-        📋 Liste des affectations
-    </a>
-    <button onclick="window.location.reload()" class="btn btn-outline-primary btn-sm">
-        🔄 Actualiser
-    </button>
-</div>
+        <a href="{{ route('affectations.programmation') }}" class="btn btn-outline-primary btn-sm">
+            ⬅️ Retour étape 1
+        </a>
+        <a href="{{ route('affectations.documents.actives') }}"
+           class="btn btn-sm"
+           style="background:linear-gradient(135deg,#d97706,#f59e0b);
+                  color:white;border:none;font-weight:800;
+                  box-shadow:0 3px 10px rgba(217,119,6,0.3);">
+            🎯 Mes rapports d'appréciations
+        </a>
+        <a href="{{ route('affectations.liste') }}" class="btn btn-outline-secondary btn-sm">
+            📋 Liste des affectations
+        </a>
+        <button onclick="window.location.reload()" class="btn btn-outline-primary btn-sm">
+            🔄 Actualiser
+        </button>
+    </div>
 </div>
 
 {{-- 📅 BANDEAU DATE ACTIVE --}}
@@ -360,17 +449,21 @@
                     <th>👷 Géomètre</th>
                     <th>⏰ Heure</th>
                     <th>💰 Frais</th>
-                    <th style="text-align:right;min-width:150px;">Actions</th>
+                    <th style="text-align:right;min-width:180px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($lignes as $index => $ligne)
                 @php
-                    $statutAccept = $ligne['statut_acceptation'] ?? 'en_attente';
-                    $statutPresence = $ligne['statut_presence'] ?? 'en_attente';
+                    $statutAccept      = $ligne['statut_acceptation'] ?? 'en_attente';
+                    $statutPresence    = $ligne['statut_presence'] ?? 'en_attente';
+                    $refusEnAttente    = $ligne['refus_en_attente'] ?? false;
+                    $motifRefusPrevu   = $ligne['motif_refus_prevu'] ?? null;
 
-                    // ✅ PRIORITÉ : accepte/refuse > présence
-                    if ($statutAccept === 'accepte') {
+                    if ($refusEnAttente) {
+                        $rowClass = 'row-refus-attente';
+                        $badge = '<span class="badge-refus-attente">⚠️ Refus en attente</span>';
+                    } elseif ($statutAccept === 'accepte') {
                         $rowClass = 'row-accepte';
                         $badge = '<span class="badge-statut accepte">✅ Accepté</span>';
                     } elseif ($statutAccept === 'refuse') {
@@ -390,7 +483,6 @@
                         $badge = '';
                     }
 
-                    // Une ligne est "figée" si acceptée ou refusée
                     $estFigee = in_array($statutAccept, ['accepte', 'refuse']);
                 @endphp
                 <tr class="{{ $rowClass }}"
@@ -411,6 +503,11 @@
                             {{ $ligne['beneficiaire'] }}
                             {!! $badge !!}
                         </div>
+                        @if($refusEnAttente && $motifRefusPrevu)
+                            <div class="motif-refus-preview">
+                                💬 {{ \Illuminate\Support\Str::limit($motifRefusPrevu, 60) }}
+                            </div>
+                        @endif
                     </td>
                     <td><span class="prog-cell-bold">{{ $ligne['titre_foncier'] }}</span></td>
                     <td><span class="prog-cell-bold">{{ $ligne['bloc'] }}</span></td>
@@ -434,24 +531,24 @@
                     </td>
 
                     <td>
-    @if($ligne['geometre_id'])
-        <span style="font-size:11px;font-weight:700;color:#1e3a5f;background:#eff6ff;padding:3px 8px;border-radius:6px;display:inline-block;">
-            👷 {{ $ligne['geometre_nom'] ?? '—' }}
-        </span>
-    @else
-        <span style="font-size:11px;color:#94a3b8;">— Non attribué —</span>
-    @endif
-</td>
+                        @if($ligne['geometre_id'])
+                            <span style="font-size:11px;font-weight:700;color:#1e3a5f;background:#eff6ff;padding:3px 8px;border-radius:6px;display:inline-block;">
+                                👷 {{ $ligne['geometre_nom'] ?? '—' }}
+                            </span>
+                        @else
+                            <span style="font-size:11px;color:#94a3b8;">— Non attribué —</span>
+                        @endif
+                    </td>
 
-<td>
-    @if($ligne['heure_implantation'])
-        <span style="font-size:11px;font-weight:700;color:#1e3a5f;background:#eff6ff;padding:3px 8px;border-radius:6px;display:inline-block;">
-            ⏰ {{ substr($ligne['heure_implantation'], 0, 5) }}
-        </span>
-    @else
-        <span style="font-size:11px;color:#94a3b8;">—</span>
-    @endif
-</td>
+                    <td>
+                        @if($ligne['heure_implantation'])
+                            <span style="font-size:11px;font-weight:700;color:#1e3a5f;background:#eff6ff;padding:3px 8px;border-radius:6px;display:inline-block;">
+                                ⏰ {{ substr($ligne['heure_implantation'], 0, 5) }}
+                            </span>
+                        @else
+                            <span style="font-size:11px;color:#94a3b8;">—</span>
+                        @endif
+                    </td>
 
                     <td>
                         <span class="frais-badge {{ $ligne['frais_paye'] ? 'paye' : 'impaye' }}"
@@ -466,22 +563,30 @@
 
                     <td>
                         <div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;">
-                            <button class="prog-action-btn accept"
-                                    onclick='ouvrirAccept(@json($ligne["affectation_ids"]), @json($ligne["beneficiaire"]))'
-                                    title="Accepter"
-                                    {{ $estFigee ? 'disabled' : '' }}>✅</button>
-                            <button class="prog-action-btn refuse"
-                                    onclick='ouvrirRefus(@json($ligne["affectation_ids"]), @json($ligne["beneficiaire"]))'
-                                    title="Refuser"
-                                    {{ $estFigee ? 'disabled' : '' }}>❌</button>
-                            <button class="prog-action-btn retard"
-                                    onclick='marquerPresence(@json($ligne["affectation_ids"]), "retard", {{ $ligne["affectation_ids"][0] ?? 0 }})'
-                                    title="Marquer en retard"
-                                    {{ $estFigee ? 'disabled' : '' }}>⏰</button>
-                            <button class="prog-action-btn absent"
-                                    onclick='marquerPresence(@json($ligne["affectation_ids"]), "absent", {{ $ligne["affectation_ids"][0] ?? 0 }})'
-                                    title="Marquer absent"
-                                    {{ $estFigee ? 'disabled' : '' }}>🚫</button>
+                            @if($refusEnAttente)
+                                <button class="prog-action-btn cancel-refus"
+                                        onclick='annulerRefusEnAttente(@json($ligne["affectation_ids"]), @json($ligne["beneficiaire"]))'
+                                        title="Annuler le refus en attente">
+                                    ↩️
+                                </button>
+                            @else
+                                <button class="prog-action-btn accept"
+                                        onclick='ouvrirAccept(@json($ligne["affectation_ids"]), @json($ligne["beneficiaire"]))'
+                                        title="Accepter"
+                                        {{ $estFigee ? 'disabled' : '' }}>✅</button>
+                                <button class="prog-action-btn refuse"
+                                        onclick='ouvrirRefus(@json($ligne["affectation_ids"]), @json($ligne["beneficiaire"]))'
+                                        title="Refuser"
+                                        {{ $estFigee ? 'disabled' : '' }}>❌</button>
+                                <button class="prog-action-btn retard"
+                                        onclick='marquerPresence(@json($ligne["affectation_ids"]), "retard", {{ $ligne["affectation_ids"][0] ?? 0 }})'
+                                        title="Marquer en retard"
+                                        {{ $estFigee ? 'disabled' : '' }}>⏰</button>
+                                <button class="prog-action-btn absent"
+                                        onclick='marquerPresence(@json($ligne["affectation_ids"]), "absent", {{ $ligne["affectation_ids"][0] ?? 0 }})'
+                                        title="Marquer absent"
+                                        {{ $estFigee ? 'disabled' : '' }}>🚫</button>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -514,8 +619,10 @@
     @endif
 </div>
 
-{{-- ✅ BOUTON ENREGISTRER LE PDF FINAL --}}
-@if($lignes->where('validee', false)->count() > 0)
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- ✅ BOUTON ENREGISTRER LE PDF FINAL                          --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+@if($lignes->count() > 0)
 <div style="margin-top:20px;padding:20px;background:white;border-radius:12px;
             box-shadow:0 2px 10px rgba(0,0,0,0.05);border-left:4px solid #f59e0b;
             display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
@@ -524,8 +631,8 @@
             💾 Enregistrer la programmation finalisée
         </div>
         <div style="font-size:12px;color:#64748b;margin-top:4px;">
-            Les <strong>{{ $lignes->where('validee', false)->count() }}</strong> ligne(s) non validées seront archivées et
-            un <strong>PDF final avec statuts</strong> sera généré.
+            Générez le <strong>PDF final avec tous les statuts</strong> de la journée.<br>
+            Vous pouvez regénérer ce PDF à tout moment.
         </div>
     </div>
     <button onclick="validerEtape3()" id="btn-valider-3"
@@ -565,6 +672,12 @@
         <button onclick="fermerRefus()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
     <div id="refusInfo" style="background:#fef2f2;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#991b1b;"></div>
+
+    <div style="background:#fef3c7;border:1.5px dashed #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11.5px;color:#78350f;line-height:1.5;">
+        ⚠️ <strong>Attention :</strong> le refus sera <strong>enregistré en attente</strong>.
+        Il ne sera réellement appliqué qu'à la <strong>génération du rapport PDF final</strong>.
+    </div>
+
     <div style="margin-bottom:12px;">
         <label style="font-size:12px;font-weight:700;color:#64748b;">📅 Date du refus <span style="color:#dc2626;">*</span></label>
         <input type="date" id="refusDate" class="form-control form-control-sm" style="margin-top:6px;" value="{{ now()->format('Y-m-d') }}">
@@ -576,7 +689,9 @@
     </div>
     <div class="d-flex justify-content-end gap-2 mt-4">
         <button onclick="fermerRefus()" class="btn btn-light btn-sm">Annuler</button>
-        <button onclick="validerRefus()" class="btn btn-danger btn-sm" style="font-weight:700;">❌ Confirmer</button>
+        <button onclick="validerRefus()" class="btn btn-warning btn-sm" style="font-weight:700;">
+            ⚠️ Enregistrer le refus en attente
+        </button>
     </div>
 </div>
 
@@ -602,6 +717,12 @@
         <button onclick="fermerRefusMultiple()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
     <div id="refusMultiInfo" style="background:#fef2f2;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#991b1b;"></div>
+
+    <div style="background:#fef3c7;border:1.5px dashed #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11.5px;color:#78350f;line-height:1.5;">
+        ⚠️ <strong>Attention :</strong> les refus seront <strong>enregistrés en attente</strong>.
+        Ils ne seront réellement appliqués qu'à la <strong>génération du rapport PDF final</strong>.
+    </div>
+
     <div style="margin-bottom:12px;">
         <label style="font-size:12px;font-weight:700;color:#64748b;">📅 Date du refus <span style="color:#dc2626;">*</span></label>
         <input type="date" id="refusMultiDate" class="form-control form-control-sm" style="margin-top:6px;" value="{{ now()->format('Y-m-d') }}">
@@ -613,7 +734,9 @@
     </div>
     <div class="d-flex justify-content-end gap-2 mt-4">
         <button onclick="fermerRefusMultiple()" class="btn btn-light btn-sm">Annuler</button>
-        <button onclick="validerRefusMultiple()" class="btn btn-danger btn-sm" style="font-weight:700;">❌ Confirmer</button>
+        <button onclick="validerRefusMultiple()" class="btn btn-warning btn-sm" style="font-weight:700;">
+            ⚠️ Enregistrer les refus en attente
+        </button>
     </div>
 </div>
 
@@ -671,15 +794,18 @@
         <button onclick="fermerModalTitre()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
     <div style="background:#eff6ff;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#1e40af;">
-        ℹ️ Donnez un titre à ce document PDF. Il sera utilisé comme <strong>nom du fichier</strong> et stocké en base.
+        ℹ️ Donnez un nom à ce document. Il sera utilisé comme <strong>nom du fichier PDF</strong>.<br>
+        <span style="font-size:11px;color:#64748b;display:block;margin-top:6px;">
+            Le <strong>titre affiché dans le PDF</strong> sera automatiquement : <em>🎯 RAPPORT DES APPRÉCIATIONS</em>
+        </span>
     </div>
     <label style="font-size:12px;font-weight:700;color:#64748b;">
-        📝 Titre du document <span style="color:#dc2626;">*</span>
+        📝 Nom du fichier <span style="color:#dc2626;">*</span>
     </label>
     <input type="text" id="titreDocumentInput" class="form-control form-control-sm"
-           style="margin-top:6px;" maxlength="150" placeholder="Ex : Clôture du 11/10/2026">
+           style="margin-top:6px;" maxlength="150" placeholder="Ex : Appréciations du 08/10/2026">
     <div style="font-size:11px;color:#94a3b8;margin-top:10px;">
-        💡 Fichier : <strong id="apercuNomFichier">titre-2026-10-11.pdf</strong>
+        💡 Fichier : <strong id="apercuNomFichier">titre-2026-10-08.pdf</strong>
     </div>
     <div id="titreError" style="display:none;margin-top:10px;padding:8px 12px;background:#fee2e2;border-radius:6px;font-size:11px;color:#991b1b;">
         ⚠️ Le titre est obligatoire (min. 3 caractères).
@@ -689,6 +815,122 @@
         <button onclick="confirmerTitreEtValider()" class="btn btn-primary btn-sm" style="font-weight:700;">
             ✅ Confirmer et télécharger
         </button>
+    </div>
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- 🎯 MODALE WIZARD RAPPORT D'APPRÉCIATIONS (11 étapes)        --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+<div id="wizardOverlay" class="wizard-overlay" onclick="fermerWizard()"></div>
+
+<div id="wizard" class="wizard-modal">
+    <div class="wizard-header">
+        <div>
+            <div class="wizard-title">📄 Rapport des appréciations</div>
+            <div class="wizard-subtitle">Étape <span id="wizardStepNum">1</span> sur 11</div>
+        </div>
+        <button onclick="fermerWizard()" class="wizard-close">✕</button>
+    </div>
+
+    <div class="wizard-progress">
+        <div class="wizard-progress-bar" id="wizardProgressBar"></div>
+    </div>
+
+    <div class="wizard-body">
+
+        <div class="wizard-step active" data-step="1">
+            <div class="step-title">📄 Titre du document</div>
+            <div class="step-desc">Ce titre sera utilisé comme <strong>nom du fichier PDF</strong>.</div>
+            <input type="text" id="wz_titre" class="wizard-input" placeholder="Ex: Rapport du 04/10/2026" maxlength="150">
+            <div class="wizard-hint">💡 Minimum 3 caractères</div>
+        </div>
+
+        <div class="wizard-step" data-step="2">
+            <div class="step-title">📝 Introduction</div>
+            <div class="step-desc">Décrivez le contexte de la mission.</div>
+            <textarea id="wz_introduction" class="wizard-textarea" rows="6" placeholder="La brigade des implantations du groupe EDEN a été conviée à..."></textarea>
+        </div>
+
+        <div class="wizard-step" data-step="3">
+            <div class="step-title">📊 Texte récapitulatif</div>
+            <div class="step-desc">Résumé global des travaux (précède le tableau).</div>
+            <textarea id="wz_recapitulatif" class="wizard-textarea" rows="5" placeholder="Les travaux topographiques avaient été prévus pour..."></textarea>
+        </div>
+
+        <div class="wizard-step" data-step="4">
+            <div class="step-title">⚠️ Difficultés rencontrées</div>
+            <div class="step-desc">Listez les problèmes (optionnel).</div>
+            <textarea id="wz_difficultes" class="wizard-textarea" rows="5" placeholder="Ex: Le refus de la cliente X justifié par..."></textarea>
+        </div>
+
+        <div class="wizard-step" data-step="5">
+            <div class="step-title">👮 Avis — Agents de sécurité</div>
+            <textarea id="wz_securite" class="wizard-textarea" rows="6" placeholder="À notre arrivée sur le site..."></textarea>
+        </div>
+
+        <div class="wizard-step" data-step="6">
+            <div class="step-title">🎓 Avis — Stagiaires</div>
+            <textarea id="wz_stagiaires_avis" class="wizard-textarea" rows="6" placeholder="Grâce à leur engagement..."></textarea>
+        </div>
+
+        <div class="wizard-step" data-step="7">
+            <div class="step-title">👥 Stagiaires par ligne</div>
+            <div class="step-desc">Saisissez le nom du stagiaire pour chaque bénéficiaire.</div>
+
+            <table class="stagiaire-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60%;">Bénéficiaire</th>
+                        <th style="width: 40%;">Stagiaire</th>
+                    </tr>
+                </thead>
+                <tbody id="wz_stagiaires_container"></tbody>
+            </table>
+        </div>
+
+        <div class="wizard-step" data-step="8">
+            <div class="step-title">🚗 Chauffeurs et Autres</div>
+            <div class="step-desc">Ajoutez les personnes (chauffeurs, photographes, superviseurs...).</div>
+
+            <div id="wz_autres_container"></div>
+            <button type="button" onclick="ajouterAutre()" class="wizard-btn-add">➕ Ajouter une personne</button>
+        </div>
+
+        {{-- 🆕 ÉTAPE 9 : CONCLUSION --}}
+        <div class="wizard-step" data-step="9">
+            <div class="step-title">🎯 Conclusion</div>
+            <div class="step-desc">Texte de clôture du rapport d'appréciations.</div>
+            <textarea id="wz_conclusion" class="wizard-textarea" rows="6"
+                      placeholder="Au terme de cette mission, la brigade des implantations du groupe EDEN a mené avec succès l'ensemble des travaux topographiques prévus."></textarea>
+        </div>
+
+        {{-- 🆕 ÉTAPE 10 : PIÈCES JOINTES --}}
+        <div class="wizard-step" data-step="10">
+            <div class="step-title">📎 Pièces jointes</div>
+            <div class="step-desc">Listez les documents joints à ce rapport.</div>
+
+            <div id="wz_pieces_jointes_container"></div>
+            <button type="button" onclick="ajouterPieceJointe()" class="wizard-btn-add">➕ Ajouter une pièce jointe</button>
+        </div>
+
+        {{-- ÉTAPE 11 : SIGNATAIRE (anciennement 9) --}}
+        <div class="wizard-step" data-step="11">
+            <div class="step-title">✍️ Signataire</div>
+            <div class="step-desc">Nom et poste du signataire du rapport.</div>
+
+            <label class="wizard-label">Nom complet</label>
+            <input type="text" id="wz_signataire_nom" class="wizard-input" value="Josiane Morelle NGOLO AYISSI" maxlength="100">
+
+            <label class="wizard-label" style="margin-top: 12px;">Poste</label>
+            <input type="text" id="wz_signataire_poste" class="wizard-input" value="Chef de bureau des installations et du suivi des implantations" maxlength="150">
+        </div>
+
+    </div>
+
+    <div class="wizard-footer">
+        <button type="button" onclick="wizardPrecedent()" class="wizard-btn wizard-btn-prev" id="wzBtnPrev">← Précédent</button>
+        <button type="button" onclick="wizardSuivant()" class="wizard-btn wizard-btn-next" id="wzBtnNext">Suivant →</button>
+        <button type="button" onclick="wizardFinaliser()" class="wizard-btn wizard-btn-finish" id="wzBtnFinish" style="display:none;">✅ Générer le rapport</button>
     </div>
 </div>
 
@@ -704,7 +946,14 @@ let lignesSelectionnees = new Map();
 let actionEnAttente = null;
 
 // ════════════════════════════════════════════════════════════════
-// 🎯 MODALE TITRE
+// 🎯 WIZARD (11 étapes)
+// ════════════════════════════════════════════════════════════════
+let wizardStep = 1;
+const WIZARD_TOTAL_STEPS = 11;
+let wizardAffectationIds = [];
+
+// ════════════════════════════════════════════════════════════════
+// 🎯 MODALE TITRE (conservée pour compatibilité)
 // ════════════════════════════════════════════════════════════════
 function demanderTitre(callback) {
     actionEnAttente = callback;
@@ -712,16 +961,16 @@ function demanderTitre(callback) {
 
     document.getElementById('titreDocumentInput').value = '';
     document.getElementById('titreError').style.display = 'none';
-    document.getElementById('apercuNomFichier').textContent = 'programmation-' + dateStr + '.pdf';
+    document.getElementById('apercuNomFichier').textContent = 'appreciations-' + dateStr + '.pdf';
 
     document.getElementById('titreDocumentInput').oninput = function() {
-        const val = this.value.trim() || 'programmation';
+        const val = this.value.trim() || 'appreciations';
         const slug = val.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '');
         document.getElementById('apercuNomFichier').textContent =
-            (slug || 'programmation') + '-' + dateStr + '.pdf';
+            (slug || 'appreciations') + '-' + dateStr + '.pdf';
     };
 
     document.getElementById('titreModalOverlay').classList.add('visible');
@@ -736,31 +985,24 @@ function fermerModalTitre() {
 
 function confirmerTitreEtValider() {
     const titre = document.getElementById('titreDocumentInput').value.trim();
-
     if (!titre || titre.length < 3) {
         document.getElementById('titreError').style.display = 'block';
         return;
     }
-
     document.getElementById('titreError').style.display = 'none';
-
     const callback = actionEnAttente;
-
     document.getElementById('titreModalOverlay').classList.remove('visible');
     document.getElementById('titreModal').classList.remove('visible');
     actionEnAttente = null;
-
-    if (typeof callback === 'function') {
-        callback(titre);
-    }
+    if (typeof callback === 'function') callback(titre);
 }
 
 // ════════════════════════════════════════════════════════════════
-// ✅ VALIDER L'ÉTAPE 3 (avec modale titre)
+// ✅ VALIDER L'ÉTAPE 3 — Ouvre le WIZARD
 // ════════════════════════════════════════════════════════════════
 function validerEtape3() {
     const affectationIds = [];
-    document.querySelectorAll('.checkbox-ligne-item:not([disabled])').forEach(cb => {
+    document.querySelectorAll('.checkbox-ligne-item').forEach(cb => {
         try {
             const ids = JSON.parse(cb.dataset.affectationIds || '[]');
             ids.forEach(id => {
@@ -774,47 +1016,180 @@ function validerEtape3() {
         return;
     }
 
-    demanderTitre(function(titre) {
-        envoyerValidationEtape3(affectationIds, titre);
-    });
+    ouvrirWizard(affectationIds);
 }
 
-function envoyerValidationEtape3(affectationIds, titreDocument) {
-    const btn = document.getElementById('btn-valider-3');
-    const originalText = btn.innerHTML;
+function ouvrirWizard(affectationIds) {
+    wizardAffectationIds = affectationIds;
+
+    const today = new Date().toLocaleDateString('fr-FR');
+    document.getElementById('wz_titre').value = 'Rapport des appréciations du ' + today;
+
+    // 🆕 Pré-remplir la conclusion par défaut
+    document.getElementById('wz_conclusion').value =
+        "Au terme de cette mission, la brigade des implantations du groupe EDEN a mené avec succès l'ensemble des travaux topographiques prévus.";
+
+    // 🆕 Initialiser les pièces jointes avec la PJ par défaut
+    document.getElementById('wz_pieces_jointes_container').innerHTML = '';
+    ajouterPieceJointe('Fichier de mise à jour des différents sites');
+
+    // Générer stagiaires par ligne
+    const container = document.getElementById('wz_stagiaires_container');
+    container.innerHTML = '';
+
+    document.querySelectorAll('.checkbox-ligne-item').forEach(cb => {
+        try {
+            const ids = JSON.parse(cb.dataset.affectationIds || '[]');
+            if (!ids.length) return;
+
+            const row = cb.closest('tr');
+            let nom = row.querySelector('.prog-nom')?.textContent.trim() || '—';
+            nom = nom.replace('✅ Accepté', '').replace('❌ Refusé', '')
+                     .replace('👤 Présent', '').replace('⏰ Retard', '')
+                     .replace('🚫 Absent', '').replace('⚠️ Refus en attente', '').trim();
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${nom}</strong></td>
+                <td><input type="text" class="wz-stagiaire-par-ligne" data-ids='${JSON.stringify(ids)}' placeholder="Nom du stagiaire"></td>
+            `;
+            container.appendChild(tr);
+        } catch (e) {}
+    });
+
+    document.getElementById('wz_autres_container').innerHTML = '';
+    ajouterAutre();
+
+    wizardStep = 1;
+    mettreAJourWizard();
+    document.getElementById('wizardOverlay').classList.add('visible');
+    document.getElementById('wizard').classList.add('visible');
+}
+
+function fermerWizard() {
+    document.getElementById('wizardOverlay').classList.remove('visible');
+    document.getElementById('wizard').classList.remove('visible');
+}
+
+function mettreAJourWizard() {
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.wizard-step[data-step="${wizardStep}"]`).classList.add('active');
+    document.getElementById('wizardStepNum').textContent = wizardStep;
+    document.getElementById('wizardProgressBar').style.width = (wizardStep / WIZARD_TOTAL_STEPS * 100) + '%';
+    document.getElementById('wzBtnPrev').disabled = (wizardStep === 1);
+    document.getElementById('wzBtnNext').style.display = (wizardStep === WIZARD_TOTAL_STEPS) ? 'none' : 'inline-block';
+    document.getElementById('wzBtnFinish').style.display = (wizardStep === WIZARD_TOTAL_STEPS) ? 'inline-block' : 'none';
+}
+
+function wizardSuivant() {
+    if (wizardStep === 1) {
+        const titre = document.getElementById('wz_titre').value.trim();
+        if (titre.length < 3) { showToast('⚠️ Titre obligatoire (min. 3 caractères).', 'warning'); return; }
+    }
+    if (wizardStep < WIZARD_TOTAL_STEPS) { wizardStep++; mettreAJourWizard(); }
+}
+
+function wizardPrecedent() {
+    if (wizardStep > 1) { wizardStep--; mettreAJourWizard(); }
+}
+
+function ajouterAutre() {
+    const container = document.getElementById('wz_autres_container');
+    const row = document.createElement('div');
+    row.className = 'autre-row';
+    row.innerHTML = `
+        <input type="text" class="wz-autre-nom" placeholder="Nom (ex: M. JOHN)">
+        <input type="text" class="wz-autre-role" placeholder="Rôle (ex: Conduite)">
+        <button type="button" onclick="this.parentElement.remove()">✕</button>
+    `;
+    container.appendChild(row);
+}
+
+// 🆕 Ajouter une pièce jointe
+function ajouterPieceJointe(valeur = '') {
+    const container = document.getElementById('wz_pieces_jointes_container');
+    const row = document.createElement('div');
+    row.className = 'autre-row';
+    row.innerHTML = `
+        <input type="text" class="wz-piece-jointe" placeholder="Ex: Fichier de mise à jour des différents sites" value="${valeur.replace(/"/g, '&quot;')}">
+        <button type="button" onclick="this.parentElement.remove()">✕</button>
+    `;
+    container.appendChild(row);
+}
+
+function wizardFinaliser() {
+    const titre = document.getElementById('wz_titre').value.trim();
+    if (titre.length < 3) { showToast('⚠️ Titre obligatoire.', 'warning'); return; }
+
+    const stagiairesLignes = [];
+    document.querySelectorAll('.wz-stagiaire-par-ligne').forEach(input => {
+        try {
+            const ids = JSON.parse(input.dataset.ids || '[]');
+            const stagiaire = input.value.trim();
+            if (stagiaire) stagiairesLignes.push({ affectation_ids: ids, stagiaire: stagiaire });
+        } catch (e) {}
+    });
+
+    const autres = [];
+    document.querySelectorAll('#wz_autres_container .autre-row').forEach(row => {
+        const nom  = row.querySelector('.wz-autre-nom')?.value.trim();
+        const role = row.querySelector('.wz-autre-role')?.value.trim();
+        if (nom && role) autres.push({ nom, role });
+    });
+
+    // 🆕 Récupérer les pièces jointes
+    const piecesJointes = [];
+    document.querySelectorAll('.wz-piece-jointe').forEach(input => {
+        const val = input.value.trim();
+        if (val) piecesJointes.push(val);
+    });
+
+    const payload = {
+        affectation_ids: wizardAffectationIds,
+        titre_document:  titre,
+        narratif: {
+            introduction:      document.getElementById('wz_introduction').value.trim(),
+            recapitulatif:     document.getElementById('wz_recapitulatif').value.trim(),
+            difficultes:       document.getElementById('wz_difficultes').value.trim(),
+            securite:          document.getElementById('wz_securite').value.trim(),
+            stagiaires_avis:   document.getElementById('wz_stagiaires_avis').value.trim(),
+            stagiaires_lignes: stagiairesLignes,
+            autres:            autres,
+            conclusion:        document.getElementById('wz_conclusion').value.trim(),   // 🆕
+            pieces_jointes:    piecesJointes,                                            // 🆕
+            signataire_nom:    document.getElementById('wz_signataire_nom').value.trim(),
+            signataire_poste:  document.getElementById('wz_signataire_poste').value.trim(),
+        },
+    };
+
+    const btn = document.getElementById('wzBtnFinish');
     btn.disabled = true;
-    btn.innerHTML = '⏳ Traitement...';
+    btn.innerHTML = '⏳ Génération...';
 
     if (window.EdenLoader) window.EdenLoader.show();
 
     fetch('{{ route("affectations.valider-etape-3") }}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF,
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-            affectation_ids: affectationIds,
-            titre_document:  titreDocument,
-        }),
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
     })
     .then(r => r.json())
     .then(data => {
         if (window.EdenLoader) window.EdenLoader.hide();
         btn.disabled = false;
-        btn.innerHTML = originalText;
+        btn.innerHTML = '✅ Générer le rapport';
 
         if (data.success) {
+            fermerWizard();
             showToast('✅ ' + data.message, 'success');
-            if (data.doc && data.doc.url) window.open(data.doc.url, '_blank');
-            setTimeout(() => location.reload(), 1200);
+            if (data.doc?.url) window.open(data.doc.url, '_blank');
+            setTimeout(() => location.reload(), 1500);
         } else alert('❌ ' + (data.message || 'Erreur'));
     })
     .catch(err => {
         if (window.EdenLoader) window.EdenLoader.hide();
         btn.disabled = false;
-        btn.innerHTML = originalText;
+        btn.innerHTML = '✅ Générer le rapport';
         console.error(err);
         alert('❌ Erreur réseau');
     });
@@ -918,7 +1293,7 @@ function marquerPresence(affectationIds, statut, rowId) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ACCEPTER / REFUSER MULTIPLE
+// ✅ ACCEPTER / ❌ REFUSER (individuel & multiple)
 // ════════════════════════════════════════════════════════════════
 function ouvrirAcceptMultiple() {
     if (lignesSelectionnees.size === 0) { showToast('⚠️ Aucune ligne sélectionnée', 'warning'); return; }
@@ -969,7 +1344,7 @@ function ouvrirRefusMultiple() {
         <div style="font-weight:700;">⚙️ Action groupée</div>
         <div style="font-size:12px;margin-top:6px;">
             <strong>${lignesSelectionnees.size} ligne(s)</strong>
-            — soit <strong>${tousLesIdsSelectionnes().length} affectation(s)</strong> seront refusées.
+            — soit <strong>${tousLesIdsSelectionnes().length} affectation(s)</strong> seront marquées en attente de refus.
         </div>`;
     document.getElementById('refusMultiDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('refusMultiMotif').value = '';
@@ -1000,7 +1375,7 @@ function validerRefusMultiple() {
     .then(data => {
         if (window.EdenLoader) window.EdenLoader.hide();
         if (data.success) {
-            showToast('❌ ' + data.message, 'success');
+            showToast('⚠️ ' + data.message, 'success');
             fermerRefusMultiple();
             setTimeout(() => location.reload(), 1000);
         } else showToast('❌ ' + (data.message || 'Erreur'), 'error');
@@ -1078,9 +1453,8 @@ function validerModifMultiple() {
     });
 }
 
-
 // ════════════════════════════════════════════════════════════════
-// ACCEPTER / REFUSER INDIVIDUEL
+// ✅ ACCEPTER INDIVIDUEL
 // ════════════════════════════════════════════════════════════════
 function ouvrirAccept(ids, nom) {
     acceptIds = ids;
@@ -1123,6 +1497,7 @@ function validerAccept() {
     });
 }
 
+// ✅ REFUSER INDIVIDUEL — Enregistre en attente
 function ouvrirRefus(ids, nom) {
     refusIds = ids;
     document.getElementById('refusInfo').innerHTML = `
@@ -1158,9 +1533,36 @@ function validerRefus() {
     .then(data => {
         if (window.EdenLoader) window.EdenLoader.hide();
         if (data.success) {
-            showToast('❌ ' + data.message, 'success');
+            showToast('⚠️ ' + data.message, 'success');
             fermerRefus();
             setTimeout(() => location.reload(), 1000);
+        } else showToast('❌ ' + (data.message || 'Erreur'), 'error');
+    })
+    .catch(() => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        showToast('❌ Erreur réseau', 'error');
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
+// ↩️ ANNULER UN REFUS EN ATTENTE
+// ════════════════════════════════════════════════════════════════
+function annulerRefusEnAttente(ids, nom) {
+    if (!confirm(`↩️ Annuler le refus en attente pour « ${nom} » ?\n\nLa ligne redeviendra modifiable.`)) return;
+
+    if (window.EdenLoader) window.EdenLoader.show();
+
+    fetch('{{ route("affectations.groupe.annuler-refus") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ affectation_ids: ids }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            setTimeout(() => location.reload(), 900);
         } else showToast('❌ ' + (data.message || 'Erreur'), 'error');
     })
     .catch(() => {

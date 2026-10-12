@@ -130,6 +130,34 @@
     font-style: italic;
 }
 
+/* ─── BANDEAU JOURS TRAITÉS ─── */
+.traites-banner {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-left: 4px solid #16a34a;
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 3px 12px rgba(22,163,74,0.13);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.traites-banner .icon {
+    font-size: 26px;
+    animation: pulseTraite 2s ease-in-out infinite;
+}
+.traites-banner .title {
+    font-weight: 900;
+    color: #14532d;
+    font-size: 14px;
+}
+.traites-banner .desc {
+    font-size: 11.5px;
+    color: #15803d;
+    margin-top: 2px;
+}
+
 /* ─── CALENDRIER ─── */
 .calendar-wrap {
     background: white;
@@ -255,6 +283,7 @@
     flex-wrap: wrap;
     gap: 2px;
     margin-top: auto;
+    align-items: center;
 }
 .act-pill {
     font-size: 8px;
@@ -266,6 +295,30 @@
 .act-pill.attente { background: #fef3c7; color: #92400e; }
 .act-pill.accepte { background: #dcfce7; color: #166534; }
 .act-pill.refuse  { background: #fee2e2; color: #991b1b; }
+
+/* ✅ PASTILLE "TERMINÉ" */
+.act-pill.traite {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white;
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 6px;
+    box-shadow: 0 0 0 2px rgba(22,163,74,0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulseTraite 2s ease-in-out infinite;
+}
+@keyframes pulseTraite {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 2px rgba(22,163,74,0.25);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 0 4px rgba(22,163,74,0.15);
+    }
+}
 
 /* Cellule sélectionnée */
 .calendar-cell.selected {
@@ -287,6 +340,16 @@
     font-size: 9px; font-weight: 900;
 }
 
+/* ✅ Cellule entièrement traitée */
+.calendar-cell.termine {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important;
+    border-color: #86efac !important;
+}
+.calendar-cell.termine:hover {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+    border-color: #16a34a !important;
+}
+
 /* Badge "vide" */
 .calendar-cell.vide {
     opacity: 0.6;
@@ -299,7 +362,7 @@
 }
 .calendar-cell.weekend .day-num { color: #dc2626; }
 
-/* ─── 🔒 CELLULE VERROUILLÉE ─── */
+/* 🔒 Cellule VERROUILLÉE */
 .calendar-cell.locked {
     background: repeating-linear-gradient(
         45deg,
@@ -329,6 +392,9 @@
 .calendar-cell.locked .day-num {
     color: #94a3b8;
     text-decoration: line-through;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 .calendar-cell.locked .lock-icon-small {
     font-size: 10px;
@@ -351,6 +417,25 @@
     40%      { transform: rotate(12deg); }
     60%      { transform: rotate(-8deg); }
     80%      { transform: rotate(8deg); }
+}
+
+/* ─── LÉGENDE ─── */
+.legende-calendrier {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 10.5px;
+    color: #475569;
+}
+.legende-calendrier .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 /* ─── RÉCAP SÉLECTION ─── */
@@ -426,9 +511,7 @@
     font-weight: 600;
 }
 
-/* ═══════════════════════════════════════════════════════════════ */
-/* 🎯 TOAST CENTRÉ AU MILIEU (verrouillage)                        */
-/* ═══════════════════════════════════════════════════════════════ */
+/* ═══ TOAST CENTRÉ ═══ */
 .toast-locked-overlay {
     position: fixed;
     inset: 0;
@@ -444,14 +527,12 @@
 .toast-locked-overlay.fade-out {
     animation: overlayFadeOut 0.3s ease forwards;
 }
-
 .toast-locked {
     background: linear-gradient(135deg, #dc2626, #b91c1c);
     color: white;
     padding: 24px 28px;
     border-radius: 16px;
-    box-shadow: 0 25px 60px rgba(220,38,38,0.5),
-                0 10px 25px rgba(0,0,0,0.3);
+    box-shadow: 0 25px 60px rgba(220,38,38,0.5), 0 10px 25px rgba(0,0,0,0.3);
     max-width: 440px;
     width: calc(100% - 40px);
     display: flex;
@@ -463,9 +544,7 @@
     overflow: hidden;
     text-align: left;
 }
-.toast-locked.fade-out {
-    animation: popOutLocked 0.3s ease forwards;
-}
+.toast-locked.fade-out { animation: popOutLocked 0.3s ease forwards; }
 .toast-locked .toast-icon {
     font-size: 38px;
     line-height: 1;
@@ -473,18 +552,11 @@
     filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));
     animation: shakeLock 0.6s ease;
 }
-.toast-locked .toast-body {
-    flex: 1;
-    min-width: 0;
-}
+.toast-locked .toast-body { flex: 1; min-width: 0; }
 .toast-locked .toast-title {
     font-weight: 900;
     font-size: 17px;
-    letter-spacing: 0.3px;
     margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 .toast-locked .toast-message {
     font-size: 13.5px;
@@ -535,8 +607,7 @@
     background: rgba(255,255,255,0.18);
     border: none;
     color: white;
-    width: 26px;
-    height: 26px;
+    width: 26px; height: 26px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 13px;
@@ -552,41 +623,21 @@
 }
 .toast-locked .toast-progress {
     position: absolute;
-    bottom: 0;
-    left: 0;
+    bottom: 0; left: 0;
     height: 4px;
     background: #fbbf24;
     border-radius: 0 0 16px 16px;
     animation: progressBar 3s linear forwards;
 }
-
-@keyframes overlayFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-@keyframes overlayFadeOut {
-    from { opacity: 1; }
-    to   { opacity: 0; }
-}
+@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlayFadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes popInLocked {
-    from {
-        transform: scale(0.7) translateY(30px);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-    }
+    from { transform: scale(0.7) translateY(30px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
 }
 @keyframes popOutLocked {
-    from {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-    }
-    to {
-        transform: scale(0.85) translateY(-20px);
-        opacity: 0;
-    }
+    from { transform: scale(1) translateY(0); opacity: 1; }
+    to   { transform: scale(0.85) translateY(-20px); opacity: 0; }
 }
 @keyframes progressBar {
     from { width: 100%; }
@@ -610,13 +661,10 @@
     .act-pill { font-size: 7px; padding: 1px 3px; }
     .lock-alert .title { font-size: 12px; }
     .lock-alert .desc { font-size: 11px; }
+    .legende-calendrier { font-size: 9px; gap: 8px; }
 }
-
 @media (max-width: 480px) {
-    .toast-locked {
-        padding: 20px 22px;
-        max-width: calc(100% - 32px);
-    }
+    .toast-locked { padding: 20px 22px; max-width: calc(100% - 32px); }
     .toast-locked .toast-title { font-size: 15px; }
     .toast-locked .toast-message { font-size: 12.5px; }
     .toast-locked .toast-icon { font-size: 32px; }
@@ -654,6 +702,23 @@
                 <div class="hint">
                     💡 Traitez d'abord ces affectations pour débloquer les dates suivantes.
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════════ --}}
+    {{-- 🟢 BANDEAU JOURS TRAITÉS                                 --}}
+    {{-- ═══════════════════════════════════════════════════════ --}}
+    @if(isset($totalJoursTraites) && $totalJoursTraites > 0)
+    <div class="traites-banner">
+        <div class="icon">🟢</div>
+        <div style="flex:1;min-width:200px;">
+            <div class="title">
+                {{ $totalJoursTraites }} journée(s) terminée(s)
+            </div>
+            <div class="desc">
+                Toutes ces journées ont leurs affectations traitées (acceptées / refusées / présence).
             </div>
         </div>
     </div>
@@ -706,6 +771,13 @@
                 <div class="val">{{ $totalRefuse }}</div>
             </div>
         </div>
+        <div class="stat-card" style="border-left-color:#16a34a;">
+            <div class="ico" style="background:#dcfce7;color:#16a34a;">🟢</div>
+            <div>
+                <div class="lbl">Jours terminés</div>
+                <div class="val">{{ $totalJoursTraites ?? 0 }}</div>
+            </div>
+        </div>
     </div>
 
     {{-- ═══════════════════════════════════════════════════════ --}}
@@ -718,7 +790,7 @@
             Les pastilles <span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;">⏳</span>,
             <span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;">✅</span> et
             <span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;">❌</span>
-            indiquent le nombre d'affectations par statut. Les dates 🔒 sont verrouillées jusqu'à traitement des antérieures.
+            indiquent le nombre d'affectations par statut. Les dates avec <span style="background:#16a34a;color:white;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;">🟢</span> sont terminées.
         </div>
     </div>
 
@@ -762,6 +834,31 @@
             </div>
         </div>
 
+        {{-- Légende --}}
+        <div class="legende-calendrier">
+            <div class="leg-item">
+                <span style="display:inline-block;padding:1px 6px;border-radius:6px;
+                             background:#fef3c7;color:#92400e;font-size:9px;font-weight:800;">⏳ 3</span>
+                <span>En attente</span>
+            </div>
+            <div class="leg-item">
+                <span style="display:inline-block;padding:1px 6px;border-radius:6px;
+                             background:#dcfce7;color:#166534;font-size:9px;font-weight:800;">✅ 5</span>
+                <span>Acceptées</span>
+            </div>
+            <div class="leg-item">
+                <span style="display:inline-block;padding:1px 6px;border-radius:6px;
+                             background:#fee2e2;color:#991b1b;font-size:9px;font-weight:800;">❌ 2</span>
+                <span>Refusées</span>
+            </div>
+            <div class="leg-item">
+                <span style="display:inline-block;padding:1px 6px;border-radius:6px;
+                             background:linear-gradient(135deg,#16a34a,#15803d);
+                             color:white;font-size:9px;font-weight:800;">🟢</span>
+                <span>Terminé</span>
+            </div>
+        </div>
+
         {{-- En-têtes jours --}}
         <div class="calendar-grid">
             @foreach(['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'] as $i => $jour)
@@ -783,12 +880,18 @@
                             $enAttente  = $cellule['en_attente'];
                             $acceptees  = $cellule['acceptees'];
                             $refusees   = $cellule['refusees'];
+                            $traites    = $cellule['traites'] ?? 0;
                             $vide       = $total === 0;
                             $verrouillee = $cellule['verrouillee'] ?? false;
+
+                            // ✅ Flags de validation
+                            $toutTraite      = $cellule['tout_traite'] ?? false;
+                            $toutTraiteHisto = $cellule['tout_traite_histo'] ?? false;
+                            $afficheTermine  = ($toutTraite || $toutTraiteHisto);
                         @endphp
 
                         @if($verrouillee)
-                            {{-- 🔒 Cellule VERROUILLÉE (avec compteurs grisés) --}}
+                            {{-- 🔒 Cellule VERROUILLÉE --}}
                             <div class="calendar-cell locked"
                                  title="🔒 Verrouillée — Terminez d'abord les affectations antérieures"
                                  onclick="showLockedWarning(
@@ -816,6 +919,9 @@
                                         @if($refusees > 0)
                                             <span class="act-pill refuse">❌ {{ $refusees }}</span>
                                         @endif
+                                        @if($afficheTermine)
+                                            <span class="act-pill traite" title="Journée terminée ✓">🟢</span>
+                                        @endif
                                     </div>
                                 @endif
                             </div>
@@ -826,7 +932,8 @@
                                       {{ $isToday ? 'today' : '' }}
                                       {{ $isSelected ? 'selected' : '' }}
                                       {{ $isWeekend ? 'weekend' : '' }}
-                                      {{ $vide ? 'vide' : '' }}"
+                                      {{ $vide ? 'vide' : '' }}
+                                      {{ $afficheTermine ? 'termine' : '' }}"
                                onclick="event.preventDefault(); document.getElementById('form-set-date-{{ $dateStr }}').submit();">
 
                                 <div class="day-num">{{ $cellule['jour'] }}</div>
@@ -834,13 +941,16 @@
                                 @if($total > 0)
                                     <div class="activity">
                                         @if($enAttente > 0)
-                                            <span class="act-pill attente">⏳ {{ $enAttente }}</span>
+                                            <span class="act-pill attente" title="{{ $enAttente }} en attente">⏳ {{ $enAttente }}</span>
                                         @endif
                                         @if($acceptees > 0)
-                                            <span class="act-pill accepte">✅ {{ $acceptees }}</span>
+                                            <span class="act-pill accepte" title="{{ $acceptees }} acceptée(s)">✅ {{ $acceptees }}</span>
                                         @endif
                                         @if($refusees > 0)
-                                            <span class="act-pill refuse">❌ {{ $refusees }}</span>
+                                            <span class="act-pill refuse" title="{{ $refusees }} refusée(s)">❌ {{ $refusees }}</span>
+                                        @endif
+                                        @if($afficheTermine)
+                                            <span class="act-pill traite" title="Journée terminée ✓">🟢</span>
                                         @endif
                                     </div>
                                 @endif
@@ -909,13 +1019,11 @@
 @section('scripts')
 <script>
 // ════════════════════════════════════════════════════════════════
-// 🔒 TOAST CENTRÉ POUR DATE VERROUILLÉE (3 secondes)
+// 🔒 TOAST CENTRÉ POUR DATE VERROUILLÉE
 // ════════════════════════════════════════════════════════════════
 function showLockedWarning(dateStr, stats = null) {
-    // Supprimer tout overlay existant
     document.querySelectorAll('.toast-locked-overlay').forEach(el => el.remove());
 
-    // Construction du bloc stats (si données fournies)
     let statsHTML = '';
     if (stats && stats.total > 0) {
         statsHTML = `
@@ -928,7 +1036,6 @@ function showLockedWarning(dateStr, stats = null) {
         `;
     }
 
-    // Créer l'overlay qui contient la carte
     const overlay = document.createElement('div');
     overlay.className = 'toast-locked-overlay';
 
@@ -937,9 +1044,7 @@ function showLockedWarning(dateStr, stats = null) {
     card.innerHTML = `
         <div class="toast-icon">🔒</div>
         <div class="toast-body">
-            <div class="toast-title">
-                Date verrouillée
-            </div>
+            <div class="toast-title">Date verrouillée</div>
             <div class="toast-message">
                 La date du <strong>${dateStr}</strong> ne peut pas encore être sélectionnée.
                 Terminez d'abord les affectations antérieures.
@@ -953,22 +1058,15 @@ function showLockedWarning(dateStr, stats = null) {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    // Fonction de fermeture
     const close = () => {
         card.classList.add('fade-out');
         overlay.classList.add('fade-out');
         setTimeout(() => overlay.remove(), 300);
     };
 
-    // Bouton fermer
     card.querySelector('.toast-close').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
-    // Clic sur l'overlay (hors carte) → ferme
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) close();
-    });
-
-    // Touche Échap → ferme
     const onEsc = (e) => {
         if (e.key === 'Escape') {
             close();
@@ -977,11 +1075,8 @@ function showLockedWarning(dateStr, stats = null) {
     };
     document.addEventListener('keydown', onEsc);
 
-    // Auto-fermeture après 3 secondes
     setTimeout(() => {
-        if (document.body.contains(overlay)) {
-            close();
-        }
+        if (document.body.contains(overlay)) close();
     }, 3000);
 }
 </script>

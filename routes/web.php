@@ -289,6 +289,10 @@ Route::get('/api/grand-sites/{grandSite}/sites',
         // ✅ Affichage du dossier d'affectation (commercial peut voir)
         Route::get('/affectations/affecter/{dossier}', [AffectationController::class, 'affecter'])
             ->name('affectations.affecter-form');
+
+            Route::post('/affectations/groupe/annuler-refus',
+    [AffectationController::class, 'annulerRefusEnAttente'])
+    ->name('affectations.groupe.annuler-refus');
     });
 
     // ═════════════════════════════════════════════════════════════════
@@ -440,6 +444,10 @@ Route::get('/api/grand-sites/{grandSite}/sites',
         Route::post('/affectations/rapport-programmation-geometre',
             [AffectationController::class, 'rapportProgrammationGeometrePdf'])
             ->name('affectations.rapport-programmation-geometre-pdf');
+
+            Route::post('/affectations/groupe/update-stagiaire',
+    [AffectationController::class, 'updateStagiaireGroupe'])
+    ->name('affectations.groupe.update-stagiaire');
 
         // ═════════════════════════════════════════════════════════════════
         // 📄 DOCUMENTS PDF — 6 ROUTES (5 types + "tous")

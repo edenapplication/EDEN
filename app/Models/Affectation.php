@@ -16,7 +16,7 @@ class Affectation extends Model
     'accepte_par', 'refuse_par',
     'date_acceptation', 'date_refus', 
     'date_implantation', 'geometre_id',
-    'heure_implantation', 'frais_logistique_paye', 'statut_presence',
+    'heure_implantation', 'frais_logistique_paye', 'statut_presence','stagiaire',
     ];
 
     protected $casts = ['date_affectation' => 'date',
