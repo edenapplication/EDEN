@@ -255,7 +255,7 @@
     <div class="stats-summary">
         <div class="stat">
             <span class="val">{{ $lignes->count() }}</span>
-            <span class="lbl">Lignes</span>
+            <span class="lbl">Affectations</span>
         </div>
         <div class="stat">
             <span class="val">{{ $lignes->sum(fn($l) => count(explode(', ', $l['lots']))) }}</span>
