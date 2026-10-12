@@ -345,11 +345,6 @@
         {{ $titreAffiche }}
     </div>
 
-    @if($dateSemaine)
-        <div class="rapport-date-impl">
-            Date d'implantation : {{ $dateSemaineFmt }}
-        </div>
-    @endif
 
     @if($lignesCollection->count() > 0)
     <table class="stats-banner" cellpadding="0" cellspacing="0">

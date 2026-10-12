@@ -55,7 +55,7 @@
         </div>
         <div class="header-right">
             <div class="date">📅 Généré le {{ $dateGeneration }}</div>
-            <div>{{ $lignes->count() }} ligne(s)</div>
+            <div>{{ $lignes->count() }} Affectation(s)</div>
         </div>
     </div>
 

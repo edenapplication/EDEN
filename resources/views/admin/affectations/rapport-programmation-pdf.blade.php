@@ -352,7 +352,7 @@
         <div class="sous-titre">{{ $sousTitreAffiche }}</div>
         <div class="meta">
             <div><strong>📅 Généré le :</strong> {{ $dateGeneration }}</div>
-            <div><strong>📊 {{ $lignes->count() }} ligne(s)</strong></div>
+            <div><strong>📊 {{ $lignes->count() }} Affectation(s)</strong></div>
         </div>
     </div>
 
@@ -363,7 +363,7 @@
     <div class="stats-banner">
         <div class="stat-item">
             <span class="stat-value">{{ $lignes->count() }}</span>
-            <span class="stat-label">Lignes</span>
+            <span class="stat-label">Affectattion(s)</span>
         </div>
         <div class="stat-item">
             <span class="stat-value">{{ $stats['total_lots'] ?? 0 }}</span>
@@ -382,11 +382,6 @@
         <div class="stat-item">
             <span class="stat-value" style="color:#dc2626;">{{ $stats['refuses'] }}</span>
             <span class="stat-label">Refusés</span>
-        </div>
-        @else
-        <div class="stat-item">
-            <span class="stat-value" style="color:#7c3aed;">{{ $lignes->count() }}</span>
-            <span class="stat-label">Lignes</span>
         </div>
         @endif
     </div>

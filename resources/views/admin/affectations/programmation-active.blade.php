@@ -1137,7 +1137,6 @@ function wizardFinaliser() {
         if (nom && role) autres.push({ nom, role });
     });
 
-    // 🆕 Récupérer les pièces jointes
     const piecesJointes = [];
     document.querySelectorAll('.wz-piece-jointe').forEach(input => {
         const val = input.value.trim();
@@ -1155,8 +1154,8 @@ function wizardFinaliser() {
             stagiaires_avis:   document.getElementById('wz_stagiaires_avis').value.trim(),
             stagiaires_lignes: stagiairesLignes,
             autres:            autres,
-            conclusion:        document.getElementById('wz_conclusion').value.trim(),   // 🆕
-            pieces_jointes:    piecesJointes,                                            // 🆕
+            conclusion:        document.getElementById('wz_conclusion').value.trim(),
+            pieces_jointes:    piecesJointes,
             signataire_nom:    document.getElementById('wz_signataire_nom').value.trim(),
             signataire_poste:  document.getElementById('wz_signataire_poste').value.trim(),
         },
@@ -1181,10 +1180,18 @@ function wizardFinaliser() {
 
         if (data.success) {
             fermerWizard();
-            showToast('✅ ' + data.message, 'success');
-            if (data.doc?.url) window.open(data.doc.url, '_blank');
-            setTimeout(() => location.reload(), 1500);
-        } else alert('❌ ' + (data.message || 'Erreur'));
+
+            // ✅ Toast avec bouton "Voir le PDF" (au lieu d'ouvrir automatiquement)
+            showToastAvecLien(
+                '✅ ' + data.message,
+                data.doc?.url,
+                'success'
+            );
+
+            setTimeout(() => location.reload(), 3000);
+        } else {
+            alert('❌ ' + (data.message || 'Erreur'));
+        }
     })
     .catch(err => {
         if (window.EdenLoader) window.EdenLoader.hide();
@@ -1600,6 +1607,57 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
+
+/**
+ * ✅ Toast avec lien cliquable vers le PDF
+ */
+function showToastAvecLien(message, url, type = 'info') {
+    document.querySelectorAll('.toast-notification').forEach(el => el.remove());
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '12px';
+    toast.style.padding = '14px 18px';
+
+    const msg = document.createElement('span');
+    msg.textContent = message;
+    msg.style.flex = '1';
+
+    if (url) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.textContent = '📄 Voir le PDF';
+        link.style.cssText = `
+            background: white;
+            color: #16a34a;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 12px;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.2s;
+        `;
+        link.onmouseover = () => link.style.transform = 'scale(1.05)';
+        link.onmouseout  = () => link.style.transform = 'scale(1)';
+        toast.appendChild(msg);
+        toast.appendChild(link);
+    } else {
+        toast.appendChild(msg);
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 8000);
+}
+
 </script>
 @endsection
 
