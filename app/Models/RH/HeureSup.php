@@ -1,9 +1,11 @@
 <?php
 namespace App\Models\RH;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class HeureSup extends Model
 {
+    use Auditable;
     protected $table = 'rh_heures_sup';
     protected $fillable = ['employe_id','date','nb_heures','taux_majoration','montant','justification','valide'];
 

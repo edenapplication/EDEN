@@ -1,9 +1,11 @@
 <?php
 namespace App\Models\RH;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Absence extends Model
 {
+    use Auditable;
     protected $table = 'rh_absences';
     protected $fillable = [
         'employe_id','reference','date_debut','date_fin','date_reprise',

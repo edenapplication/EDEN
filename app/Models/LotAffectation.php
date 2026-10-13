@@ -2,9 +2,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class LotAffectation extends Model
 {
+    use Auditable;
     protected $table    = 'lots_affectation';
     protected $fillable = ['grand_site_id','site_id','tf_id','bloc_id','numero','superficie','disponible','actif'];
     protected $casts    = ['disponible' => 'boolean', 'actif' => 'boolean'];

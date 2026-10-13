@@ -1,9 +1,11 @@
 <?php
 namespace App\Models\RH;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Pret extends Model
 {
+    use Auditable;
     protected $table = 'rh_prets';
     protected $fillable = [
         'employe_id','type','montant','duree_mois','mensualite',

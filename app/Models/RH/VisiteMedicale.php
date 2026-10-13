@@ -4,9 +4,11 @@ namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Traits\Auditable;
 
 class VisiteMedicale extends Model
 {
+    use Auditable;
     protected $table = 'rh_visites_medicales';
 
     protected $fillable = [

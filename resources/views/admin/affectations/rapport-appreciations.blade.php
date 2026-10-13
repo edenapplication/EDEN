@@ -307,16 +307,38 @@
 
 @php
     // ═══════════════════════════════════════════════════════
-    // SÉCURISATION DES VARIABLES
+    // 🎯 SÉCURISATION
     // ═══════════════════════════════════════════════════════
-    $dateSemaineFmt = $dateSemaine instanceof \Carbon\Carbon
-        ? $dateSemaine->format('d/m/Y')
-        : ($dateSemaine ? \Carbon\Carbon::parse($dateSemaine)->format('d/m/Y') : now()->format('d/m/Y'));
-
-    $titreAffiche = $titreDocument ?? "Rapport des appréciations du {$dateSemaineFmt}";
-
     $lignesCollection = collect($lignes ?? []);
 
+    // ═══════════════════════════════════════════════════════
+    // 🎯 DATE EXTRAITE DE LA PREMIÈRE LIGNE (date_implantation)
+    // ═══════════════════════════════════════════════════════
+    $dateAffichee = null;
+    $premiereLigne = $lignesCollection->first();
+
+    if ($premiereLigne && is_array($premiereLigne)) {
+        $dateAffichee = $premiereLigne['date_implantation'] ?? null;
+    }
+
+    // Fallback : si pas de date dans la ligne, utiliser $dateSemaine
+    if (empty($dateAffichee)) {
+        $dateAffichee = $dateSemaine;
+    }
+
+    // Formater
+    try {
+        $dateSemaineFmt = $dateAffichee instanceof \Carbon\Carbon
+            ? $dateAffichee->format('d/m/Y')
+            : ($dateAffichee ? \Carbon\Carbon::parse($dateAffichee)->format('d/m/Y') : '');
+    } catch (\Exception $e) {
+        $dateSemaineFmt = '';
+    }
+
+    // Titre
+    $titreAffiche = $titreDocument ?? "Rapport des appréciations du {$dateSemaineFmt}";
+
+    // Stats
     $nbAffectations = $lignesCollection->sum(fn($l) => count($l['affectation_ids'] ?? []));
     $nbGeometres    = $lignesCollection->pluck('geometre_id')->filter()->unique()->count();
     $nbAcceptes     = $lignesCollection->where('statut_acceptation', 'accepte')->count();
@@ -324,8 +346,7 @@
     $nbAbsents      = $lignesCollection->where('statut_presence', 'absent')->count();
     $nbRetards      = $lignesCollection->where('statut_presence', 'retard')->count();
 
-    $showStagiaire = $lignesCollection->first()['stagiaire'] ?? null;
-    $showStagiaire = !empty($showStagiaire);
+    $showStagiaire = !empty($lignesCollection->first()['stagiaire'] ?? null);
 
     $narratif = $narratif ?? [];
 @endphp
@@ -343,7 +364,7 @@
 
     <div class="rapport-titre">
         {{ $titreAffiche }}
-    </div>
+    </div><br>
 
 
     @if($lignesCollection->count() > 0)

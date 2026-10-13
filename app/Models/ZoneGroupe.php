@@ -2,9 +2,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class ZoneGroupe extends Model
 {
+    use Auditable;
     protected $table = 'zone_groupes';
 
     protected $fillable = [

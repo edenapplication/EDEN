@@ -3,9 +3,11 @@
 namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class CnpsLigneDeclaration extends Model
 {
+    use Auditable;
     protected $table = 'rh_cnps_lignes_declaration';
 
     protected $fillable = [

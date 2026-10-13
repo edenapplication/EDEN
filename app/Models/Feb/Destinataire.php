@@ -4,9 +4,11 @@
 namespace App\Models\Feb;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Destinataire extends Model
 {
+    use Auditable;
     protected $table = 'feb_destinataires';
     
     protected $fillable = [

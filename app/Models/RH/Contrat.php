@@ -5,9 +5,11 @@ namespace App\Models\RH;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use App\Traits\Auditable;
 
 class Contrat extends Model
 {
+    use Auditable;
     use SoftDeletes;
 
     protected $table = 'rh_contrats';

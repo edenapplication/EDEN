@@ -97,6 +97,17 @@
 }
 .prog-action-btn:hover::after { opacity: 1; }
 
+/* ═══ 🎓 INPUT STAGIAIRE INLINE ═══ */
+.stagiaire-inline-input {
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.stagiaire-inline-input:focus {
+    outline: none;
+    border-color: #7c3aed !important;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998; }
 .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:14px; box-shadow:0 10px 40px rgba(0,0,0,0.25); z-index:9999; width:520px; max-width:95%; max-height:90vh; overflow-y:auto; }
 
@@ -414,17 +425,17 @@
         <div><div class="lbl">Refusés</div><div class="val">{{ $stats['refuses'] ?? 0 }}</div></div>
     </div>
     <div class="prog-stat" style="border-left-color:#16a34a;">
-        <div class="ico" style="background:#dcfce7;color:#16a34a;">👤</div>
-        <div><div class="lbl">Présents</div><div class="val">{{ $stats['presents'] }}</div></div>
-    </div>
-    <div class="prog-stat" style="border-left-color:#f59e0b;">
-        <div class="ico" style="background:#fef3c7;color:#f59e0b;">⏰</div>
-        <div><div class="lbl">Retards</div><div class="val">{{ $stats['retards'] }}</div></div>
-    </div>
-    <div class="prog-stat" style="border-left-color:#dc2626;">
-        <div class="ico" style="background:#fee2e2;color:#dc2626;">🚫</div>
-        <div><div class="lbl">Absents</div><div class="val">{{ $stats['absents'] }}</div></div>
-    </div>
+    <div class="ico" style="background:#dcfce7;color:#16a34a;">👤</div>
+    <div><div class="lbl">Présents</div><div class="val">{{ $stats['presents'] ?? 0 }}</div></div>
+</div>
+<div class="prog-stat" style="border-left-color:#f59e0b;">
+    <div class="ico" style="background:#fef3c7;color:#f59e0b;">⏰</div>
+    <div><div class="lbl">Retards</div><div class="val">{{ $stats['retards'] ?? 0 }}</div></div>
+</div>
+<div class="prog-stat" style="border-left-color:#dc2626;">
+    <div class="ico" style="background:#fee2e2;color:#dc2626;">🚫</div>
+    <div><div class="lbl">Absents</div><div class="val">{{ $stats['absents'] ?? 0 }}</div></div>
+</div>
 </div>
 
 {{-- TABLEAU --}}
@@ -619,9 +630,7 @@
     @endif
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- ✅ BOUTON ENREGISTRER LE PDF FINAL                          --}}
-{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- ✅ BOUTON ENREGISTRER LE PDF FINAL --}}
 @if($lignes->count() > 0)
 <div style="margin-top:20px;padding:20px;background:white;border-radius:12px;
             box-shadow:0 2px 10px rgba(0,0,0,0.05);border-left:4px solid #f59e0b;
@@ -759,7 +768,7 @@
             <div style="font-size:9px;color:#94a3b8;margin-top:3px;">Vide = ne pas changer</div>
         </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
         <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;">👷 Géomètre</label>
             <select id="modifMultiGeometre" class="form-control form-control-sm">
@@ -768,6 +777,15 @@
                     <option value="{{ $geo->id }}">{{ $geo->name }}</option>
                 @endforeach
             </select>
+        </div>
+        <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;">🎓 Stagiaire</label>
+            <input type="text"
+                   id="modifMultiStagiaire"
+                   class="form-control form-control-sm"
+                   list="liste-stagiaires"
+                   placeholder="Choisir ou saisir...">
+            <div style="font-size:9px;color:#94a3b8;margin-top:3px;">Vide = ne pas changer</div>
         </div>
         <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;">🎯 Statut présence</label>
@@ -896,7 +914,6 @@
             <button type="button" onclick="ajouterAutre()" class="wizard-btn-add">➕ Ajouter une personne</button>
         </div>
 
-        {{-- 🆕 ÉTAPE 9 : CONCLUSION --}}
         <div class="wizard-step" data-step="9">
             <div class="step-title">🎯 Conclusion</div>
             <div class="step-desc">Texte de clôture du rapport d'appréciations.</div>
@@ -904,7 +921,6 @@
                       placeholder="Au terme de cette mission, la brigade des implantations du groupe EDEN a mené avec succès l'ensemble des travaux topographiques prévus."></textarea>
         </div>
 
-        {{-- 🆕 ÉTAPE 10 : PIÈCES JOINTES --}}
         <div class="wizard-step" data-step="10">
             <div class="step-title">📎 Pièces jointes</div>
             <div class="step-desc">Listez les documents joints à ce rapport.</div>
@@ -913,7 +929,6 @@
             <button type="button" onclick="ajouterPieceJointe()" class="wizard-btn-add">➕ Ajouter une pièce jointe</button>
         </div>
 
-        {{-- ÉTAPE 11 : SIGNATAIRE (anciennement 9) --}}
         <div class="wizard-step" data-step="11">
             <div class="step-title">✍️ Signataire</div>
             <div class="step-desc">Nom et poste du signataire du rapport.</div>
@@ -1025,15 +1040,12 @@ function ouvrirWizard(affectationIds) {
     const today = new Date().toLocaleDateString('fr-FR');
     document.getElementById('wz_titre').value = 'Rapport des appréciations du ' + today;
 
-    // 🆕 Pré-remplir la conclusion par défaut
     document.getElementById('wz_conclusion').value =
         "Au terme de cette mission, la brigade des implantations du groupe EDEN a mené avec succès l'ensemble des travaux topographiques prévus.";
 
-    // 🆕 Initialiser les pièces jointes avec la PJ par défaut
     document.getElementById('wz_pieces_jointes_container').innerHTML = '';
     ajouterPieceJointe('Fichier de mise à jour des différents sites');
 
-    // Générer stagiaires par ligne
     const container = document.getElementById('wz_stagiaires_container');
     container.innerHTML = '';
 
@@ -1051,7 +1063,7 @@ function ouvrirWizard(affectationIds) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${nom}</strong></td>
-                <td><input type="text" class="wz-stagiaire-par-ligne" data-ids='${JSON.stringify(ids)}' placeholder="Nom du stagiaire"></td>
+                <td><input type="text" class="wz-stagiaire-par-ligne" data-ids='${JSON.stringify(ids)}' list="liste-stagiaires" placeholder="Nom du stagiaire"></td>
             `;
             container.appendChild(tr);
         } catch (e) {}
@@ -1105,7 +1117,6 @@ function ajouterAutre() {
     container.appendChild(row);
 }
 
-// 🆕 Ajouter une pièce jointe
 function ajouterPieceJointe(valeur = '') {
     const container = document.getElementById('wz_pieces_jointes_container');
     const row = document.createElement('div');
@@ -1181,7 +1192,6 @@ function wizardFinaliser() {
         if (data.success) {
             fermerWizard();
 
-            // ✅ Toast avec bouton "Voir le PDF" (au lieu d'ouvrir automatiquement)
             showToastAvecLien(
                 '✅ ' + data.message,
                 data.doc?.url,
@@ -1405,10 +1415,11 @@ function ouvrirModifMultiple() {
             — soit <strong>${tousLesIdsSelectionnes().length} affectation(s)</strong>
             <br>Remplissez uniquement les champs à modifier.
         </div>`;
-    document.getElementById('modifMultiDate').value    = '';
-    document.getElementById('modifMultiHeure').value   = '';
-    document.getElementById('modifMultiGeometre').value = '';
-    document.getElementById('modifMultiPresence').value = '';
+    document.getElementById('modifMultiDate').value       = '';
+    document.getElementById('modifMultiHeure').value      = '';
+    document.getElementById('modifMultiGeometre').value   = '';
+    document.getElementById('modifMultiStagiaire').value  = '';
+    document.getElementById('modifMultiPresence').value   = '';
     document.getElementById('modifMultiOverlay').style.display = 'block';
     document.getElementById('modifMultiModal').style.display   = 'block';
 }
@@ -1419,12 +1430,13 @@ function fermerModifMultiple() {
 }
 
 function validerModifMultiple() {
-    const date     = document.getElementById('modifMultiDate').value;
-    const heure    = document.getElementById('modifMultiHeure').value;
-    const geo      = document.getElementById('modifMultiGeometre').value;
-    const presence = document.getElementById('modifMultiPresence').value;
+    const date       = document.getElementById('modifMultiDate').value;
+    const heure      = document.getElementById('modifMultiHeure').value;
+    const geo        = document.getElementById('modifMultiGeometre').value;
+    const stagiaire  = document.getElementById('modifMultiStagiaire').value.trim();
+    const presence   = document.getElementById('modifMultiPresence').value;
 
-    if (!date && !heure && !geo && !presence) {
+    if (!date && !heure && !geo && !stagiaire && !presence) {
         showToast('⚠️ Remplissez au moins un champ', 'warning');
         return;
     }
@@ -1442,6 +1454,7 @@ function validerModifMultiple() {
             date_implantation: date || null,
             heure_implantation: heure || null,
             geometre_id: geo || null,
+            stagiaire: stagiaire || null,
             statut_presence: presence || null,
         }),
     })
@@ -1504,7 +1517,6 @@ function validerAccept() {
     });
 }
 
-// ✅ REFUSER INDIVIDUEL — Enregistre en attente
 function ouvrirRefus(ids, nom) {
     refusIds = ids;
     document.getElementById('refusInfo').innerHTML = `
@@ -1579,6 +1591,65 @@ function annulerRefusEnAttente(ids, nom) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// 🎓 SAUVEGARDER LE STAGIAIRE (inline dans le tableau)
+// ════════════════════════════════════════════════════════════════
+function sauvegarderStagiaireInline(input) {
+    const affectationIds = JSON.parse(input.dataset.affectationIds || '[]');
+    const stagiaire = input.value.trim();
+
+    if (!affectationIds.length) {
+        showToast('⚠️ Aucune affectation à modifier', 'warning');
+        return;
+    }
+
+    if (input.dataset.lastValue === stagiaire) {
+        return;
+    }
+
+    input.style.opacity = '0.6';
+    input.style.borderColor = '#7c3aed';
+
+    fetch('{{ route("affectations.update-stagiaire-groupe") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF,
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+            affectation_ids: affectationIds,
+            stagiaire: stagiaire || null,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        input.style.opacity = '1';
+
+        if (data.success) {
+            input.style.borderColor = '#16a34a';
+            input.style.background = '#f0fdf4';
+            input.dataset.lastValue = stagiaire;
+            setTimeout(() => {
+                input.style.background = '';
+                input.style.borderColor = '#e2e8f0';
+            }, 1500);
+            showToast('✅ Stagiaire enregistré', 'success');
+        } else {
+            input.style.borderColor = '#dc2626';
+            input.style.background = '#fef2f2';
+            showToast('❌ ' + (data.message || 'Erreur'), 'error');
+        }
+    })
+    .catch(err => {
+        input.style.opacity = '1';
+        input.style.borderColor = '#dc2626';
+        input.style.background = '#fef2f2';
+        console.error(err);
+        showToast('❌ Erreur réseau', 'error');
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
 // COMPTEURS
 // ════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -1589,6 +1660,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const txt2 = document.getElementById('refusMultiMotif');
     if (txt2) txt2.addEventListener('input', () => {
         document.getElementById('refusMultiCompteur').textContent = txt2.value.length;
+    });
+
+    // Mémoriser les valeurs initiales des champs stagiaires
+    document.querySelectorAll('.stagiaire-inline-input').forEach(input => {
+        input.dataset.lastValue = input.value.trim();
     });
 });
 
@@ -1608,9 +1684,6 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
-/**
- * ✅ Toast avec lien cliquable vers le PDF
- */
 function showToastAvecLien(message, url, type = 'info') {
     document.querySelectorAll('.toast-notification').forEach(el => el.remove());
 
@@ -1660,6 +1733,15 @@ function showToastAvecLien(message, url, type = 'info') {
 
 </script>
 @endsection
+
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+{{-- 🎓 DATALIST GLOBAL DES STAGIAIRES                                --}}
+{{-- ═══════════════════════════════════════════════════════════════ --}}
+<datalist id="liste-stagiaires">
+    @foreach($stagiaires ?? [] as $stagiaire)
+        <option value="{{ $stagiaire }}">
+    @endforeach
+</datalist>
 
 {{-- ═══ PDFs de la date active ═══ --}}
 @if(isset($documentsPdf))

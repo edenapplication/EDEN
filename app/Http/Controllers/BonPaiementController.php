@@ -93,6 +93,7 @@ class BonPaiementController extends Controller
 
         // ✅ 4. Validation des données
         $request->validate([
+            'date_bon'              => 'required|date',
             'versement_dossier'     => 'nullable|numeric|min:0',
             'versement_technique'   => 'nullable|numeric|min:0',
             'versement_logistique'  => 'nullable|numeric|min:0',
@@ -100,8 +101,6 @@ class BonPaiementController extends Controller
             'afficher_reste'        => 'nullable|boolean',
             'notes'                 => 'nullable|string',
         ]);
-
-        $dateBon = now()->toDateString();
 
         // ✅ 5. Charger les paiements existants
         $dossier->load([
@@ -120,7 +119,7 @@ class BonPaiementController extends Controller
             PaiementDossier::create([
                 'dossier_client_id' => $dossier->id,
                 'montant'           => $vDossier,
-                'date_paiement' => $dateBon,
+                'date_paiement'     => $request->date_bon,
                 'note'              => 'Bon ' . BonPaiement::genererNumero(),
                 'user_reference'    => $reference,
             ]);
@@ -129,7 +128,7 @@ class BonPaiementController extends Controller
             PaiementTechnique::create([
                 'dossier_client_id' => $dossier->id,
                 'montant'           => $vTechnique,
-                'date_paiement' => $dateBon,
+                'date_paiement'     => $request->date_bon,
                 'note'              => 'Technique',
                 'user_reference'    => $reference,
             ]);
@@ -138,7 +137,7 @@ class BonPaiementController extends Controller
             PaiementLogistique::create([
                 'dossier_client_id' => $dossier->id,
                 'montant'           => $vLogistique,
-                'date_paiement' => $dateBon,
+                'date_paiement'     => $request->date_bon,
                 'note'              => 'Logistique',
                 'user_reference'    => $reference,
             ]);
@@ -147,7 +146,7 @@ class BonPaiementController extends Controller
             PaiementMorcellement::create([
                 'dossier_client_id' => $dossier->id,
                 'montant'           => $vMorcellement,
-                'date_paiement' => $dateBon,
+                'date_paiement'     => $request->date_bon,
                 'note'              => 'Morcellement',
                 'user_reference'    => $reference,
             ]);
@@ -167,7 +166,7 @@ class BonPaiementController extends Controller
         $bon = BonPaiement::create([
             'dossier_client_id'        => $dossier->id,
             'numero_bon'               => BonPaiement::genererNumero(),
-            'date_bon' => $dateBon,
+            'date_bon'                 => $request->date_bon,
             'versement_dossier'        => $vDossier,
             'versement_technique'      => $vTechnique,
             'versement_logistique'     => $vLogistique,

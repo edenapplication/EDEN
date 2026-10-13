@@ -493,14 +493,18 @@
         </div>
         @endif
 
-        {{-- ✅ GESTION ACCÈS — admin uniquement --}}
-        @if($role === 'admin')
-        <div class="nav-direct" style="border-bottom:none;padding-top:0;">
-            <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                <span>🔑</span> Gestion Accès
-            </a>
-        </div>
-        @endif
+       {{-- ✅ GESTION ACCÈS — admin uniquement --}}
+@if($role === 'admin')
+<div class="nav-direct" style="border-bottom:none;padding-top:0;">
+    <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+        <span>🔑</span> Gestion Accès
+    </a>
+    <a href="{{ route('audits.index') }}" class="{{ request()->routeIs('audits.*') ? 'active' : '' }}"
+       style="background:linear-gradient(90deg,rgba(220,38,38,0.15),transparent);border-left:3px solid #dc2626;">
+        <span>🔍</span> Journal d'audit
+    </a>
+</div>
+@endif
 
         {{-- ✅ AFFECTATION RAPIDE — admin + géomètre (lien direct) --}}
         @if(in_array($role, ['admin', 'geometre']))

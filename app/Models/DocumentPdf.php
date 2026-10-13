@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class DocumentPdf extends Model
 {
+    use Auditable;
     protected $table = 'documents_pdf';
 
     protected $fillable = [

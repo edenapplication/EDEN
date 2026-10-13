@@ -2,9 +2,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class PaiementDossier extends Model
 {
+    use Auditable;
     protected $table    = 'paiements_dossier';
     protected $fillable = [
         'dossier_client_id', 'client_id',

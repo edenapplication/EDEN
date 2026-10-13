@@ -3,9 +3,11 @@ namespace App\Models\Feb;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
+use App\Traits\Auditable;
 
 class Utilisateur extends Model
 {
+    use Auditable;
     protected $table    = 'feb_utilisateurs';
     protected $fillable = [
         'identifiant','password','nom','prenom',

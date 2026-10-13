@@ -485,11 +485,8 @@ function confirmerTitreEtValider() {
 
 // ════════════════════════════════════════════════════════════════
 // ✅ VALIDER L'ÉTAPE 1
-//    → Génère le PDF d'implantation
-//    → ET passe les affectations à 'programmee' (Étape 2)
 // ════════════════════════════════════════════════════════════════
 function validerEtape1() {
-    // Vérifier que tous les champs sont remplis
     let manquants = 0;
     document.querySelectorAll('.geo-select:not([disabled])').forEach(sel => {
         if (!sel.value) manquants++;
@@ -503,7 +500,6 @@ function validerEtape1() {
         return;
     }
 
-    // Récupérer les IDs
     const affectationIds = [];
     document.querySelectorAll('.geo-select:not([disabled]), .heure-input:not([disabled])').forEach(el => {
         try {
@@ -519,7 +515,6 @@ function validerEtape1() {
         return;
     }
 
-    // ✅ Titre automatique
     @if($dateActive)
         const dateLabel = '{{ $dateActive->format("d/m/Y") }}';
     @else
@@ -541,7 +536,6 @@ function envoyerValidationEtape1(affectationIds, titreDocument) {
 
     if (window.EdenLoader) window.EdenLoader.show();
 
-    // ✅ UN SEUL appel : validerEtape1 avec type='initiale'
     fetch('{{ route("affectations.valider-etape-1") }}', {
         method: 'POST',
         headers: {
@@ -562,12 +556,12 @@ function envoyerValidationEtape1(affectationIds, titreDocument) {
         btn.innerHTML = originalText;
 
         if (data.success) {
+            // ✅ Toast avec lien (pas d'ouverture auto)
             showToastWithLink(
                 '✅ Étape 1 validée — Redirection vers Étape 2.',
                 data.doc?.url || null,
                 'success'
             );
-            // ✅ Rediriger vers Étape 2
             setTimeout(() => {
                 window.location.href = '{{ route("affectations.programmation-active") }}';
             }, 1500);
@@ -680,6 +674,14 @@ function showToastWithLink(message, url, type = 'success') {
         toast.style.transition = 'opacity 0.3s ease';
         setTimeout(() => toast.remove(), 300);
     }, 6000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ ALIAS — showToastAvecLien = showToastWithLink
+//     (pour compatibilité avec d'autres vues)
+// ════════════════════════════════════════════════════════════════
+function showToastAvecLien(message, url, type = 'success') {
+    return showToastWithLink(message, url, type);
 }
 </script>
 @endsection

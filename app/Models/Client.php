@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Client extends Model
 {
+    use Auditable;
     protected $fillable = ['name', 'phone', 'email', 'is_new', 'sexe'];
 
     protected $casts = [

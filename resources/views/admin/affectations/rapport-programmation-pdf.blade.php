@@ -281,12 +281,38 @@
 
 @php
     // ═══════════════════════════════════════════════════════
-    // 🎯 TITRE DYNAMIQUE
+    // 🎯 DATE EXTRAITE DES LIGNES (jamais now())
     // ═══════════════════════════════════════════════════════
-    $dateSemaineFmt = $dateSemaine instanceof \Carbon\Carbon
-        ? $dateSemaine->format('d/m/Y')
-        : \Carbon\Carbon::parse($dateSemaine)->format('d/m/Y');
+    $dateAffichee = null;
+    $premiereLigne = collect($lignes ?? [])->first();
 
+    if ($premiereLigne && is_array($premiereLigne)) {
+        // Attribution → date_affectation
+        // Tous les autres → date_implantation
+        if ($type === 'rapport_programmation') {
+            $dateAffichee = $premiereLigne['date_affectation'] ?? null;
+        } else {
+            $dateAffichee = $premiereLigne['date_implantation'] ?? null;
+        }
+    }
+
+    // Fallback : si pas de date dans les lignes, utiliser $dateSemaine
+    if (empty($dateAffichee)) {
+        $dateAffichee = $dateSemaine;
+    }
+
+    // Formater la date
+    try {
+        $dateSemaineFmt = $dateAffichee instanceof \Carbon\Carbon
+            ? $dateAffichee->format('d/m/Y')
+            : ($dateAffichee ? \Carbon\Carbon::parse($dateAffichee)->format('d/m/Y') : '');
+    } catch (\Exception $e) {
+        $dateSemaineFmt = '';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 🎯 TITRES DYNAMIQUES
+    // ═══════════════════════════════════════════════════════
     $titresParType = [
         'rapport_programmation'      => "Rapport des attributions du {$dateSemaineFmt}",
         'rapport_programmation_date' => "Rapport de planification des implantations du {$dateSemaineFmt}",
@@ -295,8 +321,11 @@
         'programmation_active'       => "Rapport des appréciations du {$dateSemaineFmt}",
     ];
 
-    $titreAffiche = $titresParType[$type] ?? 'Rapport de programmation';
+    $titreAffiche = $titreDocument ?? ($titresParType[$type] ?? 'Rapport de programmation');
 
+    // ═══════════════════════════════════════════════════════
+    // 🎯 SOUS-TITRES DYNAMIQUES
+    // ═══════════════════════════════════════════════════════
     $sousTitresParType = [
         'rapport_programmation'      => 'Basé sur la date d\'attribution des lots',
         'rapport_programmation_date' => 'Avec dates d\'implantation',
@@ -332,6 +361,16 @@
         'programmation_active',
         'programmation_finale',
     ]);
+
+    // ═══════════════════════════════════════════════════════
+    // ✅ STAGIAIRES
+    // ═══════════════════════════════════════════════════════
+    $showStagiaire = !empty($lignes->first()['stagiaire'] ?? null);
+
+    // ═══════════════════════════════════════════════════════
+    // ✅ DÉTECTION APPRÉCIATIONS
+    // ═══════════════════════════════════════════════════════
+    $isAppreciation = ($type === 'programmation_active');
 @endphp
 
     {{-- ═══════════════════════════════════════════════════════ --}}

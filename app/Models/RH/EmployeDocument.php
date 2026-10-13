@@ -1,9 +1,11 @@
 <?php
 namespace App\Models\RH;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class EmployeDocument extends Model
 {
+    use Auditable;
     protected $table    = 'rh_employe_documents';
     protected $fillable = [
         'employe_id', 'nom', 'type',

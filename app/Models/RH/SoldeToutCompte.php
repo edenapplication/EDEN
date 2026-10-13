@@ -3,9 +3,11 @@
 namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class SoldeToutCompte extends Model
 {
+    use Auditable;
     protected $table = 'rh_soldes_tout_compte';
 
     protected $fillable = [

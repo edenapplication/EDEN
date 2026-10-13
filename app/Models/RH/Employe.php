@@ -4,9 +4,11 @@ namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Traits\Auditable;
 
 class Employe extends Model
 {
+    use Auditable;
     protected $table = 'rh_employes';
     
     protected $fillable = [

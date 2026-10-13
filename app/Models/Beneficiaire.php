@@ -4,9 +4,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Beneficiaire extends Model
 {
+    use Auditable;
     protected $table = 'beneficiaires';
 
     protected $fillable = [

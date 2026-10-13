@@ -4,9 +4,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class HistoriqueAffectation extends Model
 {
+    use Auditable;
     protected $table = 'historique_affectations';
 
     protected $fillable = [

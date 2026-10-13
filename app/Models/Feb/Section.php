@@ -1,9 +1,11 @@
 <?php
 namespace App\Models\Feb;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Section extends Model
 {
+    use Auditable;
     protected $table    = 'feb_sections';
     protected $fillable = ['fiche_id','titre','ordre'];
 

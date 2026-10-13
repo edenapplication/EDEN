@@ -1,9 +1,11 @@
 <?php
 namespace App\Models\RH;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Retard extends Model
 {
+    use Auditable;
     protected $table = 'rh_retards';
     protected $fillable = ['employe_id','heure_depart','date','heure_arrivee','minutes_retard','minutes_sup','montant_deduction','justification','justifie'];
 

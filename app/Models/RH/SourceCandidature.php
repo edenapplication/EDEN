@@ -3,9 +3,11 @@
 namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class SourceCandidature extends Model
 {
+    use Auditable;
     protected $table = 'rh_sources_candidature';
 
     protected $fillable = [

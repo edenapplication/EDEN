@@ -4,9 +4,11 @@ namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Traits\Auditable;
 
 class HoraireService extends Model
 {
+    use Auditable;
     protected $table = 'rh_horaires_services';
 
     protected $fillable = [

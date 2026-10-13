@@ -2482,6 +2482,7 @@ public function annulerRefusEnAttente(Request $request)
             'heure_implantation' => 'nullable|date_format:H:i',
             'geometre_id'        => 'nullable|exists:users,id',
             'statut_presence'    => 'nullable|in:en_attente,present,retard,absent',
+            'stagiaire' => 'nullable|string|max:150',
         ]);
 
         try {
@@ -2492,6 +2493,10 @@ public function annulerRefusEnAttente(Request $request)
             if ($request->filled('heure_implantation')) $updateData['heure_implantation'] = $request->heure_implantation;
             if ($request->filled('geometre_id'))        $updateData['geometre_id']        = $request->geometre_id;
             if ($request->filled('statut_presence'))    $updateData['statut_presence']    = $request->statut_presence;
+
+            if ($request->has('stagiaire')) {
+    $updateData['stagiaire'] = $request->stagiaire ?: null;   // ✅
+}
 
             if (empty($updateData)) {
                 return response()->json([
@@ -2983,24 +2988,33 @@ public function choixDimanche(Request $request)
     })->values();
 
     $stats = [
-        'total'      => $lignes->count(),
-        'sans_geo'   => $lignes->where('geometre_id', null)->where('validee', false)->count(),
-        'sans_heure' => $lignes->where('heure_implantation', null)->where('validee', false)->count(),
-        'validees'   => $lignes->where('validee', true)->count(),
-        'superficie' => $lignes->sum('superficie'),
-    ];
+    'total'      => $lignes->count(),
+    'sans_geo'   => $lignes->where('geometre_id', null)->where('validee', false)->count(),
+    'sans_heure' => $lignes->where('heure_implantation', null)->where('validee', false)->count(),
+    'validees'   => $lignes->where('validee', true)->count(),
+    'superficie' => $lignes->sum('superficie'),
+];
 
-    $geometres = \App\Models\User::whereIn('role', ['geometre', 'admin'])
-        ->where('actif', true)
-        ->orderBy('name')
-        ->get(['id', 'name']);
+    $geometres = \App\Models\User::where('role', 'geometre')
+    ->where('actif', true)
+    ->orderBy('name')
+    ->get(['id', 'name']);
 
-    return view('admin.affectations.programmation-initiale', [
-        'lignes'         => $lignes,
-        'stats'          => $stats,
-        'geometres'      => $geometres,
-        'dateActive'     => $dateActive,
-    ]);
+// 🎓 Liste unique des stagiaires déjà enregistrés
+$stagiaires = Affectation::whereNotNull('stagiaire')
+    ->where('stagiaire', '!=', '')
+    ->distinct()
+    ->pluck('stagiaire')
+    ->sort()
+    ->values();
+
+return view('admin.affectations.programmation-active', [
+    'lignes'         => $lignes,
+    'stats'          => $stats,
+    'geometres'      => $geometres,
+    'stagiaires'     => $stagiaires,   // ✅ Nouveau
+    'dateActive'     => $dateActive,
+]);
 }
 
     // ============================================================
@@ -3070,26 +3084,34 @@ public function choixDimanche(Request $request)
     })->values();
 
     $stats = [
-        'total'      => $lignes->count(),
-        'acceptes'   => $lignes->where('statut_acceptation', 'accepte')->count(),
-        'refuses'    => $lignes->where('statut_acceptation', 'refuse')->count(),
-        'presents'   => $lignes->where('statut_presence', 'present')->count(),
-        'retards'    => $lignes->where('statut_presence', 'retard')->count(),
-        'absents'    => $lignes->where('statut_presence', 'absent')->count(),
-        'superficie' => $lignes->sum('superficie'),
-    ];
+    'total'      => $lignes->count(),
+    'acceptes'   => $lignes->where('statut_acceptation', 'accepte')->count(),
+    'refuses'    => $lignes->where('statut_acceptation', 'refuse')->count(),
+    'presents'   => $lignes->where('statut_presence', 'present')->count(),
+    'retards'    => $lignes->where('statut_presence', 'retard')->count(),
+    'absents'    => $lignes->where('statut_presence', 'absent')->count(),
+    'superficie' => $lignes->sum('superficie'),
+];
 
-    $geometres = \App\Models\User::whereIn('role', ['geometre', 'admin'])
+    $geometres = \App\Models\User::where('role', 'geometre')
         ->where('actif', true)
         ->orderBy('name')
         ->get(['id', 'name']);
 
-    return view('admin.affectations.programmation-active', [
-        'lignes'         => $lignes,
-        'stats'          => $stats,
-        'geometres'      => $geometres,
-        'dateActive'     => $dateActive,
-    ]);
+    $stagiaires = Affectation::whereNotNull('stagiaire')
+    ->where('stagiaire', '!=', '')
+    ->distinct()
+    ->pluck('stagiaire')
+    ->sort()
+    ->values();
+
+return view('admin.affectations.programmation-active', [
+    'lignes'         => $lignes,
+    'stats'          => $stats,
+    'geometres'      => $geometres,
+    'stagiaires'     => $stagiaires,   // ✅ Nouveau
+    'dateActive'     => $dateActive,
+]);
 }
     // ============================================================
     // ✅ HELPERS — Génération PDF
@@ -4011,8 +4033,8 @@ private function nettoyerHtmlPourMpdf(string $html): string
     public function documentsTous(Request $request)
     {
         $query = DocumentPdf::with('user')
-            ->orderByDesc('date_semaine')
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id'); 
 
         if ($request->filled('jour')) {
             $query->whereDate('date_semaine', $request->jour);
@@ -4044,8 +4066,8 @@ private function nettoyerHtmlPourMpdf(string $html): string
     ) {
         $query = DocumentPdf::with('user')
             ->where('type', $type)
-            ->orderByDesc('date_semaine')
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');  
 
         if ($request->filled('jour')) {
             $query->whereDate('date_semaine', $request->jour);

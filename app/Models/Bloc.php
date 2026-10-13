@@ -2,9 +2,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Bloc extends Model
 {
+    use Auditable;
     protected $table    = 'blocs';
     protected $fillable = ['grand_site_id','site_id','tf_id','code','description','actif'];
 

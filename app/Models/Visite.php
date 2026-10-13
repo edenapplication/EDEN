@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
-
+use App\Traits\Auditable;
 class Visite extends Model
 {
+    use Auditable;
     protected $fillable = [
         'visiteur_id', 'client_id', 'dossier_client_id',
         'grand_site_id', 'site_id',

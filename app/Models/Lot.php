@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Lot extends Model
 {
+    use Auditable;
     protected $fillable = [
         'tf_id', 'client_id', 'commercial_id', 'conducteur_id', 'facilitateur_id',
         'svg_id', 'code', 'origine', 'type', 'color', 'owner_name',

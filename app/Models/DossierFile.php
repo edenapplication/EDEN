@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use App\Traits\Auditable;
 class DossierFile extends Model
 {
+    use Auditable;
     protected $fillable = [
         'dossier_id',
         'name',

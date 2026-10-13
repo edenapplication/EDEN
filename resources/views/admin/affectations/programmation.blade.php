@@ -1014,7 +1014,6 @@ function majProgrammation(el, champ) {
         el.style.opacity = '1';
         if (data.success) {
             showToast('✅ ' + (data.message || 'Enregistré'), 'success');
-            // 🔄 Recharger pour mettre à jour l'affichage des boutons (À programmer ↔ Accept/Refuser)
             setTimeout(() => location.reload(), 500);
         } else {
             showToast('❌ ' + (data.message || 'Erreur'), 'error');
@@ -1149,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ════════════════════════════════════════════════════════════════
-// TOAST
+// TOAST (simple, sans lien)
 // ════════════════════════════════════════════════════════════════
 function showToast(message, type = 'info') {
     document.querySelectorAll('.toast-notification').forEach(el => el.remove());
@@ -1162,6 +1161,56 @@ function showToast(message, type = 'info') {
         toast.style.transition = 'opacity 0.3s ease';
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ TOAST AVEC LIEN CLIQUABLE VERS LE PDF
+// ════════════════════════════════════════════════════════════════
+function showToastAvecLien(message, url, type = 'info') {
+    document.querySelectorAll('.toast-notification').forEach(el => el.remove());
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '12px';
+    toast.style.padding = '14px 18px';
+
+    const msg = document.createElement('span');
+    msg.textContent = message;
+    msg.style.flex = '1';
+
+    if (url) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.textContent = '📄 Voir le PDF';
+        link.style.cssText = `
+            background: white;
+            color: #16a34a;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 12px;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.2s;
+        `;
+        link.onmouseover = () => link.style.transform = 'scale(1.05)';
+        link.onmouseout  = () => link.style.transform = 'scale(1)';
+        toast.appendChild(msg);
+        toast.appendChild(link);
+    } else {
+        toast.appendChild(msg);
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 8000);
 }
 </script>
 @endsection

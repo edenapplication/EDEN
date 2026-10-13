@@ -3,9 +3,11 @@ namespace App\Models\RH;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Traits\Auditable;
 
 class Conge extends Model
 {
+    use Auditable;
     protected $table    = 'rh_conges';
     protected $fillable = [
         'employe_id','date_debut','date_fin',

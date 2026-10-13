@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
 
 class Tf extends Model
 {
+    use Auditable;
     protected $fillable = [
         'site_id', 'svg_zone_id', 'title',
         'file_path', 'color', 'status', 'is_active'

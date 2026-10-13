@@ -26,17 +26,12 @@
 
             {{-- INFOS DATE --}}
             
-<div style="background:white;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:16px;">
-    <h6 style="font-weight:700;color:#1e3a5f;margin-bottom:14px;">📅 Date du bon</h6>
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label fw-semibold">Date</label>
-            <input type="text" class="form-control"
-                   value="{{ now()->format('d/m/Y') }}" readonly>
-            <input type="hidden" name="date_bon" value="{{ now()->format('Y-m-d') }}">
-        </div>
-    </div>
-</div>
+<div style="background:white;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:16px;"> 
+    <h6 style="font-weight:700;color:#1e3a5f;margin-bottom:14px;">📅 Date du bon</h6> 
+    <div class="row g-3"> <div class="col-md-6"> 
+        <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label> 
+        <input type="date" name="date_bon" class="form-control" value="{{ now()->format('Y-m-d') }}" required> </div> 
+    </div> </div>
 
 
 

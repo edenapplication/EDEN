@@ -46,6 +46,17 @@ use App\Http\Controllers\Feb\DestinataireController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\GeometreAuthController;
+use App\Http\Controllers\AuditController;
+
+Route::middleware(['auth', 'check.role:admin'])
+    ->prefix('admin/audits')
+    ->name('audits.')
+    ->group(function () {
+        Route::get('/',           [AuditController::class, 'index'])->name('index');
+        Route::get('/{audit}',    [AuditController::class, 'show'])->name('show');
+        Route::delete('/{audit}', [AuditController::class, 'destroy'])->name('destroy');
+    });
+
 
 // ── WEBHOOK DEPLOY ─────────────────────────────────────────────
 Route::post('/deploy', function () {
@@ -77,21 +88,32 @@ Route::prefix('admin')->middleware(['auth', 'check.role:admin,rh,commercial,geom
     // ═════════════════════════════════════════════════════════════════
     Route::middleware('check.role:admin')->group(function () {
 
-        // ── GESTION ACCÈS (utilisateurs) ──
-        Route::get('/users',               [UserController::class, 'index'])->name('admin.users.index');
-        Route::post('/users',              [UserController::class, 'store'])->name('admin.users.store');
-        Route::put('/users/{id}',          [UserController::class, 'update'])->name('admin.users.update');
-        Route::delete('/users/{id}',       [UserController::class, 'destroy'])->name('admin.users.destroy');
-        Route::post('/users/{id}/toggle',  [UserController::class, 'toggleActif'])->name('admin.users.toggle');
+    // ── GESTION ACCÈS (utilisateurs) ──
+    Route::get('/users',               [UserController::class, 'index'])->name('admin.users.index');
+    Route::post('/users',              [UserController::class, 'store'])->name('admin.users.store');
+    Route::put('/users/{id}',          [UserController::class, 'update'])->name('admin.users.update');
+    Route::delete('/users/{id}',       [UserController::class, 'destroy'])->name('admin.users.destroy');
+    Route::post('/users/{id}/toggle',  [UserController::class, 'toggleActif'])->name('admin.users.toggle');
 
-        // ── IMPORT / EXPORT ──
-        Route::get('/import-export',        [ImportExportController::class, 'index'])->name('import-export.index');
-        Route::post('/import-export/export',[ImportExportController::class, 'export'])->name('import-export.export');
-        Route::post('/import-export/import',[ImportExportController::class, 'import'])->name('import-export.import');
+    // ── IMPORT / EXPORT ──
+    Route::get('/import-export',        [ImportExportController::class, 'index'])->name('import-export.index');
+    Route::post('/import-export/export',[ImportExportController::class, 'export'])->name('import-export.export');
+    Route::post('/import-export/import',[ImportExportController::class, 'import'])->name('import-export.import');
 
-        // ── DASHBOARD ──
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    // ── DASHBOARD ──
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+    // ═══════════════════════════════════════════════════════
+    // 🔍 JOURNAL D'AUDIT (AJOUTER ICI)
+    // ═══════════════════════════════════════════════════════
+    Route::prefix('audits')->name('audits.')->group(function () {
+        Route::get('/',           [\App\Http\Controllers\AuditController::class, 'index'])->name('index');
+        Route::get('/{audit}',    [\App\Http\Controllers\AuditController::class, 'show'])->name('show');
+        Route::delete('/{audit}', [\App\Http\Controllers\AuditController::class, 'destroy'])->name('destroy');
+        Route::delete('/',        [\App\Http\Controllers\AuditController::class, 'purger'])->name('purger');
     });
+
+});  // ← Fermeture du groupe admin
 
     // ═════════════════════════════════════════════════════════════════
     // ✅ 2. ROUTES ADMIN + COMMERCIAL
@@ -293,6 +315,9 @@ Route::get('/api/grand-sites/{grandSite}/sites',
             Route::post('/affectations/groupe/annuler-refus',
     [AffectationController::class, 'annulerRefusEnAttente'])
     ->name('affectations.groupe.annuler-refus');
+
+    Route::post('/update-stagiaire-groupe', [AffectationController::class, 'updateStagiaireGroupe'])
+    ->name('affectations.update-stagiaire-groupe');
     });
 
     // ═════════════════════════════════════════════════════════════════
@@ -449,6 +474,7 @@ Route::get('/api/grand-sites/{grandSite}/sites',
     [AffectationController::class, 'updateStagiaireGroupe'])
     ->name('affectations.groupe.update-stagiaire');
 
+   
         // ═════════════════════════════════════════════════════════════════
         // 📄 DOCUMENTS PDF — 6 ROUTES (5 types + "tous")
         // ═════════════════════════════════════════════════════════════════
