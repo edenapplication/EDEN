@@ -24,14 +24,35 @@
     .stat-card.paye     { border-left-color: #16a34a; }
     .stat-card.non_paye { border-left-color: #dc2626; }
     .stat-card.partiel  { border-left-color: #f59e0b; }
+    .stat-card.sans_prix{ border-left-color: #7c3aed; }
     .stat-card .label {
         font-size: 11px; color: #64748b; text-transform: uppercase;
         font-weight: 700; letter-spacing: 0.5px;
     }
     .stat-card .value { font-size: 24px; font-weight: 900; color: #1e3a5f; margin-top: 4px; }
-    .stat-card.paye .value     { color: #16a34a; }
-    .stat-card.non_paye .value { color: #dc2626; }
-    .stat-card.partiel .value  { color: #f59e0b; }
+    .stat-card.paye .value      { color: #16a34a; }
+    .stat-card.non_paye .value  { color: #dc2626; }
+    .stat-card.partiel .value   { color: #f59e0b; }
+    .stat-card.sans_prix .value { color: #7c3aed; }
+
+    /* ALERTE SANS PRIX */
+    .alert-sans-prix {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border-left: 5px solid #f59e0b;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .alert-sans-prix .info {
+        font-size: 14px;
+        color: #92400e;
+    }
+    .alert-sans-prix .info strong { font-weight: 800; }
 
     .filtre-box {
         background: white; border-radius: 12px; padding: 16px;
@@ -59,7 +80,6 @@
         font-size: 13px;
         font-weight: 600;
         color: #1e3a5f;
-        transition: all 0.2s;
         background-color: #f8fafc;
     }
     .filtre-box .form-select:focus {
@@ -69,81 +89,56 @@
         box-shadow: 0 0 0 4px rgba(220,38,38,0.1);
     }
 
-    /* ═══ CARTE CLIENT ═══ */
+    /* CARTE CLIENT */
     .client-card {
-        background: white;
-        border-radius: 14px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-        overflow: hidden;
+        background: white; border-radius: 14px; margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06); overflow: hidden;
         transition: box-shadow 0.25s;
     }
-    .client-card:hover {
-        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-    }
+    .client-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
     .client-header {
         background: linear-gradient(135deg, #1e3a5f, #2d5a8c);
-        color: white;
-        padding: 14px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
+        color: white; padding: 14px 20px;
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 10px;
     }
-    .client-header .client-name {
-        font-size: 15px;
-        font-weight: 800;
-    }
-    .client-header .client-meta {
-        font-size: 12px;
-        opacity: 0.85;
-        margin-top: 2px;
-    }
+    .client-header .client-name { font-size: 15px; font-weight: 800; }
+    .client-header .client-meta { font-size: 12px; opacity: 0.85; margin-top: 2px; }
     .client-header .client-badge {
-        background: rgba(255,255,255,0.15);
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
+        background: rgba(255,255,255,0.15); padding: 6px 14px;
+        border-radius: 20px; font-size: 11px; font-weight: 700;
         white-space: nowrap;
     }
-    .client-header .client-badge.paid {
-        background: rgba(34,197,94,0.3);
-    }
-    .client-header .client-badge.partial {
-        background: rgba(245,158,11,0.3);
-    }
-    .client-header .client-badge.none {
-        background: rgba(220,38,38,0.3);
-    }
+    .client-header .client-badge.paid    { background: rgba(34,197,94,0.3); }
+    .client-header .client-badge.partial { background: rgba(245,158,11,0.3); }
+    .client-header .client-badge.none    { background: rgba(220,38,38,0.3); }
 
-    .client-body {
-        padding: 12px;
-    }
+    .client-body { padding: 12px; }
 
-    /* ═══ LIGNE DOSSIER ═══ */
+    /* LIGNE DOSSIER */
     .dossier-row {
         background: white; border-radius: 12px; padding: 16px 18px;
         margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         border-left: 4px solid #e2e8f0; transition: all 0.3s;
-        display: flex; justify-content: space-between; align-items: center; gap: 16px;
-        flex-wrap: wrap;
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 16px; flex-wrap: wrap;
     }
     .dossier-row:last-child { margin-bottom: 0; }
     .dossier-row:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateX(3px); }
-    .dossier-row.paye     { border-left-color: #16a34a; background: #f0fdf4; }
-    .dossier-row.partiel  { border-left-color: #f59e0b; background: #fffbeb; }
-    .dossier-row.non_paye { border-left-color: #dc2626; background: #fef2f2; }
+    .dossier-row.paye      { border-left-color: #16a34a; background: #f0fdf4; }
+    .dossier-row.partiel   { border-left-color: #f59e0b; background: #fffbeb; }
+    .dossier-row.non_paye  { border-left-color: #dc2626; background: #fef2f2; }
+    .dossier-row.sans_prix { border-left-color: #7c3aed; background: #faf5ff; }
 
     .badge-statut {
         padding: 6px 14px; border-radius: 50px; font-size: 11px;
         font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
         display: inline-flex; align-items: center; gap: 5px;
     }
-    .badge-statut.paye     { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
-    .badge-statut.partiel  { background: #fef3c7; color: #b45309; border: 1.5px solid #fcd34d; }
-    .badge-statut.non_paye { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fecaca; }
+    .badge-statut.paye      { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
+    .badge-statut.partiel   { background: #fef3c7; color: #b45309; border: 1.5px solid #fcd34d; }
+    .badge-statut.non_paye  { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fecaca; }
+    .badge-statut.sans_prix { background: #f3e8ff; color: #7c3aed; border: 1.5px solid #c4b5fd; }
 
     .progress-bar-mini {
         height: 6px; background: #e2e8f0; border-radius: 3px;
@@ -161,6 +156,15 @@
     .btn-payer:hover { background: #1e40af; color: white; transform: scale(1.03); }
     .btn-payer.disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
 
+    .btn-prix {
+        background: #7c3aed; color: white; border: none;
+        padding: 8px 20px; border-radius: 8px; font-weight: 700;
+        font-size: 13px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px;
+        transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-prix:hover { background: #6d28d9; color: white; transform: scale(1.03); }
+
     .dossier-info { flex: 1; min-width: 250px; }
     .dossier-nom { font-weight: 800; color: #1e3a5f; font-size: 15px; }
     .dossier-meta { font-size: 12px; color: #64748b; margin-top: 2px; }
@@ -169,7 +173,7 @@
     .montant-paye { font-size: 14px; font-weight: 900; }
     .montant-reste { font-size: 11px; font-weight: 700; }
 
-    /* ═══ MODAL ═══ */
+    /* MODAL */
     .modal-overlay {
         display: none; position: fixed; inset: 0;
         background: rgba(15,23,42,0.6); z-index: 9998;
@@ -189,16 +193,11 @@
         to   { opacity: 1; transform: translate(-50%, -50%); }
     }
 
-    /* ═══ EMPTY ═══ */
     .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
-        background: white;
-        border-radius: 12px;
+        text-align: center; padding: 60px 20px; color: #94a3b8;
+        background: white; border-radius: 12px;
     }
 
-    /* ═══ RESPONSIVE ═══ */
     @media (max-width: 768px) {
         .dossier-row { flex-direction: column; align-items: stretch; }
         .dossier-montants { text-align: left; margin-right: 0; }
@@ -215,7 +214,7 @@
         <div>
             <h2>💰 Paiement Technique</h2>
             <div class="sub">
-                Gérez uniquement les paiements du <strong>dossier technique</strong>
+                Gérez les paiements et les prix techniques
             </div>
         </div>
         <div style="text-align:right;">
@@ -226,6 +225,21 @@
         </div>
     </div>
 </div>
+
+{{-- ═══ ALERTE SANS PRIX ═══ --}}
+@if(($dossiersSansPrix ?? 0) > 0)
+    <div class="alert-sans-prix">
+        <div class="info">
+            <strong>⚠️ {{ $dossiersSansPrix }} dossier(s) sans prix technique</strong>
+            <br>
+            Ces dossiers ne sont pas payables tant que leur prix n'est pas défini.
+        </div>
+        <a href="{{ route('comptable.index', ['statut' => 'sans_prix']) }}"
+           class="btn-prix">
+            ⚙️ Voir et définir
+        </a>
+    </div>
+@endif
 
 {{-- ═══ STATISTIQUES ═══ --}}
 <div class="stats-grid">
@@ -246,7 +260,7 @@
         <div class="value">{{ $stats['nb_partiels'] }}</div>
     </div>
     <div class="stat-card paye">
-        <div class="label">💵 Montant encaissé</div>
+        <div class="label">💵 Encaissé</div>
         <div class="value" style="font-size:18px;">
             {{ number_format($stats['paye_technique_total'], 0, ',', ' ') }} FCFA
         </div>
@@ -271,9 +285,10 @@
                 <select name="statut" id="filtre-statut" class="form-select"
                         onchange="document.getElementById('form-filtres').submit()">
                     <option value="">Tous</option>
-                    <option value="paye"     {{ request('statut') == 'paye' ? 'selected' : '' }}>✅ Payés</option>
-                    <option value="partiel"  {{ request('statut') == 'partiel' ? 'selected' : '' }}>⏳ Partiels</option>
-                    <option value="non_paye" {{ request('statut') == 'non_paye' ? 'selected' : '' }}>❌ Non payés</option>
+                    <option value="paye"      {{ request('statut') == 'paye' ? 'selected' : '' }}>✅ Payés</option>
+                    <option value="partiel"   {{ request('statut') == 'partiel' ? 'selected' : '' }}>⏳ Partiels</option>
+                    <option value="non_paye"  {{ request('statut') == 'non_paye' ? 'selected' : '' }}>❌ Non payés</option>
+                    <option value="sans_prix" {{ request('statut') == 'sans_prix' ? 'selected' : '' }}>⚙️ Sans prix ({{ $dossiersSansPrix ?? 0 }})</option>
                 </select>
             </div>
 
@@ -306,16 +321,15 @@
         $client = $dossiersDuClient->first()->client;
         $totalDossiers = $dossiersDuClient->count();
 
-        // Statistiques du client
-        $nbPayes = 0;
-        $nbPartiels = 0;
-        $nbNonPayes = 0;
+        $nbPayes = 0; $nbPartiels = 0; $nbNonPayes = 0; $nbSansPrix = 0;
 
         foreach ($dossiersDuClient as $d) {
             $paye = $d->paiementsTechniques->sum('montant');
             $prix = $d->prix_technique ?? 0;
 
-            if ($paye >= $prix && $prix > 0) {
+            if ($prix <= 0) {
+                $nbSansPrix++;
+            } elseif ($paye >= $prix) {
                 $nbPayes++;
             } elseif ($paye > 0) {
                 $nbPartiels++;
@@ -324,11 +338,12 @@
             }
         }
 
-        // Couleur du badge client
-        if ($nbNonPayes === $totalDossiers) {
+        if ($nbSansPrix > 0) {
             $badgeClass = 'none';
         } elseif ($nbPayes === $totalDossiers) {
             $badgeClass = 'paid';
+        } elseif ($nbNonPayes === $totalDossiers) {
+            $badgeClass = 'none';
         } else {
             $badgeClass = 'partial';
         }
@@ -336,33 +351,22 @@
 
     <div class="client-card" data-client-id="{{ $clientId }}">
 
-        {{-- En-tête client --}}
         <div class="client-header">
             <div>
-                <div class="client-name">
-                    👤 {{ $client?->name ?? 'Client inconnu' }}
-                </div>
+                <div class="client-name">👤 {{ $client?->name ?? 'Client inconnu' }}</div>
                 <div class="client-meta">
                     📞 {{ $client?->phone ?? '-' }}
                     &nbsp;·&nbsp;
                     📂 {{ $totalDossiers }} dossier(s)
-                    @if($nbPayes > 0)
-                        &nbsp;·&nbsp; ✅ {{ $nbPayes }} payé(s)
-                    @endif
-                    @if($nbPartiels > 0)
-                        &nbsp;·&nbsp; ⏳ {{ $nbPartiels }} partiel(s)
-                    @endif
-                    @if($nbNonPayes > 0)
-                        &nbsp;·&nbsp; ❌ {{ $nbNonPayes }} non payé(s)
-                    @endif
+                    @if($nbPayes > 0)      &nbsp;·&nbsp; ✅ {{ $nbPayes }} payé(s)      @endif
+                    @if($nbPartiels > 0)   &nbsp;·&nbsp; ⏳ {{ $nbPartiels }} partiel(s) @endif
+                    @if($nbNonPayes > 0)   &nbsp;·&nbsp; ❌ {{ $nbNonPayes }} non payé(s) @endif
+                    @if($nbSansPrix > 0)   &nbsp;·&nbsp; ⚙️ {{ $nbSansPrix }} sans prix @endif
                 </div>
             </div>
-            <div class="client-badge {{ $badgeClass }}">
-                {{ $totalDossiers }} dossier(s)
-            </div>
+            <div class="client-badge {{ $badgeClass }}">{{ $totalDossiers }} dossier(s)</div>
         </div>
 
-        {{-- Liste des dossiers --}}
         <div class="client-body">
 
             @foreach($dossiersDuClient as $dossier)
@@ -372,12 +376,15 @@
                     $reste    = max(0, $prixRef - $dejaPaye);
                     $pct      = $prixRef > 0 ? min(100, round(($dejaPaye / $prixRef) * 100)) : 0;
 
-                    if ($dejaPaye >= $prixRef && $prixRef > 0) {
-                        $statut  = 'paye';     $label = '✅ Payé';       $couleur = '#16a34a';
+                    // ✅ Statut incluant 'sans_prix'
+                    if ($prixRef <= 0) {
+                        $statut = 'sans_prix'; $label = '⚙️ Prix non défini'; $couleur = '#7c3aed';
+                    } elseif ($dejaPaye >= $prixRef) {
+                        $statut = 'paye';      $label = '✅ Payé';            $couleur = '#16a34a';
                     } elseif ($dejaPaye > 0) {
-                        $statut  = 'partiel';  $label = '⏳ Partiel (' . $pct . '%)';  $couleur = '#f59e0b';
+                        $statut = 'partiel';   $label = '⏳ Partiel (' . $pct . '%)'; $couleur = '#f59e0b';
                     } else {
-                        $statut  = 'non_paye'; $label = '❌ Non payé';    $couleur = '#dc2626';
+                        $statut = 'non_paye';  $label = '❌ Non payé';        $couleur = '#dc2626';
                     }
                 @endphp
 
@@ -409,22 +416,38 @@
                     </div>
 
                     <div class="dossier-montants">
-                        <div class="montant-ref">Réf. technique</div>
-                        <div class="montant-paye" style="color:{{ $couleur }};">
-                            {{ number_format($dejaPaye, 0, ',', ' ') }} /
-                            {{ number_format($prixRef, 0, ',', ' ') }} FCFA
-                        </div>
-                        @if($reste > 0)
-                            <div class="montant-reste" style="color:#dc2626;">
-                                Reste : {{ number_format($reste, 0, ',', ' ') }} FCFA
+                        @if($prixRef > 0)
+                            <div class="montant-ref">Réf. technique</div>
+                            <div class="montant-paye" style="color:{{ $couleur }};">
+                                {{ number_format($dejaPaye, 0, ',', ' ') }} /
+                                {{ number_format($prixRef, 0, ',', ' ') }} FCFA
                             </div>
-                        @elseif($prixRef > 0)
-                            <div class="montant-reste" style="color:#16a34a;">✅ Soldé</div>
+                            @if($reste > 0)
+                                <div class="montant-reste" style="color:#dc2626;">
+                                    Reste : {{ number_format($reste, 0, ',', ' ') }} FCFA
+                                </div>
+                            @else
+                                <div class="montant-reste" style="color:#16a34a;">✅ Soldé</div>
+                            @endif
+                        @else
+                            <div class="montant-ref">Prix technique</div>
+                            <div class="montant-paye" style="color:#7c3aed;">
+                                Non défini
+                            </div>
                         @endif
                     </div>
 
-                    <div class="action-buttons" style="min-width:140px;">
-                        @if($statut !== 'paye')
+                    <div class="action-buttons" style="min-width:150px;">
+                        @if($statut === 'sans_prix')
+                            <button type="button"
+                                    class="btn-prix"
+                                    data-dossier-id="{{ $dossier->id }}"
+                                    data-client-nom="{{ addslashes($client?->name ?? 'Client') }}"
+                                    data-dossier-nom="{{ addslashes($dossier->nom_dossier ?? '') }}"
+                                    onclick="ouvrirModalPrix(this)">
+                                ⚙️ Définir le prix
+                            </button>
+                        @elseif($statut !== 'paye')
                             <button type="button"
                                     class="btn-payer"
                                     data-dossier-id="{{ $dossier->id }}"
@@ -439,6 +462,7 @@
                         @else
                             <span class="btn-payer disabled">✅ Payé</span>
                         @endif
+
                         <a href="{{ route('comptable.historique', $dossier->id) }}"
                            class="btn btn-outline-secondary btn-sm mt-2"
                            style="font-size:11px;width:100%;text-align:center;display:block;">
@@ -458,13 +482,12 @@
     </div>
 @endforelse
 
-{{-- ═══ PAGINATION ═══ --}}
 <div class="mt-3 d-flex justify-content-center">
     {{ $dossiers->links() }}
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- MODAL PAIEMENT AJAX --}}
+{{-- MODAL PAIEMENT ═══════════════════════════════════════════ --}}
 {{-- ═══════════════════════════════════════════════════════════ --}}
 <div class="modal-overlay" id="modalPaiementOverlay" onclick="fermerModalPaiement()"></div>
 <div class="modal-box" id="modalPaiement" style="width:520px; max-width:95%;">
@@ -517,8 +540,7 @@
                 </button>
             </div>
             <div id="erreurMontantModal"
-                 style="display:none;color:#dc2626;font-size:12px;font-weight:700;margin-top:4px;">
-            </div>
+                 style="display:none;color:#dc2626;font-size:12px;font-weight:700;margin-top:4px;"></div>
         </div>
 
         <div style="margin-bottom:14px;">
@@ -540,17 +562,67 @@
 
         <div id="messageModal"
              style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;
-                    margin-bottom:12px;font-weight:600;">
-        </div>
+                    margin-bottom:12px;font-weight:600;"></div>
 
         <div class="d-flex justify-content-end gap-2">
             <button type="button" onclick="fermerModalPaiement()"
-                    class="btn btn-light btn-sm" style="font-weight:600;">
-                Annuler
-            </button>
+                    class="btn btn-light btn-sm" style="font-weight:600;">Annuler</button>
             <button type="submit" id="btnSubmitModal"
-                    class="btn btn-primary btn-sm px-4"
-                    style="font-weight:700;">
+                    class="btn btn-primary btn-sm px-4" style="font-weight:700;">
+                💾 Enregistrer
+            </button>
+        </div>
+    </form>
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- MODAL DÉFINIR PRIX ═══════════════════════════════════════ --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+<div class="modal-overlay" id="modalPrixOverlay" onclick="fermerModalPrix()"></div>
+<div class="modal-box" id="modalPrix" style="width:480px; max-width:95%;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 style="color:#7c3aed;font-weight:800;margin:0;">⚙️ Définir le prix technique</h5>
+        <button onclick="fermerModalPrix()"
+                style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);border-radius:10px;
+                padding:14px;margin-bottom:16px;border-left:4px solid #7c3aed;">
+        <div style="font-weight:800;color:#1e3a5f;font-size:14px;" id="prixClient">—</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px;" id="prixDossier">—</div>
+    </div>
+
+    <form id="formPrixAjax" onsubmit="return soumettrePrix(event)">
+        @csrf
+        <input type="hidden" id="prix_dossier_id">
+
+        <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">
+                💰 Prix technique (FCFA) <span style="color:#dc2626;">*</span>
+            </label>
+            <input type="number" id="prix_montant" name="prix_technique"
+                   class="form-control form-control-lg"
+                   min="1" required
+                   style="font-weight:800;font-size:18px;color:#7c3aed;"
+                   placeholder="Ex: 350000"
+                   oninput="verifierPrixModal()">
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">
+                💡 Ce prix deviendra la référence pour tous les paiements de ce dossier.
+            </div>
+            <div id="erreurPrixModal"
+                 style="display:none;color:#dc2626;font-size:12px;font-weight:700;margin-top:4px;"></div>
+        </div>
+
+        <div id="messagePrixModal"
+             style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;
+                    margin-bottom:12px;font-weight:600;"></div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" onclick="fermerModalPrix()"
+                    class="btn btn-light btn-sm" style="font-weight:600;">Annuler</button>
+            <button type="submit" id="btnPrixSubmit"
+                    class="btn btn-sm px-4"
+                    style="background:#7c3aed;color:white;font-weight:700;">
                 💾 Enregistrer
             </button>
         </div>
@@ -566,36 +638,29 @@
 // ═══════════════════════════════════════════════════════════
 let modalDossierId  = null;
 let modalMaxMontant = 0;
+let prixDossierId   = null;
 const CSRF_TOKEN    = '{{ csrf_token() }}';
 
 // ═══════════════════════════════════════════════════════════
-// FILTRAGE DYNAMIQUE (côté client)
+// FILTRAGE DYNAMIQUE
 // ═══════════════════════════════════════════════════════════
 function filtrerDossiers() {
     const recherche = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
     const rows = document.querySelectorAll('.dossier-row');
-    let visibles = 0;
 
     rows.forEach(row => {
         const dataSearch = row.dataset.search || '';
         const visible = !recherche || dataSearch.includes(recherche);
-
-        if (visible) {
-            row.style.display = '';
-            visibles++;
-        } else {
-            row.style.display = 'none';
-        }
+        row.style.display = visible ? '' : 'none';
     });
 
-    // Masquer les cartes client dont tous les dossiers sont cachés
+    // Masquer les cartes vides
     document.querySelectorAll('.client-card').forEach(card => {
-        const dossiersVisibles = card.querySelectorAll('.dossier-row:not([style*="display: none"])').length;
-        card.style.display = dossiersVisibles > 0 ? '' : 'none';
+        const visibles = card.querySelectorAll('.dossier-row:not([style*="display: none"])').length;
+        card.style.display = visibles > 0 ? '' : 'none';
     });
 }
 
-// Debounce pour la recherche
 let debounceTimer;
 document.getElementById('search-input')?.addEventListener('input', () => {
     clearTimeout(debounceTimer);
@@ -660,19 +725,16 @@ function verifierMontantModal() {
         erreur.style.display = 'block';
         erreur.textContent = '⚠️ Le montant doit être supérieur à 0';
         input.style.borderColor = '#dc2626';
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
+        btn.disabled = true; btn.style.opacity = '0.5';
     } else if (val > modalMaxMontant) {
         erreur.style.display = 'block';
         erreur.textContent = '⚠️ Maximum : ' + modalMaxMontant.toLocaleString('fr-FR') + ' FCFA';
         input.style.borderColor = '#dc2626';
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
+        btn.disabled = true; btn.style.opacity = '0.5';
     } else {
         erreur.style.display = 'none';
         input.style.borderColor = '#16a34a';
-        btn.disabled = false;
-        btn.style.opacity = '1';
+        btn.disabled = false; btn.style.opacity = '1';
     }
 }
 
@@ -683,19 +745,16 @@ function remplirMontantMax() {
 
 function soumettrePaiementAjax(event) {
     event.preventDefault();
-
     const btn = document.getElementById('btnSubmitModal');
     const montant = parseFloat(document.getElementById('paiement_montant').value) || 0;
     const date    = document.getElementById('paiement_date').value;
     const note    = document.getElementById('paiement_note').value;
 
     if (montant <= 0 || montant > modalMaxMontant) {
-        afficherMessageModal('⚠️ Montant invalide', 'error');
-        return false;
+        afficherMessageModal('⚠️ Montant invalide', 'error'); return false;
     }
     if (!date) {
-        afficherMessageModal('⚠️ La date est obligatoire', 'error');
-        return false;
+        afficherMessageModal('⚠️ La date est obligatoire', 'error'); return false;
     }
 
     btn.disabled = true;
@@ -715,21 +774,18 @@ function soumettrePaiementAjax(event) {
         if (data.success) {
             afficherMessageModal('✅ ' + data.message, 'success');
             mettreAJourLigneDossier(data.data);
-
             setTimeout(() => {
                 fermerModalPaiement();
                 showToastGlobal('✅ Paiement enregistré — Bon ' + data.bon_numero, 'success');
             }, 1200);
         } else {
             afficherMessageModal('❌ ' + data.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = '💾 Enregistrer';
+            btn.disabled = false; btn.innerHTML = '💾 Enregistrer';
         }
     })
     .catch(err => {
         afficherMessageModal('❌ Erreur réseau : ' + err.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = '💾 Enregistrer';
+        btn.disabled = false; btn.innerHTML = '💾 Enregistrer';
     });
 
     return false;
@@ -739,37 +795,25 @@ function afficherMessageModal(message, type) {
     const box = document.getElementById('messageModal');
     box.style.display = 'block';
     box.textContent = message;
-
-    if (type === 'success') {
-        box.style.background = '#dcfce7';
-        box.style.color = '#15803d';
-        box.style.border = '1px solid #86efac';
-    } else {
-        box.style.background = '#fee2e2';
-        box.style.color = '#b91c1c';
-        box.style.border = '1px solid #fecaca';
-    }
+    box.style.background = type === 'success' ? '#dcfce7' : '#fee2e2';
+    box.style.color      = type === 'success' ? '#15803d' : '#b91c1c';
+    box.style.border     = type === 'success' ? '1px solid #86efac' : '1px solid #fecaca';
 }
 
 function mettreAJourLigneDossier(data) {
     const row = document.querySelector(`.dossier-row[data-dossier-id="${data.dossier_id}"]`);
     if (!row) return;
 
-    // Mettre à jour la classe de statut
-    row.classList.remove('paye', 'partiel', 'non_paye');
+    row.classList.remove('paye', 'partiel', 'non_paye', 'sans_prix');
     row.classList.add(data.statut);
-
-    // Mettre à jour data-statut
     row.dataset.statut = data.statut;
 
-    // Mettre à jour le badge
     const badge = row.querySelector('.badge-statut');
     if (badge) {
         badge.className = 'badge-statut ' + data.statut;
         badge.textContent = data.label;
     }
 
-    // Montants
     const montantPaye = row.querySelector('.montant-paye');
     if (montantPaye) {
         montantPaye.textContent = data.deja_paye_fmt + ' / ' + data.prix_ref_fmt + ' FCFA';
@@ -787,14 +831,12 @@ function mettreAJourLigneDossier(data) {
         }
     }
 
-    // Barre de progression
     const progressBar = row.querySelector('.progress-bar-mini > div');
     if (progressBar) {
         progressBar.style.width = data.pourcentage + '%';
         progressBar.style.background = data.couleur;
     }
 
-    // Boutons d'action
     const actionDiv = row.querySelector('.action-buttons');
     if (actionDiv && data.statut === 'paye') {
         actionDiv.innerHTML = `
@@ -806,10 +848,106 @@ function mettreAJourLigneDossier(data) {
             </a>`;
     }
 
-    // Animation visuelle
     row.style.transition = 'background 0.5s';
     row.style.background = '#dcfce7';
     setTimeout(() => { row.style.background = ''; }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL DÉFINIR PRIX
+// ═══════════════════════════════════════════════════════════
+function ouvrirModalPrix(btn) {
+    prixDossierId = parseInt(btn.dataset.dossierId);
+
+    document.getElementById('prix_dossier_id').value   = prixDossierId;
+    document.getElementById('prixClient').textContent   = '👤 ' + btn.dataset.clientNom;
+    document.getElementById('prixDossier').textContent  = '📂 ' + btn.dataset.dossierNom;
+    document.getElementById('prix_montant').value       = '';
+    document.getElementById('messagePrixModal').style.display = 'none';
+    document.getElementById('erreurPrixModal').style.display = 'none';
+    document.getElementById('btnPrixSubmit').disabled = true;
+    document.getElementById('btnPrixSubmit').innerHTML = '💾 Enregistrer';
+
+    document.getElementById('modalPrixOverlay').classList.add('active');
+    document.getElementById('modalPrix').classList.add('active');
+
+    setTimeout(() => document.getElementById('prix_montant').focus(), 100);
+}
+
+function fermerModalPrix() {
+    document.getElementById('modalPrixOverlay').classList.remove('active');
+    document.getElementById('modalPrix').classList.remove('active');
+    prixDossierId = null;
+}
+
+function verifierPrixModal() {
+    const input  = document.getElementById('prix_montant');
+    const erreur = document.getElementById('erreurPrixModal');
+    const btn    = document.getElementById('btnPrixSubmit');
+    const val    = parseFloat(input.value) || 0;
+
+    if (val <= 0) {
+        erreur.style.display = 'block';
+        erreur.textContent = '⚠️ Le prix doit être supérieur à 0';
+        input.style.borderColor = '#dc2626';
+        btn.disabled = true; btn.style.opacity = '0.5';
+    } else {
+        erreur.style.display = 'none';
+        input.style.borderColor = '#16a34a';
+        btn.disabled = false; btn.style.opacity = '1';
+    }
+}
+
+function soumettrePrix(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnPrixSubmit');
+    const prix = parseFloat(document.getElementById('prix_montant').value) || 0;
+
+    if (prix <= 0) {
+        afficherMessagePrix('⚠️ Prix invalide', 'error'); return false;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement...';
+
+    fetch(`/admin/comptable/dossier/${prixDossierId}/definir-prix`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ prix_technique: prix }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessagePrix('✅ ' + data.message, 'success');
+            setTimeout(() => {
+                fermerModalPrix();
+                showToastGlobal('✅ Prix technique défini', 'success');
+                setTimeout(() => location.reload(), 800);
+            }, 1200);
+        } else {
+            afficherMessagePrix('❌ ' + data.message, 'error');
+            btn.disabled = false; btn.innerHTML = '💾 Enregistrer';
+        }
+    })
+    .catch(err => {
+        afficherMessagePrix('❌ Erreur : ' + err.message, 'error');
+        btn.disabled = false; btn.innerHTML = '💾 Enregistrer';
+    });
+
+    return false;
+}
+
+function afficherMessagePrix(message, type) {
+    const box = document.getElementById('messagePrixModal');
+    box.style.display = 'block';
+    box.textContent = message;
+    box.style.background = type === 'success' ? '#dcfce7' : '#fee2e2';
+    box.style.color      = type === 'success' ? '#15803d' : '#b91c1c';
+    box.style.border     = type === 'success' ? '1px solid #86efac' : '1px solid #fecaca';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -818,19 +956,17 @@ function mettreAJourLigneDossier(data) {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         fermerModalPaiement();
+        fermerModalPrix();
     }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Entrée dans la note = soumettre
     document.getElementById('paiement_note')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             document.getElementById('formPaiementAjax').dispatchEvent(new Event('submit'));
         }
     });
-
-    // Échap sur la recherche = effacer
     document.getElementById('search-input')?.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             e.target.value = '';

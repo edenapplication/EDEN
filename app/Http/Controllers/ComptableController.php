@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 
+
 class ComptableController extends Controller
 {
     // ═══════════════════════════════════════════════════════════════
@@ -150,14 +151,19 @@ class ComptableController extends Controller
 
     // 📊 Filtre statut
     if ($request->filled('statut')) {
-        if ($request->statut === 'paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+        if ($request->statut === 'sans_prix') {
+            $query->whereRaw('COALESCE(prix_technique, 0) = 0');
+        } elseif ($request->statut === 'paye') {
+            $query->whereRaw('COALESCE(prix_technique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
                               WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
         } elseif ($request->statut === 'non_paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+            $query->whereRaw('COALESCE(prix_technique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
                               WHERE dossier_client_id = dossiers_clients.id) = 0');
         } elseif ($request->statut === 'partiel') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+            $query->whereRaw('COALESCE(prix_technique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
                               WHERE dossier_client_id = dossiers_clients.id) > 0')
                   ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
                               WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
@@ -169,10 +175,10 @@ class ComptableController extends Controller
         $query->where('grand_site_id', $request->grand_site_id);
     }
 
-    // ✅ Récupérer les dossiers groupés par client
+    // ✅ Pagination
     $dossiers = $query->paginate(50)->withQueryString();
 
-    // ✅ Grouper par client pour l'affichage
+    // ✅ Grouper par client
     $dossiersGroupes = $dossiers->getCollection()->groupBy(function ($d) {
         return $d->client_id ?? 0;
     });
@@ -180,9 +186,62 @@ class ComptableController extends Controller
     $grandSites = GrandSite::orderBy('nom')->get();
     $stats = $this->calculerStatsTechnique($request);
 
+    // ✅ Nombre de dossiers sans prix
+    $dossiersSansPrix = DossierClient::where(function ($q) {
+        $q->whereNull('prix_technique')->orWhere('prix_technique', 0);
+    })->count();
+
     return view('admin.comptable.index', compact(
-        'dossiers', 'dossiersGroupes', 'grandSites', 'stats'
+        'dossiers', 'dossiersGroupes', 'grandSites', 'stats', 'dossiersSansPrix'
     ));
+}
+
+// ═══════════════════════════════════════════════════════════
+// DÉFINIR LE PRIX TECHNIQUE D'UN DOSSIER
+// ═══════════════════════════════════════════════════════════
+public function definirPrix(Request $request, DossierClient $dossier)
+{
+    try {
+        // ✅ Validation
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'prix_technique' => 'required|numeric|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $prix = floatval($request->prix_technique);
+
+        // ✅ Vérifier que le prix n'a pas déjà été défini
+        if ($dossier->prix_technique > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => '⚠️ Un prix technique est déjà défini pour ce dossier.',
+            ], 422);
+        }
+
+        // ✅ Enregistrer
+        $dossier->update([
+            'prix_technique' => $prix,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prix technique défini : ' . number_format($prix, 0, ',', ' ') . ' FCFA',
+            'prix'    => $prix,
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('message');
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur : ' . $e->getMessage(),
+        ], 500);
+    }
 }
 
     // ═══════════════════════════════════════════════════════════════

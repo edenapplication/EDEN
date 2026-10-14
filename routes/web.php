@@ -102,6 +102,9 @@ Route::middleware(['auth', 'comptable'])
 
         // Mes paiements
         Route::get('/mes-paiements', [ComptableController::class, 'mesPaiements'])->name('mes-paiements');
+
+        Route::post('/dossier/{dossier}/definir-prix', [ComptableController::class, 'definirPrix'])
+    ->name('definir-prix');
     });
 
 // ── AUTHENTIFICATION ────────────────────────────────────────────
