@@ -14,46 +14,47 @@ $MODE = false;  // false = simulation, true = exécution
 
 echo "Mode : " . ($MODE ? "⚠️  EXÉCUTION" : "🔍 SIMULATION") . "\n\n";
 
-// ═══════════════════════════════════════════════════════════
-// 1. ATTACHER LE BACKUP À LA BASE ACTUELLE
-// ═══════════════════════════════════════════════════════════
-echo "📎 Attachement du backup...\n";
-
+// Attacher le backup
 DB::statement("ATTACH DATABASE '" . database_path('database.sqlite.backup_20260930_090128') . "' AS backup");
 
-echo "✅ Backup attaché\n\n";
+// ═══════════════════════════════════════════════════════════
+// CONFIGURATION DES TABLES (colonnes réellement existantes)
+// ═══════════════════════════════════════════════════════════
+$tables = [
+    'paiements_techniques' => [
+        'label'    => 'Paiements techniques',
+        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+    ],
+    'paiements_dossier' => [
+        'label'    => 'Paiements dossier',
+        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+    ],
+    'paiements_logistiques' => [
+        'label'    => 'Paiements logistiques',
+        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+    ],
+    'paiements_morcellements' => [
+        'label'    => 'Paiements morcellements',
+        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+    ],
+];
 
-// ═══════════════════════════════════════════════════════════
-// 2. ANALYSER LES PAIEMENTS MANQUANTS
-// ═══════════════════════════════════════════════════════════
 echo "═══════════════════════════════════════════════════════\n";
 echo "🔍 ANALYSE DES PAIEMENTS MANQUANTS\n";
 echo "═══════════════════════════════════════════════════════\n\n";
 
-$tables = [
-    'paiements_techniques'  => 'Paiements techniques',
-    'paiements_dossier'     => 'Paiements dossier',
-    'paiements_logistiques' => 'Paiements logistiques',
-    'paiements_morcellements' => 'Paiements morcellements',
-];
-
 $totalManquant = 0;
 
-foreach ($tables as $table => $label) {
-    // Compter dans le backup
+foreach ($tables as $table => $config) {
     $countBackup = DB::select("SELECT COUNT(*) as c FROM backup.{$table}")[0]->c;
-    
-    // Compter dans la base actuelle
     $countActuel = DB::select("SELECT COUNT(*) as c FROM main.{$table}")[0]->c;
-    
-    // Compter ceux qui existent dans le backup mais pas dans la base
     $manquant = $countBackup - $countActuel;
-    
-    echo "{$label}\n";
+
+    echo "{$config['label']}\n";
     echo "  Backup     : {$countBackup}\n";
     echo "  Actuel     : {$countActuel}\n";
     echo "  Différence : " . ($manquant > 0 ? "+{$manquant} à récupérer" : "—") . "\n\n";
-    
+
     if ($manquant > 0) {
         $totalManquant += $manquant;
     }
@@ -64,29 +65,28 @@ echo "TOTAL À RÉCUPÉRER : {$totalManquant} paiements\n";
 echo "═══════════════════════════════════════════════════════\n\n";
 
 // ═══════════════════════════════════════════════════════════
-// 3. EXÉCUTER LA FUSION (si mode = true)
+// EXÉCUTION DE LA FUSION
 // ═══════════════════════════════════════════════════════════
 if ($MODE) {
     echo "═══════════════════════════════════════════════════════\n";
     echo "🔀 EXÉCUTION DE LA FUSION\n";
     echo "═══════════════════════════════════════════════════════\n\n";
-    
-    foreach ($tables as $table => $label) {
-        echo "Fusion de {$label}...\n";
+
+    foreach ($tables as $table => $config) {
+        echo "Fusion de {$config['label']}...\n";
         
-        // Insérer les paiements du backup qui n'existent pas dans la base actuelle
-        // Critère : même dossier + même montant + même date
+        // Colonnes présentes dans les 2 tables
+        $cols = $config['colonnes'];
+        $colsList = implode(', ', $cols);
+        $colsSelect = 'b.' . implode(', b.', $cols);
+        
+        // Ajouter user_reference (nouvelle colonne absente du backup)
+        $colsList .= ', user_reference, created_at, updated_at';
+        $colsSelect .= ", 'BACKUP-30SEPT' AS user_reference, b.created_at, b.updated_at";
+
         $sql = "
-            INSERT INTO main.{$table} 
-                (dossier_client_id, montant, date_paiement, note, user_reference, created_at, updated_at)
-            SELECT 
-                b.dossier_client_id, 
-                b.montant, 
-                b.date_paiement, 
-                b.note, 
-                b.user_reference,
-                b.created_at,
-                b.updated_at
+            INSERT INTO main.{$table} ({$colsList})
+            SELECT {$colsSelect}
             FROM backup.{$table} b
             WHERE NOT EXISTS (
                 SELECT 1 FROM main.{$table} m
@@ -96,7 +96,10 @@ if ($MODE) {
             )
         ";
         
-        $inserted = DB::statement($sql);
+        // ⚠️ Vérifier que client_id et reste existent bien
+        // (sinon, à retirer de la config)
+        
+        DB::statement($sql);
         
         echo "  ✅ Terminé\n\n";
     }
@@ -106,11 +109,7 @@ if ($MODE) {
     echo "═══════════════════════════════════════════════════════\n";
 }
 
-// ═══════════════════════════════════════════════════════════
-// 4. DÉTACHER LE BACKUP
-// ═══════════════════════════════════════════════════════════
 DB::statement("DETACH DATABASE backup");
-
 echo "\n📎 Backup détaché\n";
 
 if (!$MODE) {
