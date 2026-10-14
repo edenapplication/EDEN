@@ -11,160 +11,118 @@ use App\Models\PaiementLogistique;
 use App\Models\PaiementMorcellement;
 
 echo "═══════════════════════════════════════════════════════\n";
-echo "🧹 NETTOYAGE DES PAIEMENTS ORPHELINS\n";
+echo "🔧 RECRÉATION DES PAIEMENTS MANQUANTS\n";
 echo "═══════════════════════════════════════════════════════\n\n";
 
-// ═══════════════════════════════════════════════════════════
-// MODE : Mettre à TRUE pour supprimer, FALSE pour diagnostic seulement
-// ═══════════════════════════════════════════════════════════
-$MODE_SUPPRESSION = true;  // ⚠️ true = supprime, false = voit seulement
+$MODE = true;  // false = diagnostic, true = recréer
 
-echo "Mode : " . ($MODE_SUPPRESSION ? "🗑️  SUPPRESSION" : "🔍 DIAGNOSTIC SEUL") . "\n\n";
+$total = 0;
 
-$totalOrphelins = 0;
-$totalSupprimes = 0;
-
-// ═══════════════════════════════════════════════════════════
-// 1. PAIEMENTS TECHNIQUES
-// ═══════════════════════════════════════════════════════════
-echo "═══════════════════════════════════════════════════════\n";
-echo "📌 PAIEMENTS TECHNIQUES\n";
-echo "═══════════════════════════════════════════════════════\n";
-
-$orphelins = 0;
-foreach (PaiementTechnique::all() as $p) {
-    $bon = BonPaiement::where('dossier_client_id', $p->dossier_client_id)
-        ->where('versement_technique', $p->montant)
-        ->first();
+foreach (BonPaiement::all() as $bon) {
+    $dossierId = $bon->dossier_client_id;
+    $ref = $bon->user_reference ?? 'SYSTEM';
+    $date = $bon->date_bon;
     
-    if (!$bon) {
-        $orphelins++;
-        $totalOrphelins++;
+    // ═══════════════════════════════════════════════════════
+    // Paiement TECHNIQUE
+    // ═══════════════════════════════════════════════════════
+    if ($bon->versement_technique > 0) {
+        $existe = PaiementTechnique::where('dossier_client_id', $dossierId)
+            ->where('montant', $bon->versement_technique)
+            ->exists();
         
-        echo "  ⚠️  #{$p->id} | dossier={$p->dossier_client_id} | {$p->montant} FCFA | ref=" . ($p->user_reference ?? 'NULL') . "\n";
+        if (!$existe) {
+            echo "📌 {$bon->numero_bon} → TECHNIQUE {$bon->versement_technique} FCFA manquant\n";
+            if ($MODE) {
+                PaiementTechnique::create([
+                    'dossier_client_id' => $dossierId,
+                    'montant'           => $bon->versement_technique,
+                    'date_paiement'     => $date,
+                    'note'              => 'Bon ' . $bon->numero_bon,
+                    'user_reference'    => $ref,
+                ]);
+                echo "   ✅ Recréé\n";
+                $total++;
+            }
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════
+    // Paiement DOSSIER
+    // ═══════════════════════════════════════════════════════
+    if ($bon->versement_dossier > 0) {
+        $existe = PaiementDossier::where('dossier_client_id', $dossierId)
+            ->where('montant', $bon->versement_dossier)
+            ->exists();
         
-        if ($MODE_SUPPRESSION) {
-            $p->delete();
-            $totalSupprimes++;
-            echo "      → 🗑️  SUPPRIMÉ\n";
+        if (!$existe) {
+            echo "📌 {$bon->numero_bon} → DOSSIER {$bon->versement_dossier} FCFA manquant\n";
+            if ($MODE) {
+                PaiementDossier::create([
+                    'dossier_client_id' => $dossierId,
+                    'montant'           => $bon->versement_dossier,
+                    'date_paiement'     => $date,
+                    'note'              => 'Bon ' . $bon->numero_bon,
+                    'user_reference'    => $ref,
+                ]);
+                echo "   ✅ Recréé\n";
+                $total++;
+            }
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════
+    // Paiement LOGISTIQUE
+    // ═══════════════════════════════════════════════════════
+    if ($bon->versement_logistique > 0) {
+        $existe = PaiementLogistique::where('dossier_client_id', $dossierId)
+            ->where('montant', $bon->versement_logistique)
+            ->exists();
+        
+        if (!$existe) {
+            echo "📌 {$bon->numero_bon} → LOGISTIQUE {$bon->versement_logistique} FCFA manquant\n";
+            if ($MODE) {
+                PaiementLogistique::create([
+                    'dossier_client_id' => $dossierId,
+                    'montant'           => $bon->versement_logistique,
+                    'date_paiement'     => $date,
+                    'note'              => 'Bon ' . $bon->numero_bon,
+                    'user_reference'    => $ref,
+                ]);
+                echo "   ✅ Recréé\n";
+                $total++;
+            }
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════
+    // Paiement MORCELLEMENT
+    // ═══════════════════════════════════════════════════════
+    if ($bon->versement_morcellement > 0) {
+        $existe = PaiementMorcellement::where('dossier_client_id', $dossierId)
+            ->where('montant', $bon->versement_morcellement)
+            ->exists();
+        
+        if (!$existe) {
+            echo "📌 {$bon->numero_bon} → MORCELLEMENT {$bon->versement_morcellement} FCFA manquant\n";
+            if ($MODE) {
+                PaiementMorcellement::create([
+                    'dossier_client_id' => $dossierId,
+                    'montant'           => $bon->versement_morcellement,
+                    'date_paiement'     => $date,
+                    'note'              => 'Bon ' . $bon->numero_bon,
+                    'user_reference'    => $ref,
+                ]);
+                echo "   ✅ Recréé\n";
+                $total++;
+            }
         }
     }
 }
-echo "\n  Résultat : {$orphelins} orphelin(s) " . ($MODE_SUPPRESSION ? "supprimé(s)" : "détecté(s)") . "\n\n";
-
-// ═══════════════════════════════════════════════════════════
-// 2. PAIEMENTS DOSSIER
-// ═══════════════════════════════════════════════════════════
-echo "═══════════════════════════════════════════════════════\n";
-echo "📌 PAIEMENTS DOSSIER (superficie)\n";
-echo "═══════════════════════════════════════════════════════\n";
-
-$orphelins = 0;
-foreach (PaiementDossier::all() as $p) {
-    $bon = BonPaiement::where('dossier_client_id', $p->dossier_client_id)
-        ->where('versement_dossier', $p->montant)
-        ->first();
-    
-    if (!$bon) {
-        $orphelins++;
-        $totalOrphelins++;
-        
-        echo "  ⚠️  #{$p->id} | dossier={$p->dossier_client_id} | {$p->montant} FCFA | ref=" . ($p->user_reference ?? 'NULL') . "\n";
-        
-        if ($MODE_SUPPRESSION) {
-            $p->delete();
-            $totalSupprimes++;
-            echo "      → 🗑️  SUPPRIMÉ\n";
-        }
-    }
-}
-echo "\n  Résultat : {$orphelins} orphelin(s) " . ($MODE_SUPPRESSION ? "supprimé(s)" : "détecté(s)") . "\n\n";
-
-// ═══════════════════════════════════════════════════════════
-// 3. PAIEMENTS LOGISTIQUES
-// ═══════════════════════════════════════════════════════════
-echo "═══════════════════════════════════════════════════════\n";
-echo "📌 PAIEMENTS LOGISTIQUES\n";
-echo "═══════════════════════════════════════════════════════\n";
-
-$orphelins = 0;
-foreach (PaiementLogistique::all() as $p) {
-    $bon = BonPaiement::where('dossier_client_id', $p->dossier_client_id)
-        ->where('versement_logistique', $p->montant)
-        ->first();
-    
-    if (!$bon) {
-        $orphelins++;
-        $totalOrphelins++;
-        
-        echo "  ⚠️  #{$p->id} | dossier={$p->dossier_client_id} | {$p->montant} FCFA | ref=" . ($p->user_reference ?? 'NULL') . "\n";
-        
-        if ($MODE_SUPPRESSION) {
-            $p->delete();
-            $totalSupprimes++;
-            echo "      → 🗑️  SUPPRIMÉ\n";
-        }
-    }
-}
-echo "\n  Résultat : {$orphelins} orphelin(s) " . ($MODE_SUPPRESSION ? "supprimé(s)" : "détecté(s)") . "\n\n";
-
-// ═══════════════════════════════════════════════════════════
-// 4. PAIEMENTS MORCELLEMENTS
-// ═══════════════════════════════════════════════════════════
-echo "═══════════════════════════════════════════════════════\n";
-echo "📌 PAIEMENTS MORCELLEMENTS\n";
-echo "═══════════════════════════════════════════════════════\n";
-
-$orphelins = 0;
-foreach (PaiementMorcellement::all() as $p) {
-    $bon = BonPaiement::where('dossier_client_id', $p->dossier_client_id)
-        ->where('versement_morcellement', $p->montant)
-        ->first();
-    
-    if (!$bon) {
-        $orphelins++;
-        $totalOrphelins++;
-        
-        echo "  ⚠️  #{$p->id} | dossier={$p->dossier_client_id} | {$p->montant} FCFA | ref=" . ($p->user_reference ?? 'NULL') . "\n";
-        
-        if ($MODE_SUPPRESSION) {
-            $p->delete();
-            $totalSupprimes++;
-            echo "      → 🗑️  SUPPRIMÉ\n";
-        }
-    }
-}
-echo "\n  Résultat : {$orphelins} orphelin(s) " . ($MODE_SUPPRESSION ? "supprimé(s)" : "détecté(s)") . "\n\n";
-
-// ═══════════════════════════════════════════════════════════
-// RÉSUMÉ FINAL
-// ═══════════════════════════════════════════════════════════
-echo "═══════════════════════════════════════════════════════\n";
-echo "📊 RÉSUMÉ FINAL\n";
-echo "═══════════════════════════════════════════════════════\n";
-echo "Mode                 : " . ($MODE_SUPPRESSION ? "SUPPRESSION" : "DIAGNOSTIC") . "\n";
-echo "Total orphelins      : {$totalOrphelins}\n";
-
-if ($MODE_SUPPRESSION) {
-    echo "Total supprimés      : {$totalSupprimes}\n";
-    echo "Erreurs              : " . ($totalOrphelins - $totalSupprimes) . "\n";
-}
-
-echo "───────────────────────────────────────────────────────\n";
-
-// État actuel des tables
-echo "\n📊 ÉTAT ACTUEL DES TABLES :\n";
-echo "  Paiements techniques    : " . PaiementTechnique::count() . "\n";
-echo "  Paiements dossier       : " . PaiementDossier::count() . "\n";
-echo "  Paiements logistiques   : " . PaiementLogistique::count() . "\n";
-echo "  Paiements morcellements : " . PaiementMorcellement::count() . "\n";
-echo "  Bons de paiement        : " . BonPaiement::count() . "\n";
 
 echo "\n═══════════════════════════════════════════════════════\n";
-
-if ($MODE_SUPPRESSION) {
-    echo "✅ Nettoyage terminé\n";
-} else {
-    echo "💡 Passez \$MODE_SUPPRESSION à true pour supprimer\n";
-}
+echo "📊 RÉSUMÉ\n";
+echo "═══════════════════════════════════════════════════════\n";
+echo "Mode             : " . ($MODE ? "RECRÉATION" : "DIAGNOSTIC") . "\n";
+echo "Paiements créés  : {$total}\n";
 echo "═══════════════════════════════════════════════════════\n";
