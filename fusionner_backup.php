@@ -10,32 +10,31 @@ echo "════════════════════════�
 echo "🔀 FUSION DES PAIEMENTS (Backup → Base actuelle)\n";
 echo "═══════════════════════════════════════════════════════\n\n";
 
-$MODE = true;  // false = simulation, true = exécution
+$MODE = true;   // ✅ Mode EXÉCUTION
 
 echo "Mode : " . ($MODE ? "⚠️  EXÉCUTION" : "🔍 SIMULATION") . "\n\n";
 
-// Attacher le backup
 DB::statement("ATTACH DATABASE '" . database_path('database.sqlite.backup_20260930_090128') . "' AS backup");
 
 // ═══════════════════════════════════════════════════════════
-// CONFIGURATION DES TABLES (colonnes réellement existantes)
+// CONFIGURATION EXACTE DES COLONNES PAR TABLE
 // ═══════════════════════════════════════════════════════════
 $tables = [
     'paiements_techniques' => [
         'label'    => 'Paiements techniques',
-        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+        'colonnes' => ['dossier_client_id', 'montant', 'date_paiement', 'note', 'created_at', 'updated_at'],
     ],
     'paiements_dossier' => [
         'label'    => 'Paiements dossier',
-        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note', 'created_at', 'updated_at'],
     ],
     'paiements_logistiques' => [
         'label'    => 'Paiements logistiques',
-        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+        'colonnes' => ['dossier_client_id', 'montant', 'date_paiement', 'note', 'created_at', 'updated_at'],
     ],
     'paiements_morcellements' => [
         'label'    => 'Paiements morcellements',
-        'colonnes' => ['dossier_client_id', 'client_id', 'montant', 'reste', 'date_paiement', 'note'],
+        'colonnes' => ['dossier_client_id', 'montant', 'date_paiement', 'note', 'created_at', 'updated_at'],
     ],
 ];
 
@@ -65,7 +64,7 @@ echo "TOTAL À RÉCUPÉRER : {$totalManquant} paiements\n";
 echo "═══════════════════════════════════════════════════════\n\n";
 
 // ═══════════════════════════════════════════════════════════
-// EXÉCUTION DE LA FUSION
+// EXÉCUTION
 // ═══════════════════════════════════════════════════════════
 if ($MODE) {
     echo "═══════════════════════════════════════════════════════\n";
@@ -74,15 +73,30 @@ if ($MODE) {
 
     foreach ($tables as $table => $config) {
         echo "Fusion de {$config['label']}...\n";
-        
-        // Colonnes présentes dans les 2 tables
-        $cols = $config['colonnes'];
-        $colsList = implode(', ', $cols);
-        $colsSelect = 'b.' . implode(', b.', $cols);
-        
-        // Ajouter user_reference (nouvelle colonne absente du backup)
-        $colsList .= ', user_reference, created_at, updated_at';
-        $colsSelect .= ", 'BACKUP-30SEPT' AS user_reference, b.created_at, b.updated_at";
+
+        $colonnesCommunes = $config['colonnes'];
+
+        // Colonnes à insérer : communes + user_reference (inséré après 'note')
+        $colonnesInsert = $colonnesCommunes;
+        $pos = array_search('note', $colonnesInsert);
+        if ($pos !== false) {
+            array_splice($colonnesInsert, $pos + 1, 0, 'user_reference');
+        } else {
+            $colonnesInsert[] = 'user_reference';
+        }
+
+        $colsList = implode(', ', $colonnesInsert);
+
+        // SELECT : colonnes communes + 'BACKUP-30SEPT' pour user_reference
+        $selectParts = array_map(fn($c) => "b.{$c}", $colonnesCommunes);
+        $posSelect = array_search('note', $colonnesCommunes);
+        if ($posSelect !== false) {
+            array_splice($selectParts, $posSelect + 1, 0, "'BACKUP-30SEPT' AS user_reference");
+        } else {
+            $selectParts[] = "'BACKUP-30SEPT' AS user_reference";
+        }
+
+        $colsSelect = implode(', ', $selectParts);
 
         $sql = "
             INSERT INTO main.{$table} ({$colsList})
@@ -95,15 +109,18 @@ if ($MODE) {
                   AND date(m.date_paiement) = date(b.date_paiement)
             )
         ";
-        
-        // ⚠️ Vérifier que client_id et reste existent bien
-        // (sinon, à retirer de la config)
-        
-        DB::statement($sql);
-        
-        echo "  ✅ Terminé\n\n";
+
+        try {
+            DB::statement($sql);
+            
+            // Compter le nouveau total
+            $nouveau = DB::select("SELECT COUNT(*) as c FROM main.{$table}")[0]->c;
+            echo "  ✅ Terminé — Total maintenant : {$nouveau}\n\n";
+        } catch (\Exception $e) {
+            echo "  ❌ ERREUR : " . $e->getMessage() . "\n\n";
+        }
     }
-    
+
     echo "═══════════════════════════════════════════════════════\n";
     echo "✅ FUSION TERMINÉE\n";
     echo "═══════════════════════════════════════════════════════\n";
@@ -111,7 +128,3 @@ if ($MODE) {
 
 DB::statement("DETACH DATABASE backup");
 echo "\n📎 Backup détaché\n";
-
-if (!$MODE) {
-    echo "\n💡 Pour EXÉCUTER, modifiez \$MODE = true et relancez\n";
-}
