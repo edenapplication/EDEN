@@ -21,7 +21,7 @@ class UserController extends Controller
             'email'     => 'required|email|unique:users,email',
             'reference' => 'required|string|unique:users,reference|max:50',
             'password'  => 'required|string|min:6',
-             'role'      => 'required|in:admin,rh,commercial,geometre',
+            'role'      => 'required|in:admin,rh,commercial,geometre,comptable',  // ✅ AJOUTÉ
         ]);
 
         User::create([
@@ -39,13 +39,13 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         $request->validate([
             'name'      => 'required|string|max:100',
             'email'     => 'required|email|unique:users,email,' . $id,
             'reference' => 'required|string|unique:users,reference,' . $id . '|max:50',
             'password'  => 'nullable|string|min:6',
-             'role'      => 'required|in:admin,rh,commercial,geometre',
+            'role'      => 'required|in:admin,rh,commercial,geometre,comptable',  // ✅ AJOUTÉ
         ]);
 
         $data = [

@@ -7,6 +7,7 @@ use App\Traits\Auditable;
 class BonPaiement extends Model
 {
     use Auditable;
+
     protected $table    = 'bons_paiement';
     protected $fillable = [
         'dossier_client_id','numero_bon','date_bon',
@@ -14,24 +15,82 @@ class BonPaiement extends Model
         'versement_logistique','versement_morcellement',
         'total_dossier_cumul','total_technique_cumul',
         'total_logistique_cumul','total_morcellement_cumul',
-        'afficher_reste','notes','user_reference', // ✅ Ajout
-        'user_id',        // ✅ Ajout
+        'afficher_reste','notes','user_reference',
+        'user_id',
     ];
     protected $casts = [
         'date_bon'       => 'date',
         'afficher_reste' => 'boolean',
     ];
 
-    // ✅ AJOUTER CETTE RELATION
+    // ═══════════════════════════════════════════════════════════════
+    // ✅ SUPPRESSION AUTOMATIQUE DES PAIEMENTS ET VISITE LIÉS
+    // (sécurité en plus du contrôleur)
+    // ═══════════════════════════════════════════════════════════════
+    protected static function booted(): void
+    {
+        static::deleting(function (BonPaiement $bon) {
+            $dossierId = $bon->dossier_client_id;
+            $reference = $bon->user_reference;
+            $date      = $bon->date_bon;
+
+            // Paiement Dossier
+            if ($bon->versement_dossier > 0) {
+                PaiementDossier::where('dossier_client_id', $dossierId)
+                    ->whereDate('date_paiement', $date)
+                    ->where('montant', $bon->versement_dossier)
+                    ->when($reference, fn($q) => $q->where('user_reference', $reference))
+                    ->delete();
+            }
+
+            // Paiement Technique
+            if ($bon->versement_technique > 0) {
+                PaiementTechnique::where('dossier_client_id', $dossierId)
+                    ->whereDate('date_paiement', $date)
+                    ->where('montant', $bon->versement_technique)
+                    ->when($reference, fn($q) => $q->where('user_reference', $reference))
+                    ->delete();
+            }
+
+            // Paiement Logistique
+            if ($bon->versement_logistique > 0) {
+                PaiementLogistique::where('dossier_client_id', $dossierId)
+                    ->whereDate('date_paiement', $date)
+                    ->where('montant', $bon->versement_logistique)
+                    ->when($reference, fn($q) => $q->where('user_reference', $reference))
+                    ->delete();
+            }
+
+            // Paiement Morcellement
+            if ($bon->versement_morcellement > 0) {
+                PaiementMorcellement::where('dossier_client_id', $dossierId)
+                    ->whereDate('date_paiement', $date)
+                    ->where('montant', $bon->versement_morcellement)
+                    ->when($reference, fn($q) => $q->where('user_reference', $reference))
+                    ->delete();
+            }
+
+            // Visite liée
+            Visite::where('bon_id', $bon->id)->delete();
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RELATIONS
+    // ═══════════════════════════════════════════════════════════════
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-
     public function dossier()
     {
         return $this->belongsTo(DossierClient::class, 'dossier_client_id');
+    }
+
+    public function visite()
+    {
+        return $this->hasOne(Visite::class, 'bon_id');
     }
 
     // Total versé ce bon
@@ -59,9 +118,4 @@ class BonPaiement extends Model
         $num     = $dernier ? $dernier->id + 1 : 1;
         return 'EDG-BON-' . str_pad($num, 5, '0', STR_PAD_LEFT);
     }
-    
-    public function visite()
-{
-    return $this->hasOne(Visite::class, 'bon_id');
-}
 }

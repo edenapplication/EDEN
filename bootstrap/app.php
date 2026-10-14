@@ -14,10 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
 
         $middleware->alias([
-
             'check.role' => \App\Http\Middleware\CheckRole::class,
             'feb.auth'   => \App\Http\Middleware\FebAuth::class,
-
+            'comptable'  => \App\Http\Middleware\ComptableMiddleware::class,  // ✅ AJOUTÉ
         ]);
 
     })

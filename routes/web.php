@@ -47,6 +47,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\GeometreAuthController;
 use App\Http\Controllers\AuditController;
+use App\Http\Controllers\ComptableController;
 
 Route::middleware(['auth', 'check.role:admin'])
     ->prefix('admin/audits')
@@ -64,6 +65,44 @@ Route::post('/deploy', function () {
     exec('cd /var/www/html && php artisan optimize:clear');
     return response('DEPLOY OK', 200);
 });
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔐 AUTHENTIFICATION COMPTABLE (accès public)
+// ═══════════════════════════════════════════════════════════════════
+Route::prefix('comptable')->name('comptable.auth.')->group(function () {
+    Route::get('/login',   [ComptableController::class, 'showLogin'])->name('login');
+    Route::post('/login',  [ComptableController::class, 'login'])->name('login.post');
+    Route::post('/logout', [ComptableController::class, 'logout'])
+        ->middleware('auth')->name('logout');
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 💰 ESPACE COMPTABLE (protégé)
+// ═══════════════════════════════════════════════════════════════════
+Route::middleware(['auth', 'comptable'])
+    ->prefix('admin/comptable')
+    ->name('comptable.')
+    ->group(function () {
+
+        // Dashboard
+        Route::get('/', [ComptableController::class, 'dashboard'])->name('dashboard');
+
+        // Paiement
+        Route::get('/paiements', [ComptableController::class, 'index'])->name('index');
+        Route::post('/dossier/{dossier}/payer-ajax', [ComptableController::class, 'payerAjax'])->name('payerAjax');
+        Route::get('/dossier/{dossier}/historique', [ComptableController::class, 'historique'])->name('historique');
+
+        // Rapport
+        Route::get('/rapport', [ComptableController::class, 'rapport'])->name('rapport');
+        Route::get('/rapport/export', [ComptableController::class, 'rapportExport'])->name('rapport.export');
+
+        // Historique global
+        Route::get('/historique-global', [ComptableController::class, 'historiqueGlobal'])->name('historique-global');
+
+        // Mes paiements
+        Route::get('/mes-paiements', [ComptableController::class, 'mesPaiements'])->name('mes-paiements');
+    });
 
 // ── AUTHENTIFICATION ────────────────────────────────────────────
 Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');

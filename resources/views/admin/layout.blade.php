@@ -505,6 +505,16 @@
     </a>
 </div>
 @endif
+@if(in_array(auth()->user()->role ?? '', ['admin', 'comptable', 'caissier', 'super_admin']) || (auth()->user()->is_admin ?? false))
+    <a href="{{ route('comptable.index') }}"
+       class="nav-link {{ request()->routeIs('comptable.index') ? 'active' : '' }}">
+        💰 <span>Paiement Technique</span>
+    </a>
+    <a href="{{ route('comptable.rapport') }}"
+       class="nav-link {{ request()->routeIs('comptable.rapport*') ? 'active' : '' }}">
+        📊 <span>Rapport Technique</span>
+    </a>
+@endif
 
         {{-- ✅ AFFECTATION RAPIDE — admin + géomètre (lien direct) --}}
         @if(in_array($role, ['admin', 'geometre']))

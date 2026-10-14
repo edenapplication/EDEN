@@ -8,7 +8,7 @@ class PaiementTechnique extends Model
 {
     use Auditable;
     protected $table    = 'paiements_techniques';
-    protected $fillable = ['dossier_client_id', 'montant', 'date_paiement', 'note'];
+    protected $fillable = ['dossier_client_id', 'montant', 'date_paiement', 'note','user_reference'];
 
     public function dossier()
     {

@@ -9,6 +9,7 @@
 .role-rh         { background:#f3e8ff; color:#7c3aed; }
 .role-commercial { background:#dbeafe; color:#1d4ed8; }
 .role-geometre   { background:#fef3c7; color:#92400e; }
+.role-comptable  { background:#fef2f2; color:#991b1b; }  /* ✅ AJOUTÉ */
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -53,8 +54,15 @@
                 @endif
             </td>
             <td>
+                {{-- ✅ AJOUT du rôle comptable --}}
                 <span class="role-badge role-{{ $user->role }}">
-                    {{ ['admin' => '🔑 Admin', 'rh' => '👥 RH', 'commercial' => '💼 Commercial', 'geometre' => '📐 Géomètre'][$user->role] ?? $user->role }}
+                    {{ [
+                        'admin'      => '🔑 Admin',
+                        'rh'         => '👥 RH',
+                        'commercial' => '💼 Commercial',
+                        'geometre'   => '📐 Géomètre',
+                        'comptable'  => '💰 Comptable',
+                    ][$user->role] ?? $user->role }}
                 </span>
             </td>
             <td>
@@ -100,6 +108,8 @@
     <span class="role-badge role-commercial">💼 Commercial</span> — Clients, dossiers, paiements, visites
     &nbsp;|&nbsp;
     <span class="role-badge role-geometre">📐 Géomètre</span> — Affectation rapide de lots
+    &nbsp;|&nbsp;
+    <span class="role-badge role-comptable">💰 Comptable</span> — Paiements techniques uniquement
 </div>
 
 {{-- MODAL AJOUT --}}
@@ -138,6 +148,8 @@
                     <option value="commercial">💼 Commercial</option>
                     <option value="rh">👥 RH</option>
                     <option value="geometre">📐 Géomètre</option>
+                    {{-- ✅ AJOUT du rôle comptable --}}
+                    <option value="comptable">💰 Comptable</option>
                     <option value="admin">🔑 Admin</option>
                 </select>
             </div>
@@ -147,7 +159,8 @@
             🔑 <strong>Admin</strong> : tout<br>
             👥 <strong>RH</strong> : employés, paie, absences, prêts, sanctions, retards<br>
             💼 <strong>Commercial</strong> : clients, dossiers, paiements, visites<br>
-            📐 <strong>Géomètre</strong> : affectation rapide de lots
+            📐 <strong>Géomètre</strong> : affectation rapide de lots<br>
+            💰 <strong>Comptable</strong> : paiements techniques, rapports techniques
         </div>
         <div class="d-flex justify-content-end gap-2 mt-4">
             <button type="button" onclick="closeAll()" class="btn btn-light">Annuler</button>
@@ -192,6 +205,8 @@
                     <option value="commercial">💼 Commercial</option>
                     <option value="rh">👥 RH</option>
                     <option value="geometre">📐 Géomètre</option>
+                    {{-- ✅ AJOUT du rôle comptable --}}
+                    <option value="comptable">💰 Comptable</option>
                     <option value="admin">🔑 Admin</option>
                 </select>
             </div>

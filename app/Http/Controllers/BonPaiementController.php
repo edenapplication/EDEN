@@ -297,13 +297,69 @@ class BonPaiementController extends Controller
     }
 
     // Supprimer un bon
-    public function destroy(BonPaiement $bon)
-    {
-        $dossierId = $bon->dossier_client_id;
-        $bon->delete();
-        return redirect()->route('bons.index', $dossierId)
-                         ->with('success', 'Bon supprimé.');
+   // ═══════════════════════════════════════════════════════════════
+// SUPPRIMER UN BON (avec suppression des paiements liés)
+// ═══════════════════════════════════════════════════════════════
+public function destroy(BonPaiement $bon)
+{
+    $dossierId = $bon->dossier_client_id;
+    $dossier   = $bon->dossier;
+
+    // ═══════════════════════════════════════════════════════════
+    // 🗑️ 1. SUPPRIMER LES PAIEMENTS LIÉS À CE BON
+    // ═══════════════════════════════════════════════════════════
+    $reference = $bon->user_reference;
+    $date      = $bon->date_bon;
+
+    // ✅ Paiement Dossier (superficie)
+    if ($bon->versement_dossier > 0) {
+        PaiementDossier::where('dossier_client_id', $dossierId)
+            ->whereDate('date_paiement', $date)
+            ->where('montant', $bon->versement_dossier)
+            ->when($reference, fn($q) => $q->where('user_reference', $reference))
+            ->delete();
     }
+
+    // ✅ Paiement Technique
+    if ($bon->versement_technique > 0) {
+        PaiementTechnique::where('dossier_client_id', $dossierId)
+            ->whereDate('date_paiement', $date)
+            ->where('montant', $bon->versement_technique)
+            ->when($reference, fn($q) => $q->where('user_reference', $reference))
+            ->delete();
+    }
+
+    // ✅ Paiement Logistique
+    if ($bon->versement_logistique > 0) {
+        PaiementLogistique::where('dossier_client_id', $dossierId)
+            ->whereDate('date_paiement', $date)
+            ->where('montant', $bon->versement_logistique)
+            ->when($reference, fn($q) => $q->where('user_reference', $reference))
+            ->delete();
+    }
+
+    // ✅ Paiement Morcellement
+    if ($bon->versement_morcellement > 0) {
+        PaiementMorcellement::where('dossier_client_id', $dossierId)
+            ->whereDate('date_paiement', $date)
+            ->where('montant', $bon->versement_morcellement)
+            ->when($reference, fn($q) => $q->where('user_reference', $reference))
+            ->delete();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🗑️ 2. SUPPRIMER LA VISITE LIÉE (si elle existe)
+    // ═══════════════════════════════════════════════════════════
+    Visite::where('bon_id', $bon->id)->delete();
+
+    // ═══════════════════════════════════════════════════════════
+    // 🗑️ 3. SUPPRIMER LE BON
+    // ═══════════════════════════════════════════════════════════
+    $bon->delete();
+
+    return redirect()->route('bons.index', $dossierId)
+        ->with('success', '✅ Bon supprimé et paiements associés retirés.');
+}
 
     // Toggle afficher reste
     public function toggleReste(BonPaiement $bon)
