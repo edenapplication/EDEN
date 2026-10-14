@@ -20,9 +20,7 @@
         background: white; border-radius: 12px; padding: 16px 18px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         border-left: 4px solid #1d4ed8;
-        transition: all 0.25s;
     }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
     .stat-card.paye     { border-left-color: #16a34a; }
     .stat-card.non_paye { border-left-color: #dc2626; }
     .stat-card.partiel  { border-left-color: #f59e0b; }
@@ -35,11 +33,9 @@
     .stat-card.non_paye .value { color: #dc2626; }
     .stat-card.partiel .value  { color: #f59e0b; }
 
-    /* ═══ FILTRE DYNAMIQUE ═══ */
     .filtre-box {
         background: white; border-radius: 12px; padding: 16px;
         margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border-left: 4px solid #dc2626;
     }
     .filtre-box .search-input {
         font-size: 15px;
@@ -72,44 +68,70 @@
         background-color: white;
         box-shadow: 0 0 0 4px rgba(220,38,38,0.1);
     }
-    .btn-reset {
-        background: #f1f5f9;
-        color: #64748b;
-        border: none;
-        padding: 10px 18px;
-        border-radius: 10px;
-        font-weight: 700;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .btn-reset:hover { background: #e2e8f0; color: #334155; }
 
-    .filtre-count {
+    /* ═══ CARTE CLIENT ═══ */
+    .client-card {
+        background: white;
+        border-radius: 14px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        overflow: hidden;
+        transition: box-shadow 0.25s;
+    }
+    .client-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    .client-header {
+        background: linear-gradient(135deg, #1e3a5f, #2d5a8c);
+        color: white;
+        padding: 14px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .client-header .client-name {
+        font-size: 15px;
+        font-weight: 800;
+    }
+    .client-header .client-meta {
         font-size: 12px;
-        color: #64748b;
-        font-weight: 600;
-        padding: 6px 12px;
-        background: #f1f5f9;
-        border-radius: 8px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+        opacity: 0.85;
+        margin-top: 2px;
     }
-    .filtre-count strong { color: #dc2626; font-size: 14px; }
+    .client-header .client-badge {
+        background: rgba(255,255,255,0.15);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .client-header .client-badge.paid {
+        background: rgba(34,197,94,0.3);
+    }
+    .client-header .client-badge.partial {
+        background: rgba(245,158,11,0.3);
+    }
+    .client-header .client-badge.none {
+        background: rgba(220,38,38,0.3);
+    }
 
-    /* ═══ LIGNES DOSSIERS ═══ */
+    .client-body {
+        padding: 12px;
+    }
+
+    /* ═══ LIGNE DOSSIER ═══ */
     .dossier-row {
         background: white; border-radius: 12px; padding: 16px 18px;
-        margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         border-left: 4px solid #e2e8f0; transition: all 0.3s;
         display: flex; justify-content: space-between; align-items: center; gap: 16px;
         flex-wrap: wrap;
     }
-    .dossier-row:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .dossier-row:last-child { margin-bottom: 0; }
+    .dossier-row:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateX(3px); }
     .dossier-row.paye     { border-left-color: #16a34a; background: #f0fdf4; }
     .dossier-row.partiel  { border-left-color: #f59e0b; background: #fffbeb; }
     .dossier-row.non_paye { border-left-color: #dc2626; background: #fef2f2; }
@@ -147,24 +169,13 @@
     .montant-paye { font-size: 14px; font-weight: 900; }
     .montant-reste { font-size: 11px; font-weight: 700; }
 
-    /* ═══ HIGHLIGHT RECHERCHE ═══ */
-    .highlight { background: #fef08a; padding: 0 2px; border-radius: 3px; }
-
-    /* ═══ ETAT VIDE DYNAMIQUE ═══ */
-    .empty-state {
-        display: none;
-        text-align: center; padding: 60px 20px;
-        background: white; border-radius: 12px;
-        color: #94a3b8;
-    }
-    .empty-state.visible { display: block; }
-
     /* ═══ MODAL ═══ */
     .modal-overlay {
         display: none; position: fixed; inset: 0;
         background: rgba(15,23,42,0.6); z-index: 9998;
         backdrop-filter: blur(2px);
     }
+    .modal-overlay.active { display: block; }
     .modal-box {
         display: none; position: fixed; top: 50%; left: 50%;
         transform: translate(-50%, -50%); background: white;
@@ -172,23 +183,33 @@
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         z-index: 9999; animation: modalSlideIn 0.2s ease;
     }
+    .modal-box.active { display: block; }
     @keyframes modalSlideIn {
         from { opacity: 0; transform: translate(-50%, -45%); }
         to   { opacity: 1; transform: translate(-50%, -50%); }
     }
-    .modal-overlay.active, .modal-box.active { display: block; }
 
-    /* ═══ ANIMATION LIGNE ═══ */
-    @keyframes rowHighlight {
-        0% { background: #dcfce7; }
-        100% { background: transparent; }
+    /* ═══ EMPTY ═══ */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #94a3b8;
+        background: white;
+        border-radius: 12px;
+    }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 768px) {
+        .dossier-row { flex-direction: column; align-items: stretch; }
+        .dossier-montants { text-align: left; margin-right: 0; }
+        .action-buttons { min-width: auto !important; }
     }
 </style>
 @endsection
 
 @section('content')
 
-{{-- EN-TÊTE --}}
+{{-- ═══ EN-TÊTE ═══ --}}
 <div class="comptable-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
@@ -206,7 +227,7 @@
     </div>
 </div>
 
-{{-- STATISTIQUES --}}
+{{-- ═══ STATISTIQUES ═══ --}}
 <div class="stats-grid">
     <div class="stat-card">
         <div class="label">📂 Total dossiers</div>
@@ -232,179 +253,219 @@
     </div>
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- FILTRAGE DYNAMIQUE (aucun rechargement) --}}
-{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- ═══ FILTRES ═══ --}}
 <div class="filtre-box">
-    <div class="row g-2 align-items-center">
+    <form method="GET" action="{{ route('comptable.index') }}" id="form-filtres">
+        <div class="row g-2 align-items-end">
 
-        {{-- Recherche --}}
-        <div class="col-md-5">
-            <input type="text"
-                   id="search-input"
-                   class="search-input"
-                   placeholder="Rechercher par nom, téléphone ou dossier..."
-                   autocomplete="off">
+            <div class="col-md-5">
+                <label style="font-size:11px;font-weight:700;color:#64748b;">🔍 Recherche</label>
+                <input type="text" name="q" id="search-input" class="search-input"
+                       placeholder="Nom client, téléphone, dossier..."
+                       value="{{ request('q') }}"
+                       autocomplete="off">
+            </div>
+
+            <div class="col-md-2">
+                <label style="font-size:11px;font-weight:700;color:#64748b;">📊 Statut</label>
+                <select name="statut" id="filtre-statut" class="form-select"
+                        onchange="document.getElementById('form-filtres').submit()">
+                    <option value="">Tous</option>
+                    <option value="paye"     {{ request('statut') == 'paye' ? 'selected' : '' }}>✅ Payés</option>
+                    <option value="partiel"  {{ request('statut') == 'partiel' ? 'selected' : '' }}>⏳ Partiels</option>
+                    <option value="non_paye" {{ request('statut') == 'non_paye' ? 'selected' : '' }}>❌ Non payés</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label style="font-size:11px;font-weight:700;color:#64748b;">🏢 Grand Site</label>
+                <select name="grand_site_id" class="form-select"
+                        onchange="document.getElementById('form-filtres').submit()">
+                    <option value="">Tous</option>
+                    @foreach($grandSites as $gs)
+                        <option value="{{ $gs->id }}" {{ request('grand_site_id') == $gs->id ? 'selected' : '' }}>
+                            {{ $gs->nom }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex gap-2 justify-content-end">
+                <button type="submit" class="btn-payer">🔍 Filtrer</button>
+                <a href="{{ route('comptable.index') }}" class="btn btn-outline-secondary"
+                   style="padding:8px 14px;">✖</a>
+            </div>
+
         </div>
-
-        {{-- Statut --}}
-        <div class="col-md-2">
-            <select id="filtre-statut" class="form-select">
-                <option value="">📊 Tous les statuts</option>
-                <option value="paye">✅ Payés</option>
-                <option value="partiel">⏳ Partiels</option>
-                <option value="non_paye">❌ Non payés</option>
-            </select>
-        </div>
-
-        {{-- Grand Site --}}
-        <div class="col-md-2">
-            <select id="filtre-site" class="form-select">
-                <option value="">🏢 Tous les sites</option>
-                @foreach($grandSites as $gs)
-                    <option value="{{ strtolower($gs->nom) }}">{{ $gs->nom }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        {{-- Reset + Compteur --}}
-        <div class="col-md-3 d-flex gap-2 justify-content-end">
-            <span class="filtre-count">
-                <span id="count-visible">{{ $dossiers->count() }}</span>
-                <span>/</span>
-                <span>{{ $dossiers->total() }}</span>
-                dossier(s)
-            </span>
-            <button type="button" class="btn-reset" onclick="resetFiltres()">
-                ✖ Réinitialiser
-            </button>
-        </div>
-
-    </div>
+    </form>
 </div>
 
-{{-- LISTE --}}
-<div id="liste-dossiers">
+{{-- ═══ LISTE GROUPÉE PAR CLIENT ═══ --}}
+@forelse($dossiersGroupes as $clientId => $dossiersDuClient)
+    @php
+        $client = $dossiersDuClient->first()->client;
+        $totalDossiers = $dossiersDuClient->count();
 
-    @forelse($dossiers as $dossier)
-        @php
-            $dejaPaye = $dossier->paiementsTechniques->sum('montant');
-            $prixRef  = $dossier->prix_technique ?? 0;
-            $reste    = max(0, $prixRef - $dejaPaye);
-            $pct      = $prixRef > 0 ? min(100, round(($dejaPaye / $prixRef) * 100)) : 0;
+        // Statistiques du client
+        $nbPayes = 0;
+        $nbPartiels = 0;
+        $nbNonPayes = 0;
 
-            if ($dejaPaye >= $prixRef && $prixRef > 0) {
-                $statut  = 'paye';     $label = '✅ Payé';       $couleur = '#16a34a';
-            } elseif ($dejaPaye > 0) {
-                $statut  = 'partiel';  $label = '⏳ Partiel (' . $pct . '%)';  $couleur = '#f59e0b';
+        foreach ($dossiersDuClient as $d) {
+            $paye = $d->paiementsTechniques->sum('montant');
+            $prix = $d->prix_technique ?? 0;
+
+            if ($paye >= $prix && $prix > 0) {
+                $nbPayes++;
+            } elseif ($paye > 0) {
+                $nbPartiels++;
             } else {
-                $statut  = 'non_paye'; $label = '❌ Non payé';    $couleur = '#dc2626';
+                $nbNonPayes++;
             }
-        @endphp
+        }
 
-        {{-- 
-            ═══════════════════════════════════════════════════════
-            ✅ data-attributes pour le filtrage côté client
-            ═══════════════════════════════════════════════════════
-        --}}
-        <div class="dossier-row {{ $statut }}"
-             data-dossier-id="{{ $dossier->id }}"
-             data-search="{{ strtolower(
-                 ($dossier->client?->name ?? '') . ' ' .
-                 ($dossier->client?->phone ?? '') . ' ' .
-                 ($dossier->nom_dossier ?? '')
-             ) }}"
-             data-statut="{{ $statut }}"
-             data-site="{{ strtolower($dossier->grandSite?->nom ?? '') }}">
+        // Couleur du badge client
+        if ($nbNonPayes === $totalDossiers) {
+            $badgeClass = 'none';
+        } elseif ($nbPayes === $totalDossiers) {
+            $badgeClass = 'paid';
+        } else {
+            $badgeClass = 'partial';
+        }
+    @endphp
 
-            <div class="dossier-info">
-                <div class="dossier-nom">
-                    👤 <span class="client-name">{{ $dossier->client?->name ?? 'Client inconnu' }}</span>
-                    <span class="badge-statut {{ $statut }}">{{ $label }}</span>
-                </div>
-                <div class="dossier-meta">
-                    📞 {{ $dossier->client?->phone ?? '-' }}
-                    &nbsp;·&nbsp;
-                    📂 {{ $dossier->nom_dossier }}
-                    &nbsp;·&nbsp;
-                    🏢 {{ $dossier->grandSite?->nom ?? '-' }}
-                    &nbsp;·&nbsp;
-                    📅 {{ $dossier->created_at?->format('d/m/Y') }}
-                </div>
+    <div class="client-card" data-client-id="{{ $clientId }}">
 
-                @if($prixRef > 0)
-                <div class="progress-bar-mini" style="max-width:300px;">
-                    <div style="width:{{ $pct }}%; background:{{ $couleur }};"></div>
+        {{-- En-tête client --}}
+        <div class="client-header">
+            <div>
+                <div class="client-name">
+                    👤 {{ $client?->name ?? 'Client inconnu' }}
                 </div>
-                @endif
+                <div class="client-meta">
+                    📞 {{ $client?->phone ?? '-' }}
+                    &nbsp;·&nbsp;
+                    📂 {{ $totalDossiers }} dossier(s)
+                    @if($nbPayes > 0)
+                        &nbsp;·&nbsp; ✅ {{ $nbPayes }} payé(s)
+                    @endif
+                    @if($nbPartiels > 0)
+                        &nbsp;·&nbsp; ⏳ {{ $nbPartiels }} partiel(s)
+                    @endif
+                    @if($nbNonPayes > 0)
+                        &nbsp;·&nbsp; ❌ {{ $nbNonPayes }} non payé(s)
+                    @endif
+                </div>
             </div>
+            <div class="client-badge {{ $badgeClass }}">
+                {{ $totalDossiers }} dossier(s)
+            </div>
+        </div>
 
-            <div class="dossier-montants">
-                <div class="montant-ref">Réf. technique</div>
-                <div class="montant-paye" style="color:{{ $couleur }};">
-                    {{ number_format($dejaPaye, 0, ',', ' ') }} /
-                    {{ number_format($prixRef, 0, ',', ' ') }} FCFA
-                </div>
-                @if($reste > 0)
-                    <div class="montant-reste" style="color:#dc2626;">
-                        Reste : {{ number_format($reste, 0, ',', ' ') }} FCFA
+        {{-- Liste des dossiers --}}
+        <div class="client-body">
+
+            @foreach($dossiersDuClient as $dossier)
+                @php
+                    $dejaPaye = $dossier->paiementsTechniques->sum('montant');
+                    $prixRef  = $dossier->prix_technique ?? 0;
+                    $reste    = max(0, $prixRef - $dejaPaye);
+                    $pct      = $prixRef > 0 ? min(100, round(($dejaPaye / $prixRef) * 100)) : 0;
+
+                    if ($dejaPaye >= $prixRef && $prixRef > 0) {
+                        $statut  = 'paye';     $label = '✅ Payé';       $couleur = '#16a34a';
+                    } elseif ($dejaPaye > 0) {
+                        $statut  = 'partiel';  $label = '⏳ Partiel (' . $pct . '%)';  $couleur = '#f59e0b';
+                    } else {
+                        $statut  = 'non_paye'; $label = '❌ Non payé';    $couleur = '#dc2626';
+                    }
+                @endphp
+
+                <div class="dossier-row {{ $statut }}"
+                     data-dossier-id="{{ $dossier->id }}"
+                     data-search="{{ strtolower(
+                         ($client?->name ?? '') . ' ' .
+                         ($client?->phone ?? '') . ' ' .
+                         ($dossier->nom_dossier ?? '')
+                     ) }}"
+                     data-statut="{{ $statut }}">
+
+                    <div class="dossier-info">
+                        <div class="dossier-nom">
+                            📂 {{ $dossier->nom_dossier }}
+                            <span class="badge-statut {{ $statut }}">{{ $label }}</span>
+                        </div>
+                        <div class="dossier-meta">
+                            🏢 {{ $dossier->grandSite?->nom ?? '-' }}
+                            &nbsp;·&nbsp;
+                            📅 {{ $dossier->created_at?->format('d/m/Y') }}
+                        </div>
+
+                        @if($prixRef > 0)
+                        <div class="progress-bar-mini" style="max-width:300px;">
+                            <div style="width:{{ $pct }}%; background:{{ $couleur }};"></div>
+                        </div>
+                        @endif
                     </div>
-                @elseif($prixRef > 0)
-                    <div class="montant-reste" style="color:#16a34a;">✅ Soldé</div>
-                @endif
-            </div>
 
-            <div class="action-buttons" style="min-width:140px;">
-                @if($statut !== 'paye')
-                    <button type="button"
-                            class="btn-payer"
-                            data-dossier-id="{{ $dossier->id }}"
-                            data-client-nom="{{ addslashes($dossier->client?->name ?? 'Client') }}"
-                            data-dossier-nom="{{ addslashes($dossier->nom_dossier ?? '') }}"
-                            data-prix-ref="{{ $prixRef }}"
-                            data-deja-paye="{{ $dejaPaye }}"
-                            data-reste="{{ $reste }}"
-                            onclick="ouvrirModalDepuisBouton(this)">
-                        💳 Payer
-                    </button>
-                @else
-                    <span class="btn-payer disabled">✅ Payé</span>
-                @endif
-                <a href="{{ route('comptable.historique', $dossier->id) }}"
-                   class="btn btn-outline-secondary btn-sm mt-2"
-                   style="font-size:11px;width:100%;text-align:center;display:block;">
-                    📜 Historique
-                </a>
-            </div>
+                    <div class="dossier-montants">
+                        <div class="montant-ref">Réf. technique</div>
+                        <div class="montant-paye" style="color:{{ $couleur }};">
+                            {{ number_format($dejaPaye, 0, ',', ' ') }} /
+                            {{ number_format($prixRef, 0, ',', ' ') }} FCFA
+                        </div>
+                        @if($reste > 0)
+                            <div class="montant-reste" style="color:#dc2626;">
+                                Reste : {{ number_format($reste, 0, ',', ' ') }} FCFA
+                            </div>
+                        @elseif($prixRef > 0)
+                            <div class="montant-reste" style="color:#16a34a;">✅ Soldé</div>
+                        @endif
+                    </div>
+
+                    <div class="action-buttons" style="min-width:140px;">
+                        @if($statut !== 'paye')
+                            <button type="button"
+                                    class="btn-payer"
+                                    data-dossier-id="{{ $dossier->id }}"
+                                    data-client-nom="{{ addslashes($client?->name ?? 'Client') }}"
+                                    data-dossier-nom="{{ addslashes($dossier->nom_dossier ?? '') }}"
+                                    data-prix-ref="{{ $prixRef }}"
+                                    data-deja-paye="{{ $dejaPaye }}"
+                                    data-reste="{{ $reste }}"
+                                    onclick="ouvrirModalDepuisBouton(this)">
+                                💳 Payer
+                            </button>
+                        @else
+                            <span class="btn-payer disabled">✅ Payé</span>
+                        @endif
+                        <a href="{{ route('comptable.historique', $dossier->id) }}"
+                           class="btn btn-outline-secondary btn-sm mt-2"
+                           style="font-size:11px;width:100%;text-align:center;display:block;">
+                            📜 Historique
+                        </a>
+                    </div>
+                </div>
+            @endforeach
+
         </div>
-    @empty
-        <div style="text-align:center;padding:60px 20px;color:#94a3b8;background:white;border-radius:12px;">
-            <div style="font-size:48px;">📭</div>
-            <div style="font-weight:700;margin-top:12px;font-size:16px;">Aucun dossier technique trouvé</div>
-        </div>
-    @endforelse
-
-</div>
-
-{{-- État vide dynamique (affiché quand le filtrage ne retourne rien) --}}
-<div class="empty-state" id="empty-state">
-    <div style="font-size:64px;">🔍</div>
-    <div style="font-weight:800;font-size:18px;color:#1e3a5f;margin-top:12px;">
-        Aucun résultat
     </div>
-    <div style="font-size:13px;margin-top:8px;">
-        Aucun dossier ne correspond à vos critères de recherche.
+@empty
+    <div class="empty-state">
+        <div style="font-size:48px;">📭</div>
+        <div style="font-weight:700;margin-top:12px;font-size:16px;">Aucun dossier trouvé</div>
+        <div style="font-size:13px;margin-top:6px;">Essayez de modifier vos filtres</div>
     </div>
-    <button type="button" class="btn-reset mt-3" onclick="resetFiltres()">
-        ✖ Effacer les filtres
-    </button>
-</div>
+@endforelse
 
+{{-- ═══ PAGINATION ═══ --}}
 <div class="mt-3 d-flex justify-content-center">
     {{ $dossiers->links() }}
 </div>
 
+{{-- ═══════════════════════════════════════════════════════════ --}}
 {{-- MODAL PAIEMENT AJAX --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
 <div class="modal-overlay" id="modalPaiementOverlay" onclick="fermerModalPaiement()"></div>
 <div class="modal-box" id="modalPaiement" style="width:520px; max-width:95%;">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -500,39 +561,24 @@
 
 @section('scripts')
 <script>
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // ÉTAT GLOBAL
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 let modalDossierId  = null;
 let modalMaxMontant = 0;
 const CSRF_TOKEN    = '{{ csrf_token() }}';
 
-// ═══════════════════════════════════════════════════════════════════
-// ✅ FILTRAGE DYNAMIQUE (INSTANTANÉ)
-// ═══════════════════════════════════════════════════════════════════
-
-/**
- * Applique les filtres en temps réel sur la liste des dossiers
- */
-function appliquerFiltres() {
+// ═══════════════════════════════════════════════════════════
+// FILTRAGE DYNAMIQUE (côté client)
+// ═══════════════════════════════════════════════════════════
+function filtrerDossiers() {
     const recherche = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
-    const statut    = document.getElementById('filtre-statut')?.value || '';
-    const site      = document.getElementById('filtre-site')?.value || '';
-
     const rows = document.querySelectorAll('.dossier-row');
     let visibles = 0;
 
     rows.forEach(row => {
         const dataSearch = row.dataset.search || '';
-        const dataStatut = row.dataset.statut || '';
-        const dataSite   = row.dataset.site   || '';
-
-        // Vérifier chaque critère
-        const matchRecherche = !recherche || dataSearch.includes(recherche);
-        const matchStatut    = !statut    || dataStatut === statut;
-        const matchSite      = !site      || dataSite === site;
-
-        const visible = matchRecherche && matchStatut && matchSite;
+        const visible = !recherche || dataSearch.includes(recherche);
 
         if (visible) {
             row.style.display = '';
@@ -542,63 +588,23 @@ function appliquerFiltres() {
         }
     });
 
-    // Mettre à jour le compteur
-    document.getElementById('count-visible').textContent = visibles;
-
-    // Afficher l'état vide si rien ne correspond
-    const emptyState = document.getElementById('empty-state');
-    if (visibles === 0 && rows.length > 0) {
-        emptyState.classList.add('visible');
-    } else {
-        emptyState.classList.remove('visible');
-    }
+    // Masquer les cartes client dont tous les dossiers sont cachés
+    document.querySelectorAll('.client-card').forEach(card => {
+        const dossiersVisibles = card.querySelectorAll('.dossier-row:not([style*="display: none"])').length;
+        card.style.display = dossiersVisibles > 0 ? '' : 'none';
+    });
 }
 
-/**
- * Réinitialise tous les filtres
- */
-function resetFiltres() {
-    const search = document.getElementById('search-input');
-    const statut = document.getElementById('filtre-statut');
-    const site   = document.getElementById('filtre-site');
-
-    if (search) search.value = '';
-    if (statut) statut.value = '';
-    if (site)   site.value   = '';
-
-    appliquerFiltres();
-}
-
-// Écouteurs d'événements
-document.addEventListener('DOMContentLoaded', () => {
-    const searchInput  = document.getElementById('search-input');
-    const statutSelect = document.getElementById('filtre-statut');
-    const siteSelect   = document.getElementById('filtre-site');
-
-    // Recherche en temps réel (avec debounce pour la performance)
-    let debounceTimer;
-    searchInput?.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => appliquerFiltres(), 150);
-    });
-
-    // Filtres statut et site (instantané)
-    statutSelect?.addEventListener('change', appliquerFiltres);
-    siteSelect?.addEventListener('change', appliquerFiltres);
-
-    // Raccourci clavier : Échap pour effacer la recherche
-    searchInput?.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            searchInput.value = '';
-            appliquerFiltres();
-        }
-    });
+// Debounce pour la recherche
+let debounceTimer;
+document.getElementById('search-input')?.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(filtrerDossiers, 150);
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// MODAL PAIEMENT (existant)
-// ═══════════════════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════════════════════════
+// MODAL PAIEMENT
+// ═══════════════════════════════════════════════════════════
 function ouvrirModalDepuisBouton(btn) {
     ouvrirModalPaiement(
         parseInt(btn.dataset.dossierId),
@@ -753,7 +759,7 @@ function mettreAJourLigneDossier(data) {
     row.classList.remove('paye', 'partiel', 'non_paye');
     row.classList.add(data.statut);
 
-    // ✅ Mettre à jour les data-attributes pour le filtrage
+    // Mettre à jour data-statut
     row.dataset.statut = data.statut;
 
     // Mettre à jour le badge
@@ -798,27 +804,17 @@ function mettreAJourLigneDossier(data) {
                style="font-size:11px;width:100%;text-align:center;display:block;">
                 📜 Historique
             </a>`;
-    } else if (actionDiv) {
-        const btn = actionDiv.querySelector('.btn-payer');
-        if (btn) {
-            btn.dataset.prixRef  = data.prix_ref;
-            btn.dataset.dejaPaye = data.deja_paye;
-            btn.dataset.reste    = data.reste;
-        }
     }
 
     // Animation visuelle
     row.style.transition = 'background 0.5s';
     row.style.background = '#dcfce7';
     setTimeout(() => { row.style.background = ''; }, 1500);
-
-    // ✅ Réappliquer les filtres (au cas où le statut a changé)
-    setTimeout(() => appliquerFiltres(), 100);
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // RACCOURCIS CLAVIER
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         fermerModalPaiement();
@@ -826,10 +822,19 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Entrée dans la note = soumettre
     document.getElementById('paiement_note')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             document.getElementById('formPaiementAjax').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // Échap sur la recherche = effacer
+    document.getElementById('search-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.target.value = '';
+            filtrerDossiers();
         }
     });
 });

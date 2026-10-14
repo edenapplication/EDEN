@@ -129,49 +129,61 @@ class ComptableController extends Controller
     // ═══════════════════════════════════════════════════════════════
 
     public function index(Request $request)
-    {
-        $query = DossierClient::with(['client', 'grandSite', 'paiementsTechniques'])
-            ->whereRaw('COALESCE(prix_technique, 0) > 0')
-            ->orderByDesc('created_at');
+{
+    $query = DossierClient::with([
+            'client',
+            'grandSite',
+            'paiementsTechniques',
+        ])
+        ->orderByDesc('created_at');
 
-        // Recherche
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($qry) use ($q) {
-                $qry->whereHas('client', fn($cq) =>
-                    $cq->where('name', 'LIKE', "%{$q}%")
-                       ->orWhere('phone', 'LIKE', "%{$q}%"))
-                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-            });
-        }
-
-        // Filtre statut
-        if ($request->filled('statut')) {
-            if ($request->statut === 'paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
-            } elseif ($request->statut === 'non_paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
-            } elseif ($request->statut === 'partiel') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
-            }
-        }
-
-        // Filtre grand site
-        if ($request->filled('grand_site_id')) {
-            $query->where('grand_site_id', $request->grand_site_id);
-        }
-
-        $dossiers   = $query->paginate(30)->withQueryString();
-        $grandSites = GrandSite::orderBy('nom')->get();
-        $stats      = $this->calculerStatsTechnique($request);
-
-        return view('admin.comptable.index', compact('dossiers', 'grandSites', 'stats'));
+    // 🔍 Filtre recherche
+    if ($request->filled('q')) {
+        $q = trim($request->q);
+        $query->where(function ($qry) use ($q) {
+            $qry->whereHas('client', fn($cq) =>
+                $cq->where('name', 'LIKE', "%{$q}%")
+                   ->orWhere('phone', 'LIKE', "%{$q}%"))
+                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+        });
     }
+
+    // 📊 Filtre statut
+    if ($request->filled('statut')) {
+        if ($request->statut === 'paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+                              WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
+        } elseif ($request->statut === 'non_paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+                              WHERE dossier_client_id = dossiers_clients.id) = 0');
+        } elseif ($request->statut === 'partiel') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+                              WHERE dossier_client_id = dossiers_clients.id) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
+                              WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
+        }
+    }
+
+    // 🏢 Filtre grand site
+    if ($request->filled('grand_site_id')) {
+        $query->where('grand_site_id', $request->grand_site_id);
+    }
+
+    // ✅ Récupérer les dossiers groupés par client
+    $dossiers = $query->paginate(50)->withQueryString();
+
+    // ✅ Grouper par client pour l'affichage
+    $dossiersGroupes = $dossiers->getCollection()->groupBy(function ($d) {
+        return $d->client_id ?? 0;
+    });
+
+    $grandSites = GrandSite::orderBy('nom')->get();
+    $stats = $this->calculerStatsTechnique($request);
+
+    return view('admin.comptable.index', compact(
+        'dossiers', 'dossiersGroupes', 'grandSites', 'stats'
+    ));
+}
 
     // ═══════════════════════════════════════════════════════════════
     // 💳 PAIEMENT AJAX
