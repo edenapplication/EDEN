@@ -10,7 +10,7 @@ echo "════════════════════════�
 echo "🔀 FUSION DES PAIEMENTS (Backup → Base actuelle)\n";
 echo "═══════════════════════════════════════════════════════\n\n";
 
-$MODE = false;  // false = simulation, true = exécution
+$MODE = true;  // false = simulation, true = exécution
 
 echo "Mode : " . ($MODE ? "⚠️  EXÉCUTION" : "🔍 SIMULATION") . "\n\n";
 
