@@ -38,7 +38,7 @@
     .rapport-table thead th { padding: 10px 8px; font-weight: 600; white-space: nowrap; text-align: left; }
     .rapport-table tbody tr:nth-child(even) { background: #f8fafc; }
     .rapport-table tbody tr:hover { background: #faf5ff; }
-    .rapport-table tbody td { padding: 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    .rapport-table tbody td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
     .rapport-table tfoot td { background: #1e3a5f; color: white; font-weight: 700; padding: 10px 8px; }
 
     .recap-section {
@@ -81,12 +81,35 @@
     }
     .progress-bar-mini > div { height: 100%; border-radius: 3px; }
 
-    .benef-badge {
-        display: inline-block; padding: 2px 8px; border-radius: 6px;
-        font-size: 10px; font-weight: 700;
-        background: #faf5ff; color: #7c3aed;
-        border: 1px solid #c4b5fd;
-        margin: 1px;
+    /* ═══ Bénéficiaires avec date prévue ═══ */
+    .benef-line {
+        display: flex; align-items: center; gap: 6px;
+        padding: 3px 6px; border-radius: 6px;
+        font-size: 11px; margin-bottom: 3px;
+        background: #faf5ff; border-left: 3px solid #7c3aed;
+    }
+    .benef-line .nom {
+        font-weight: 700; color: #6d28d9;
+        flex: 1; white-space: nowrap;
+    }
+    .benef-line .date {
+        background: #eff6ff; color: #1e3a5f;
+        padding: 2px 6px; border-radius: 4px;
+        font-weight: 700; font-size: 10px;
+        border: 1px solid #bfdbfe;
+        white-space: nowrap;
+    }
+    .benef-line .date.vide {
+        background: #f8fafc; color: #94a3b8;
+        border: 1px dashed #cbd5e1;
+        font-weight: 500;
+    }
+    .benef-line .montant {
+        color: #16a34a; font-weight: 700;
+        font-size: 10px;
+    }
+    .benef-line .montant.zero {
+        color: #94a3b8; font-weight: 500;
     }
 
     .btn-payer {
@@ -147,11 +170,24 @@
                 <option value="non_paye" {{ request('statut') == 'non_paye' ? 'selected' : '' }}>❌ Non payés</option>
             </select>
         </div>
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📅 Implantation prévue</label>
+            <input type="date" name="date_implantation_prevue" class="form-control form-control-sm"
+                   value="{{ request('date_implantation_prevue') }}">
+        </div>
         <div class="col-md-3 d-flex align-items-end gap-2">
             <button type="submit" class="btn-payer btn-sm">🔍 Générer</button>
             <a href="{{ route('comptable.rapport') }}" class="btn btn-outline-secondary btn-sm">✖ Reset</a>
         </div>
     </div>
+
+    @if(request('date_implantation_prevue'))
+        <div style="margin-top:12px;padding:8px 14px;background:#eff6ff;border-radius:8px;
+                    font-size:12px;color:#1e40af;border-left:3px solid #1d4ed8;">
+            📅 Filtre actif :
+            <strong>Implantation prévue = {{ \Carbon\Carbon::parse(request('date_implantation_prevue'))->format('d/m/Y') }}</strong>
+        </div>
+    @endif
 </div>
 </form>
 
@@ -251,7 +287,7 @@
             <th>Téléphone</th>
             <th>Dossier</th>
             <th>Grand Site</th>
-            <th>Bénéficiaire(s)</th>
+            <th>👥 Bénéficiaire(s) & Date prévue</th>
             <th style="text-align:right;">Réf. Logistique</th>
             <th style="text-align:right;">Payé</th>
             <th style="text-align:right;">Reste</th>
@@ -278,34 +314,47 @@
 
             $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
 
-            // ✅ Récupérer les bénéficiaires qui ont payé sur ce dossier
+            // ✅ Récupérer les paiements logistiques par bénéficiaire
             $benefsPaiement = \App\Models\BeneficiairePaiement::with('beneficiaire')
                 ->where('dossier_client_id', $d->id)
                 ->where('paiement_type', 'logistique')
                 ->get()
                 ->groupBy('beneficiaire_id');
 
+            // ✅ Construire la liste des bénéficiaires avec leur date prévue + montant
             $benefsListe = [];
+
+            // 1. Bénéficiaires du dossier (source principale)
+            foreach (($d->beneficiaires ?? collect()) as $b) {
+                $montant = isset($benefsPaiement[$b->id])
+                    ? $benefsPaiement[$b->id]->sum('montant')
+                    : 0;
+
+                $benefsListe[] = [
+                    'nom'            => $b->nom,
+                    'date_prevue'    => $b->implantation_prevue,
+                    'montant'        => $montant,
+                ];
+            }
+
+            // 2. Paiements orphelins (bénéficiaire non listé sur le dossier)
             foreach ($benefsPaiement as $benefId => $paiements) {
-                $totalBenef = $paiements->sum('montant');
-                $nomBenef = $paiements->first()->beneficiaire?->nom ?? 'Inconnu';
+                if (($d->beneficiaires ?? collect())->contains('id', $benefId)) continue;
+
                 $benefsListe[] = [
-                    'nom' => $nomBenef,
-                    'montant' => $totalBenef,
+                    'nom'         => $paiements->first()->beneficiaire?->nom ?? 'Inconnu',
+                    'date_prevue' => $paiements->first()->beneficiaire?->implantation_prevue,
+                    'montant'     => $paiements->sum('montant'),
                 ];
             }
 
-            // Inclure aussi les bénéficiaires sans paiement
-            $benefsSansPaiement = $d->beneficiaires->filter(function ($b) use ($benefsPaiement) {
-                return !isset($benefsPaiement[$b->id]);
+            // Trier par date prévue (les plus proches en premier)
+            usort($benefsListe, function ($a, $b) {
+                if (!$a['date_prevue'] && !$b['date_prevue']) return 0;
+                if (!$a['date_prevue']) return 1;
+                if (!$b['date_prevue']) return -1;
+                return strcmp($a['date_prevue'], $b['date_prevue']);
             });
-
-            foreach ($benefsSansPaiement as $b) {
-                $benefsListe[] = [
-                    'nom' => $b->nom,
-                    'montant' => 0,
-                ];
-            }
         @endphp
         <tr>
             <td>{{ $i + 1 }}</td>
@@ -314,18 +363,25 @@
             <td>{{ $d->nom_dossier ?? '-' }}</td>
             <td>{{ $d->grandSite?->nom ?? '-' }}</td>
 
-            {{-- ✅ Colonne bénéficiaires --}}
-            <td>
+            {{-- ✅ Colonne BÉNÉFICIAIRES + DATE PRÉVUE + MONTANT --}}
+            <td style="min-width:280px;">
                 @if(count($benefsListe) > 0)
                     @foreach($benefsListe as $b)
-                        <div style="margin-bottom:2px;">
-                            <span class="benef-badge">
-                                👤 {{ $b['nom'] }}
-                                @if($b['montant'] > 0)
-                                    : <strong style="color:#16a34a;">{{ number_format($b['montant'], 0, ',', ' ') }}</strong> FCFA
-                                @else
-                                    : <span style="color:#94a3b8;">0</span>
-                                @endif
+                        <div class="benef-line">
+                            <span class="nom">👤 {{ $b['nom'] }}</span>
+
+                            @if($b['date_prevue'])
+                                <span class="date">
+                                    📅 {{ \Carbon\Carbon::parse($b['date_prevue'])->format('d/m/Y') }}
+                                </span>
+                            @else
+                                <span class="date vide">
+                                    — non planifiée —
+                                </span>
+                            @endif
+
+                            <span class="montant {{ $b['montant'] > 0 ? '' : 'zero' }}">
+                                {{ number_format($b['montant'], 0, ',', ' ') }} F
                             </span>
                         </div>
                     @endforeach
@@ -379,6 +435,11 @@
         <div style="font-size:48px;">📭</div>
         <h4 style="color:#1e3a5f;font-weight:800;margin-top:12px;">Aucun dossier trouvé</h4>
         <p style="color:#64748b;font-size:13px;margin:0;">Aucun dossier logistique ne correspond à vos critères.</p>
+        @if(request('date_implantation_prevue'))
+            <a href="{{ route('comptable.rapport') }}" class="btn btn-outline-primary btn-sm" style="margin-top:12px;">
+                ✖ Effacer le filtre
+            </a>
+        @endif
     </div>
 @endif
 

@@ -488,127 +488,219 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
     // 📊 RAPPORT LOGISTIQUE
     // ═══════════════════════════════════════════════════════════════
 
-    public function rapport(Request $request)
-    {
-        $query = DossierClient::with(['client', 'grandSite', 'paiementsLogistiques'])
-            ->whereRaw('COALESCE(prix_logistique, 0) > 0')
-            ->orderByDesc('created_at');
+   public function rapport(Request $request)
+{
+    $query = DossierClient::with([
+            'client',
+            'grandSite',
+            'paiementsLogistiques',
+            'beneficiaires',        // ✅ pour récupérer implantation_prevue
+        ])
+        ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+        ->orderByDesc('created_at');
 
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($qry) use ($q) {
-                $qry->whereHas('client', fn($cq) =>
-                    $cq->where('name', 'LIKE', "%{$q}%")
-                       ->orWhere('phone', 'LIKE', "%{$q}%"))
-                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-            });
-        }
-
-        if ($request->filled('grand_site_id')) {
-            $query->where('grand_site_id', $request->grand_site_id);
-        }
-
-        if ($request->filled('statut')) {
-            if ($request->statut === 'paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
-            } elseif ($request->statut === 'non_paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
-            } elseif ($request->statut === 'partiel') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
-            }
-        }
-
-        $dossiers = $query->paginate(50)->withQueryString();
-        $grandSites = GrandSite::orderBy('nom')->get();
-        $stats = $this->calculerStatsLogistique($request);
-
-        return view('admin.comptable.rapport-logistique', compact('dossiers', 'grandSites', 'stats'));
+    // ─── Recherche ───
+    if ($request->filled('q')) {
+        $q = trim($request->q);
+        $query->where(function ($qry) use ($q) {
+            $qry->whereHas('client', fn($cq) =>
+                $cq->where('name', 'LIKE', "%{$q}%")
+                   ->orWhere('phone', 'LIKE', "%{$q}%"))
+                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+        });
     }
 
-    public function rapportExport(Request $request)
-    {
-        $query = DossierClient::with(['client', 'grandSite', 'paiementsLogistiques'])
-            ->whereRaw('COALESCE(prix_logistique, 0) > 0')
-            ->orderByDesc('created_at');
-
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($qry) use ($q) {
-                $qry->whereHas('client', fn($cq) =>
-                    $cq->where('name', 'LIKE', "%{$q}%")
-                       ->orWhere('phone', 'LIKE', "%{$q}%"))
-                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-            });
-        }
-        if ($request->filled('grand_site_id')) {
-            $query->where('grand_site_id', $request->grand_site_id);
-        }
-        if ($request->filled('statut')) {
-            if ($request->statut === 'paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
-            } elseif ($request->statut === 'non_paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
-            } elseif ($request->statut === 'partiel') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
-            }
-        }
-
-        $dossiers = $query->get();
-        $stats = $this->calculerStatsLogistique($request);
-
-        if ($request->type === 'pdf') {
-            $pdf = Pdf::loadView('admin.comptable.rapport-logistique-pdf', compact('dossiers', 'stats'))
-                ->setPaper('a4', 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
-            return $pdf->download('rapport_logistique_' . now()->format('Y-m-d') . '.pdf');
-        }
-
-        // CSV
-        $filename = 'rapport_logistique_' . now()->format('Y-m-d_H-i') . '.csv';
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
-        $callback = function () use ($dossiers) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            fputcsv($file, ['#', 'Client', 'Téléphone', 'Dossier', 'Grand Site',
-                'Réf. Logistique', 'Payé', 'Reste', 'Progression %', 'Statut', 'Dernier paiement'], ';');
-
-            foreach ($dossiers as $i => $d) {
-                $paye  = $d->paiementsLogistiques->sum('montant');
-                $prix  = $d->prix_logistique ?? 0;
-                $reste = max(0, $prix - $paye);
-                $pct   = $prix > 0 ? min(100, round(($paye / $prix) * 100)) : 0;
-                $statut = $paye >= $prix && $prix > 0 ? 'Payé' : ($paye > 0 ? 'Partiel' : 'Non payé');
-                $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
-
-                fputcsv($file, [
-                    $i + 1,
-                    $d->client?->name ?? '-',
-                    $d->client?->phone ?? '-',
-                    $d->nom_dossier ?? '-',
-                    $d->grandSite?->nom ?? '-',
-                    $prix, $paye, $reste, $pct, $statut,
-                    $dernier ? \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') : '-',
-                ], ';');
-            }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+    // ─── Filtre grand site ───
+    if ($request->filled('grand_site_id')) {
+        $query->where('grand_site_id', $request->grand_site_id);
     }
+
+    // ─── Filtre statut ───
+    if ($request->filled('statut')) {
+        if ($request->statut === 'paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+        } elseif ($request->statut === 'non_paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) = 0');
+        } elseif ($request->statut === 'partiel') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+        }
+    }
+
+    // ─── ✅ Filtre par date d'implantation prévue (sur les BÉNÉFICIAIRES) ───
+    if ($request->filled('date_implantation_prevue')) {
+        $query->whereHas('beneficiaires', function ($q) use ($request) {
+            $q->whereDate('implantation_prevue', $request->date_implantation_prevue);
+        });
+    }
+
+    $dossiers   = $query->paginate(50)->withQueryString();
+    $grandSites = GrandSite::orderBy('nom')->get();
+    $stats      = $this->calculerStatsLogistique($request);
+
+    return view('admin.comptable.rapport-logistique', compact('dossiers', 'grandSites', 'stats'));
+}
+
+public function rapportExport(Request $request)
+{
+    $query = DossierClient::with([
+            'client',
+            'grandSite',
+            'paiementsLogistiques',
+            'beneficiaires',
+        ])
+        ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+        ->orderByDesc('created_at');
+
+    // ─── Recherche ───
+    if ($request->filled('q')) {
+        $q = trim($request->q);
+        $query->where(function ($qry) use ($q) {
+            $qry->whereHas('client', fn($cq) =>
+                $cq->where('name', 'LIKE', "%{$q}%")
+                   ->orWhere('phone', 'LIKE', "%{$q}%"))
+                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+        });
+    }
+
+    // ─── Filtre grand site ───
+    if ($request->filled('grand_site_id')) {
+        $query->where('grand_site_id', $request->grand_site_id);
+    }
+
+    // ─── Filtre statut ───
+    if ($request->filled('statut')) {
+        if ($request->statut === 'paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+        } elseif ($request->statut === 'non_paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) = 0');
+        } elseif ($request->statut === 'partiel') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+        }
+    }
+
+    // ─── ✅ Filtre par date d'implantation prévue (BÉNÉFICIAIRES) ───
+    if ($request->filled('date_implantation_prevue')) {
+        $query->whereHas('beneficiaires', function ($q) use ($request) {
+            $q->whereDate('implantation_prevue', $request->date_implantation_prevue);
+        });
+    }
+
+    $dossiers = $query->get();
+    $stats    = $this->calculerStatsLogistique($request);
+
+    // ═══════════════════════════════════════════════════════════
+    // 📄 EXPORT PDF
+    // ═══════════════════════════════════════════════════════════
+    if ($request->type === 'pdf') {
+        $pdf = Pdf::loadView('admin.comptable.rapport-logistique-pdf', compact('dossiers', 'stats'))
+            ->setPaper('a4', 'landscape')
+            ->setOptions(['defaultFont' => 'sans-serif']);
+
+        return $pdf->download('rapport_logistique_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 📊 EXPORT CSV
+    // ═══════════════════════════════════════════════════════════
+    $filename = 'rapport_logistique_' . now()->format('Y-m-d_H-i') . '.csv';
+
+    $headers = [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+    ];
+
+    $callback = function () use ($dossiers) {
+        $file = fopen('php://output', 'w');
+        fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($file, [
+            '#',
+            'Client',
+            'Téléphone',
+            'Dossier',
+            'Grand Site',
+            'Implantation prévue',
+            'Bénéficiaire(s)',
+            'Réf. Logistique',
+            'Payé',
+            'Reste',
+            'Progression %',
+            'Statut',
+            'Dernier paiement',
+        ], ';');
+
+        foreach ($dossiers as $i => $d) {
+            $paye  = $d->paiementsLogistiques->sum('montant');
+            $prix  = $d->prix_logistique ?? 0;
+            $reste = max(0, $prix - $paye);
+            $pct   = $prix > 0 ? min(100, round(($paye / $prix) * 100)) : 0;
+            $statut = $paye >= $prix && $prix > 0 ? 'Payé' : ($paye > 0 ? 'Partiel' : 'Non payé');
+
+            $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
+
+            // ✅ Date implantation prévue (la plus récente sur les bénéficiaires)
+            $dateImplantationPrevue = ($d->beneficiaires ?? collect())
+                ->whereNotNull('implantation_prevue')
+                ->sortByDesc('implantation_prevue')
+                ->first()?->implantation_prevue;
+
+            // ✅ Bénéficiaires avec montant payé si disponible
+            $benefsPaiement = \App\Models\BeneficiairePaiement::with('beneficiaire')
+                ->where('dossier_client_id', $d->id)
+                ->where('paiement_type', 'logistique')
+                ->get()
+                ->groupBy('beneficiaire_id');
+
+            $benefsListe = [];
+            foreach ($benefsPaiement as $benefId => $paiements) {
+                $totalBenef = $paiements->sum('montant');
+                $nomBenef   = $paiements->first()->beneficiaire?->nom ?? 'Inconnu';
+                $benefsListe[] = "{$nomBenef} ({$totalBenef} FCFA)";
+            }
+
+            $benefsSansPaiement = ($d->beneficiaires ?? collect())->filter(function ($b) use ($benefsPaiement) {
+                return !isset($benefsPaiement[$b->id]);
+            });
+            foreach ($benefsSansPaiement as $b) {
+                $benefsListe[] = "{$b->nom} (0 FCFA)";
+            }
+
+            $benefsTexte = !empty($benefsListe) ? implode(' | ', $benefsListe) : '-';
+
+            fputcsv($file, [
+                $i + 1,
+                $d->client?->name ?? '-',
+                $d->client?->phone ?? '-',
+                $d->nom_dossier ?? '-',
+                $d->grandSite?->nom ?? '-',
+                $dateImplantationPrevue
+                    ? \Carbon\Carbon::parse($dateImplantationPrevue)->format('d/m/Y')
+                    : '-',
+                $benefsTexte,
+                $prix,
+                $paye,
+                $reste,
+                $pct,
+                $statut,
+                $dernier ? \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') : '-',
+            ], ';');
+        }
+
+        fclose($file);
+    };
+
+    return response()->stream($callback, 200, $headers);
+}
 
     // ═══════════════════════════════════════════════════════════════
     // ⚙️ DÉFINIR LE PRIX LOGISTIQUE

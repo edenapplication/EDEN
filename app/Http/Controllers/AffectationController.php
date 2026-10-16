@@ -2926,16 +2926,16 @@ public function choixDimanche(Request $request)
             ->with('success', '✅ Date du ' . \Carbon\Carbon::parse($date)->format('d/m/Y') . ' sélectionnée.');
     }
 
-   public function programmationInitiale(Request $request)
+ public function programmationInitiale(Request $request)
 {
     $dateActive = $this->getDateActiveSession();
 
     $query = Affectation::with([
         'beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot',
         'geometre', 'dossier.facilitateur',
+        'dossier.paiementsLogistiques',   // ✅ AJOUT
     ])
     ->where('statut', 'actif')
-    // ✅ Afficher UNIQUEMENT les clôturées (envoyées depuis la liste)
     ->where('etape_programmation', 'cloturee')
     ->where('statut_acceptation', 'en_attente');
 
@@ -2952,17 +2952,33 @@ public function choixDimanche(Request $request)
         ->orderBy('lot_affectation_id')
         ->get();
 
+    // ✅ Totaux payés par dossier (1 seule requête)
+    $dossierIds = $affectations->pluck('dossier_client_id')->filter()->unique();
+
+    $totauxPayes = \App\Models\PaiementLogistique::whereIn('dossier_client_id', $dossierIds)
+        ->selectRaw('dossier_client_id, SUM(montant) as total')
+        ->groupBy('dossier_client_id')
+        ->pluck('total', 'dossier_client_id');
+
     $lignes = $affectations->groupBy(function ($aff) {
         return implode('-', [
             $aff->beneficiaire_id ?? 'c' . $aff->client_id,
             $aff->bloc_id ?? 0,
         ]);
-    })->map(function ($affs, $key) {
+    })->map(function ($affs, $key) use ($totauxPayes) {
         $premier   = $affs->first();
         $lotsTries = $affs->sortBy(fn ($a) => $a->lot?->numero)->values();
 
-        $etape = $premier->etape_programmation;
+        $etape   = $premier->etape_programmation;
         $validee = in_array($etape, ['programmee', 'finalisee']);
+
+        // ✅ Calcul frais payé
+        $fraisPaye = false;
+        if ($premier->dossier) {
+            $prixLogistique = (float) ($premier->dossier->prix_logistique ?? 0);
+            $totalPaye      = (float) ($totauxPayes[$premier->dossier->id] ?? 0);
+            $fraisPaye      = $prixLogistique > 0 && $totalPaye >= $prixLogistique;
+        }
 
         return [
             'affectation_ids'    => $affs->pluck('id')->toArray(),
@@ -2979,7 +2995,7 @@ public function choixDimanche(Request $request)
             'date_implantation'  => $premier->date_implantation,
             'geometre_id'        => $premier->geometre_id,
             'geometre_nom'       => $premier->geometre?->name,
-            'frais_paye'         => $premier->frais_logistique_paye,
+            'frais_paye'         => $fraisPaye,   // ✅ CORRIGÉ
             'statut_presence'    => $premier->statut_presence ?? 'en_attente',
             'etape_programmation'=> $etape,
             'validee'            => $validee,
@@ -2988,52 +3004,50 @@ public function choixDimanche(Request $request)
     })->values();
 
     $stats = [
-    'total'      => $lignes->count(),
-    'sans_geo'   => $lignes->where('geometre_id', null)->where('validee', false)->count(),
-    'sans_heure' => $lignes->where('heure_implantation', null)->where('validee', false)->count(),
-    'validees'   => $lignes->where('validee', true)->count(),
-    'superficie' => $lignes->sum('superficie'),
-];
+        'total'      => $lignes->count(),
+        'sans_geo'   => $lignes->where('geometre_id', null)->where('validee', false)->count(),
+        'sans_heure' => $lignes->where('heure_implantation', null)->where('validee', false)->count(),
+        'validees'   => $lignes->where('validee', true)->count(),
+        'superficie' => $lignes->sum('superficie'),
+    ];
 
     $geometres = \App\Models\User::where('role', 'geometre')
-    ->where('actif', true)
-    ->orderBy('name')
-    ->get(['id', 'name']);
+        ->where('actif', true)
+        ->orderBy('name')
+        ->get(['id', 'name']);
 
-// 🎓 Liste unique des stagiaires déjà enregistrés
-$stagiaires = Affectation::whereNotNull('stagiaire')
-    ->where('stagiaire', '!=', '')
-    ->distinct()
-    ->pluck('stagiaire')
-    ->sort()
-    ->values();
+    $stagiaires = Affectation::whereNotNull('stagiaire')
+        ->where('stagiaire', '!=', '')
+        ->distinct()
+        ->pluck('stagiaire')
+        ->sort()
+        ->values();
 
-return view('admin.affectations.programmation-initiale', [
-    'lignes'         => $lignes,
-    'stats'          => $stats,
-    'geometres'      => $geometres,
-    'stagiaires'     => $stagiaires,   // ✅ Nouveau
-    'dateActive'     => $dateActive,
-]);
+    return view('admin.affectations.programmation-initiale', [
+        'lignes'     => $lignes,
+        'stats'      => $stats,
+        'geometres'  => $geometres,
+        'stagiaires' => $stagiaires,
+        'dateActive' => $dateActive,
+    ]);
 }
 
     // ============================================================
     // ✅ PAGE 2 — Programmation active (Étape 2 — Appréciations)
     // ============================================================
-   public function programmationActive(Request $request)
+public function programmationActive(Request $request)
 {
     $dateActive = $this->getDateActiveSession();
 
     $query = Affectation::with([
         'beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot',
         'geometre', 'dossier.facilitateur',
+        'dossier.paiementsLogistiques',   // ✅ AJOUT
     ])
     ->where('statut', 'actif')
-    // ✅ ÉTAPE 2 : uniquement les affectations déjà programmées
     ->whereIn('etape_programmation', ['programmee', 'finalisee'])
     ->whereIn('statut_acceptation', ['en_attente', 'accepte']);
 
-    // ✅ Filtre sur la date
     if ($dateActive) {
         $query->whereDate('date_implantation', $dateActive->format('Y-m-d'));
     }
@@ -3044,17 +3058,33 @@ return view('admin.affectations.programmation-initiale', [
         ->orderBy('lot_affectation_id')
         ->get();
 
+    // ✅ Totaux payés par dossier (1 seule requête)
+    $dossierIds = $affectations->pluck('dossier_client_id')->filter()->unique();
+
+    $totauxPayes = \App\Models\PaiementLogistique::whereIn('dossier_client_id', $dossierIds)
+        ->selectRaw('dossier_client_id, SUM(montant) as total')
+        ->groupBy('dossier_client_id')
+        ->pluck('total', 'dossier_client_id');
+
     $lignes = $affectations->groupBy(function ($aff) {
         return implode('-', [
             $aff->beneficiaire_id ?? 'c' . $aff->client_id,
             $aff->bloc_id ?? 0,
         ]);
-    })->map(function ($affs, $key) {
+    })->map(function ($affs, $key) use ($totauxPayes) {
         $premier   = $affs->first();
         $lotsTries = $affs->sortBy(fn ($a) => $a->lot?->numero)->values();
 
         $etape   = $premier->etape_programmation;
         $validee = $etape === 'finalisee';
+
+        // ✅ Calcul frais payé
+        $fraisPaye = false;
+        if ($premier->dossier) {
+            $prixLogistique = (float) ($premier->dossier->prix_logistique ?? 0);
+            $totalPaye      = (float) ($totauxPayes[$premier->dossier->id] ?? 0);
+            $fraisPaye      = $prixLogistique > 0 && $totalPaye >= $prixLogistique;
+        }
 
         return [
             'affectation_ids'    => $affs->pluck('id')->toArray(),
@@ -3071,27 +3101,27 @@ return view('admin.affectations.programmation-initiale', [
             'date_implantation'  => $premier->date_implantation,
             'geometre_id'        => $premier->geometre_id,
             'geometre_nom'       => $premier->geometre?->name,
-            'frais_paye'         => $premier->frais_logistique_paye,
+            'frais_paye'         => $fraisPaye,   // ✅ CORRIGÉ
             'statut_presence'    => $premier->statut_presence ?? 'en_attente',
             'etape_programmation'=> $etape,
             'validee'            => $validee,
             'statut_acceptation' => $premier->statut_acceptation,
             'date_acceptation'   => $premier->date_acceptation,
             'motif_refus'        => $premier->motif_refus,
-            'refus_en_attente'  => $premier->refus_en_attente ?? false,
-    'motif_refus_prevu' => $premier->motif_refus_prevu ?? null,
+            'refus_en_attente'   => $premier->refus_en_attente ?? false,
+            'motif_refus_prevu'  => $premier->motif_refus_prevu ?? null,
         ];
     })->values();
 
     $stats = [
-    'total'      => $lignes->count(),
-    'acceptes'   => $lignes->where('statut_acceptation', 'accepte')->count(),
-    'refuses'    => $lignes->where('statut_acceptation', 'refuse')->count(),
-    'presents'   => $lignes->where('statut_presence', 'present')->count(),
-    'retards'    => $lignes->where('statut_presence', 'retard')->count(),
-    'absents'    => $lignes->where('statut_presence', 'absent')->count(),
-    'superficie' => $lignes->sum('superficie'),
-];
+        'total'      => $lignes->count(),
+        'acceptes'   => $lignes->where('statut_acceptation', 'accepte')->count(),
+        'refuses'    => $lignes->where('statut_acceptation', 'refuse')->count(),
+        'presents'   => $lignes->where('statut_presence', 'present')->count(),
+        'retards'    => $lignes->where('statut_presence', 'retard')->count(),
+        'absents'    => $lignes->where('statut_presence', 'absent')->count(),
+        'superficie' => $lignes->sum('superficie'),
+    ];
 
     $geometres = \App\Models\User::where('role', 'geometre')
         ->where('actif', true)
@@ -3099,80 +3129,96 @@ return view('admin.affectations.programmation-initiale', [
         ->get(['id', 'name']);
 
     $stagiaires = Affectation::whereNotNull('stagiaire')
-    ->where('stagiaire', '!=', '')
-    ->distinct()
-    ->pluck('stagiaire')
-    ->sort()
-    ->values();
+        ->where('stagiaire', '!=', '')
+        ->distinct()
+        ->pluck('stagiaire')
+        ->sort()
+        ->values();
 
-return view('admin.affectations.programmation-active', [
-    'lignes'         => $lignes,
-    'stats'          => $stats,
-    'geometres'      => $geometres,
-    'stagiaires'     => $stagiaires,   // ✅ Nouveau
-    'dateActive'     => $dateActive,
-]);
+    return view('admin.affectations.programmation-active', [
+        'lignes'     => $lignes,
+        'stats'      => $stats,
+        'geometres'  => $geometres,
+        'stagiaires' => $stagiaires,
+        'dateActive' => $dateActive,
+    ]);
 }
     // ============================================================
     // ✅ HELPERS — Génération PDF
     // ============================================================
 
-    private function grouperLignesPourPdf($affectations)
-    {
-        return $affectations->groupBy(function ($aff) {
-            return implode('-', [
-                $aff->beneficiaire_id ?? 'c' . $aff->client_id,
-                $aff->bloc_id ?? 0,
-            ]);
-        })->map(function ($affs) {
-            $premier   = $affs->first();
-            $lotsTries = $affs->sortBy(fn ($a) => $a->lot?->numero)->values();
+   private function grouperLignesPourPdf($affectations)
+{
+    // ✅ Totaux payés par dossier (1 seule requête)
+    $dossierIds = $affectations->pluck('dossier_client_id')->filter()->unique();
 
-            $statutFinal = match(true) {
-                $premier->statut_acceptation === 'accepte' => 'Accepté',
-                $premier->statut_acceptation === 'refuse'  => 'Refusé',
-                $premier->statut_presence === 'present'    => 'Présent',
-                $premier->statut_presence === 'retard'     => 'Retard',
-                $premier->statut_presence === 'absent'     => 'Absent',
-                default                                     => 'En attente',
-            };
+    $totauxPayes = \App\Models\PaiementLogistique::whereIn('dossier_client_id', $dossierIds)
+        ->selectRaw('dossier_client_id, SUM(montant) as total')
+        ->groupBy('dossier_client_id')
+        ->pluck('total', 'dossier_client_id');
 
-            $classeStatut = match(true) {
-                $premier->statut_acceptation === 'accepte' => 'accepte',
-                $premier->statut_acceptation === 'refuse'  => 'refuse',
-                $premier->statut_presence === 'present'    => 'present',
-                $premier->statut_presence === 'retard'     => 'retard',
-                $premier->statut_presence === 'absent'     => 'absent',
-                default                                     => 'en_attente',
-            };
+    return $affectations->groupBy(function ($aff) {
+        return implode('-', [
+            $aff->beneficiaire_id ?? 'c' . $aff->client_id,
+            $aff->bloc_id ?? 0,
+        ]);
+    })->map(function ($affs) use ($totauxPayes) {
+        $premier   = $affs->first();
+        $lotsTries = $affs->sortBy(fn ($a) => $a->lot?->numero)->values();
 
-            return [
-                'affectation_ids'    => $affs->pluck('id')->toArray(),
-                'beneficiaire'       => $premier->beneficiaire?->nom ?? $premier->client?->name ?? '—',
-                'telephone'          => $premier->beneficiaire?->telephone ?? '—',
-                'titre_foncier'      => $premier->dossier?->titre_foncier ?? $premier->tf?->title ?? '—',
-                'grand_site'         => $premier->grandSite?->nom,
-                'site'               => $premier->site?->name,
-                'bloc'               => $premier->bloc?->code,
-                'lots'               => $lotsTries->pluck('lot.numero')->filter()->implode(', '),
-                'superficie'         => $affs->sum(fn ($a) => $a->lot?->superficie ?? 0),
-                'facilitateur'       => $premier->dossier?->facilitateur?->nom ?? '—',
-                'heure_implantation' => $premier->heure_implantation,
-                'date_implantation'  => $premier->date_implantation,
-                'date_affectation'   => $premier->date_affectation,
-                'geometre_id'        => $premier->geometre_id,
-                'geometre_nom'       => $premier->geometre?->name,
-                'frais_paye'         => $premier->frais_logistique_paye,
-                'statut_presence'    => $premier->statut_presence ?? 'en_attente',
-                'statut_acceptation' => $premier->statut_acceptation,
-                'statut_final'       => $statutFinal,
-                'classe_statut'      => $classeStatut,
-                'date_acceptation'   => $premier->date_acceptation,
-                'date_refus'         => $premier->date_refus,
-                'motif_refus'        => $premier->motif_refus,
-            ];
-        })->values();
-    }
+        $statutFinal = match(true) {
+            $premier->statut_acceptation === 'accepte' => 'Accepté',
+            $premier->statut_acceptation === 'refuse'  => 'Refusé',
+            $premier->statut_presence === 'present'    => 'Présent',
+            $premier->statut_presence === 'retard'     => 'Retard',
+            $premier->statut_presence === 'absent'     => 'Absent',
+            default                                     => 'En attente',
+        };
+
+        $classeStatut = match(true) {
+            $premier->statut_acceptation === 'accepte' => 'accepte',
+            $premier->statut_acceptation === 'refuse'  => 'refuse',
+            $premier->statut_presence === 'present'    => 'present',
+            $premier->statut_presence === 'retard'     => 'retard',
+            $premier->statut_presence === 'absent'     => 'absent',
+            default                                     => 'en_attente',
+        };
+
+        // ✅ Calcul frais payé
+        $fraisPaye = false;
+        if ($premier->dossier) {
+            $prixLogistique = (float) ($premier->dossier->prix_logistique ?? 0);
+            $totalPaye      = (float) ($totauxPayes[$premier->dossier->id] ?? 0);
+            $fraisPaye      = $prixLogistique > 0 && $totalPaye >= $prixLogistique;
+        }
+
+        return [
+            'affectation_ids'    => $affs->pluck('id')->toArray(),
+            'beneficiaire'       => $premier->beneficiaire?->nom ?? $premier->client?->name ?? '—',
+            'telephone'          => $premier->beneficiaire?->telephone ?? '—',
+            'titre_foncier'      => $premier->dossier?->titre_foncier ?? $premier->tf?->title ?? '—',
+            'grand_site'         => $premier->grandSite?->nom,
+            'site'               => $premier->site?->name,
+            'bloc'               => $premier->bloc?->code,
+            'lots'               => $lotsTries->pluck('lot.numero')->filter()->implode(', '),
+            'superficie'         => $affs->sum(fn ($a) => $a->lot?->superficie ?? 0),
+            'facilitateur'       => $premier->dossier?->facilitateur?->nom ?? '—',
+            'heure_implantation' => $premier->heure_implantation,
+            'date_implantation'  => $premier->date_implantation,
+            'date_affectation'   => $premier->date_affectation,
+            'geometre_id'        => $premier->geometre_id,
+            'geometre_nom'       => $premier->geometre?->name,
+            'frais_paye'         => $fraisPaye,   // ✅ CORRIGÉ
+            'statut_presence'    => $premier->statut_presence ?? 'en_attente',
+            'statut_acceptation' => $premier->statut_acceptation,
+            'statut_final'       => $statutFinal,
+            'classe_statut'      => $classeStatut,
+            'date_acceptation'   => $premier->date_acceptation,
+            'date_refus'         => $premier->date_refus,
+            'motif_refus'        => $premier->motif_refus,
+        ];
+    })->values();
+}
 
    private function genererEtStockerPdf(
     string $type,
@@ -3261,6 +3307,10 @@ public function updateStagiaireGroupe(Request $request)
  /**
  * ✅ Valider l'Étape 1 → génère le PDF ET passe à 'programmee'
  */
+/**
+ * ✅ Valider l'Étape 1 → génère le PDF ET passe à 'programmee'
+ *    + met à jour l'étape des bénéficiaires en cas de clôture
+ */
 public function validerEtape1(Request $request)
 {
     try {
@@ -3271,6 +3321,7 @@ public function validerEtape1(Request $request)
         $typeRapport    = $request->input('type_rapport', 'initiale');
         $jourFiltre     = $request->input('jour', null);
 
+        // ✅ Validation du titre
         if (empty($titreDocument) || strlen($titreDocument) < 3) {
             return response()->json([
                 'success' => false,
@@ -3278,17 +3329,83 @@ public function validerEtape1(Request $request)
             ], 422);
         }
 
+        // ✅ Validation des IDs
+        if (empty($affectationIds) || !is_array($affectationIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Aucune affectation sélectionnée.',
+            ], 422);
+        }
+
+        $affectationIds = array_values(array_filter($affectationIds, function ($id) {
+            return is_numeric($id) && (int) $id > 0;
+        }));
+
+        if (empty($affectationIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ IDs d\'affectation invalides.',
+            ], 422);
+        }
+
         // ═══════════════════════════════════════════════════════════
         // 🔒 CAS 1 : CLÔTURE depuis la LISTE
         //    → AUCUNE vérification géo/heure
         //    → Statut : 'cloturee' (prête pour Étape 1)
+        //    → Met à jour les bénéficiaires : etape_actuelle = 'implantation_prevue'
         // ═══════════════════════════════════════════════════════════
         if ($typeRapport === 'cloture') {
 
+            // 1. Marquer les affectations comme clôturées
             Affectation::whereIn('id', $affectationIds)
                 ->whereIn('etape_programmation', ['nouvelle', 'date_attribuee'])
                 ->update(['etape_programmation' => 'cloturee']);
 
+            // ═══════════════════════════════════════════════════════
+            // 2. ✅ MISE À JOUR DES BÉNÉFICIAIRES
+            //    → implantation_prevue = date de la clôture
+            //    → etape_actuelle      = 'implantation_prevue'
+            // ═══════════════════════════════════════════════════════
+            $beneficiaireIds = Affectation::whereIn('id', $affectationIds)
+                ->pluck('beneficiaire_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            if (!empty($beneficiaireIds)) {
+
+                // Date de référence : la date active de la session, sinon aujourd'hui
+                $dateImplantation = $this->getDateActiveSession() ?? now();
+
+                Beneficiaire::whereIn('id', $beneficiaireIds)->update([
+                    'implantation_prevue' => $dateImplantation->format('Y-m-d'),
+                    'etape_actuelle'      => 'implantation_prevue',
+                ]);
+
+                // ✅ Historique (optionnel mais recommandé)
+                $beneficiaires = Beneficiaire::whereIn('id', $beneficiaireIds)->get();
+                foreach ($beneficiaires as $benef) {
+                    if ($benef->dossier_client_id) {
+                        HistoriqueService::log(
+                            $benef->dossier_client_id,
+                            'modification_beneficiaire',
+                            "📅 Bénéficiaire « {$benef->nom} » → étape : Implantation prévue "
+                                . "(date : " . $dateImplantation->format('d/m/Y') . ")",
+                            'beneficiaire',
+                            $benef->id,
+                            ['etape_actuelle' => null, 'implantation_prevue' => null],
+                            [
+                                'etape_actuelle'      => 'implantation_prevue',
+                                'implantation_prevue' => $dateImplantation->format('Y-m-d'),
+                            ],
+                            $benef->id
+                        );
+                    }
+                }
+            }
+
+            // 3. Récupérer les affectations pour le PDF
             $affectations = Affectation::with([
                 'beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot',
                 'geometre', 'dossier.facilitateur',
@@ -3323,7 +3440,8 @@ public function validerEtape1(Request $request)
 
             return response()->json([
                 'success' => true,
-                'message' => '✅ Rapport de clôture généré — Les lignes sont prêtes pour l\'Étape 1 (géomètre + heure à attribuer).',
+                'message' => '✅ Rapport de clôture généré — Les lignes sont prêtes pour l\'Étape 1 (géomètre + heure à attribuer). '
+                    . (!empty($beneficiaireIds) ? count($beneficiaireIds) . ' bénéficiaire(s) mis à jour.' : ''),
                 'doc'     => [
                     'id'  => $doc->id,
                     'url' => $doc->url,

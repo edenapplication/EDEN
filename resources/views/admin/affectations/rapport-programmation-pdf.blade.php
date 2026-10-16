@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $titreDocument ?? 'Rapport' }}</title>
+    <title>{{ $titreDocument ?? 'Document' }}</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -31,18 +31,18 @@
         /* 🏢 EN-TÊTE IMAGE                                        */
         /* ═══════════════════════════════════════════════════════ */
         .pdf-header {
-    width: 100%;
-    margin-bottom: 8px;
-    text-align: left;
-    border: none;
-    background: transparent;
-}
-.pdf-header img {
-    height: 55px;
-    width: auto;
-    border: none;
-    outline: none;
-}
+            width: 100%;
+            margin-bottom: 8px;
+            text-align: left;
+            border: none;
+            background: transparent;
+        }
+        .pdf-header img {
+            height: 55px;
+            width: auto;
+            border: none;
+            outline: none;
+        }
 
         /* ═══════════════════════════════════════════════════════ */
         /* 📋 TITRE DU DOCUMENT                                    */
@@ -118,7 +118,7 @@
         table.main-table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
+            table-layout: auto;
             font-size: 7pt;
             border: 1px solid #bfdbfe;
         }
@@ -137,6 +137,7 @@
             text-transform: uppercase;
             letter-spacing: 0.2px;
             word-wrap: break-word;
+            white-space: nowrap;
         }
         table.main-table tbody td {
             padding: 4px 3px;
@@ -149,42 +150,43 @@
         }
         table.main-table tbody tr:nth-child(even) td { background: #f8fafc; }
 
-        /* ═══ Cellules spéciales ═══ */
         .num-cell {
             font-weight: 900;
             color: #1d4ed8;
             text-align: center;
-            font-size: 6.5pt;
+            font-size: 7pt;
+            width: 26px;
+            white-space: nowrap;
         }
         .nom-cell {
             font-weight: 700;
             color: #0f172a;
             text-align: left !important;
+            white-space: nowrap;
+            min-width: 110px;
         }
-        .nom-cell small {
-            display: block;
-            font-weight: 400;
-            color: #64748b;
-            font-size: 5.5pt;
-            margin-top: 1px;
+        .tel-cell {
+            font-weight: 600;
+            color: #1e40af;
+            text-align: left !important;
+            white-space: nowrap;
+            min-width: 85px;
+            font-size: 6.5pt;
         }
         .sup-cell {
             font-weight: 800;
             color: #7c3aed;
+            white-space: nowrap;
         }
         .muted-cell {
             color: #64748b;
             font-size: 6.5pt;
         }
-        .date-impl-cell {
-            font-weight: 800;
-            color: #15803d;
-            background: #f0fdf4;
-        }
         .date-aff-cell {
             font-weight: 700;
             color: #5b21b6;
             background: #faf5ff;
+            white-space: nowrap;
         }
         .geo-cell {
             font-weight: 700;
@@ -196,8 +198,9 @@
             font-weight: 700;
             color: #1e3a5f;
             background: #eff6ff;
+            white-space: nowrap;
         }
-        .frais-cell { text-align: center; }
+        .frais-cell { text-align: center; white-space: nowrap; }
 
         .frais-badge {
             display: inline-block;
@@ -218,7 +221,6 @@
             border: 1px solid #fca5a5;
         }
 
-        /* ═══ Badge Statut ═══ */
         .statut-badge {
             display: inline-block;
             padding: 1px 5px;
@@ -243,9 +245,6 @@
             line-height: 1.2;
         }
 
-        /* ═══════════════════════════════════════════════════════ */
-        /* 🏁 PIED DE PAGE                                        */
-        /* ═══════════════════════════════════════════════════════ */
         .footer {
             position: fixed;
             bottom: -10mm;
@@ -260,9 +259,6 @@
         }
         .footer strong { color: #1e3a5f; }
 
-        /* ═══════════════════════════════════════════════════════ */
-        /* 📭 ÉTAT VIDE                                           */
-        /* ═══════════════════════════════════════════════════════ */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -271,9 +267,6 @@
         .empty-state .ico { font-size: 36px; margin-bottom: 8px; }
         .empty-state .msg { font-weight: 800; font-size: 11pt; color: #475569; }
 
-        /* ═══════════════════════════════════════════════════════ */
-        /* 🖨️ IMPRESSION PDF                                      */
-        /* ═══════════════════════════════════════════════════════ */
         tr { page-break-inside: avoid; }
     </style>
 </head>
@@ -281,14 +274,12 @@
 
 @php
     // ═══════════════════════════════════════════════════════
-    // 🎯 DATE EXTRAITE DES LIGNES (jamais now())
+    // 🎯 DATE EXTRAITE DES LIGNES
     // ═══════════════════════════════════════════════════════
     $dateAffichee = null;
     $premiereLigne = collect($lignes ?? [])->first();
 
     if ($premiereLigne && is_array($premiereLigne)) {
-        // Attribution → date_affectation
-        // Tous les autres → date_implantation
         if ($type === 'rapport_programmation') {
             $dateAffichee = $premiereLigne['date_affectation'] ?? null;
         } else {
@@ -296,12 +287,10 @@
         }
     }
 
-    // Fallback : si pas de date dans les lignes, utiliser $dateSemaine
     if (empty($dateAffichee)) {
         $dateAffichee = $dateSemaine;
     }
 
-    // Formater la date
     try {
         $dateSemaineFmt = $dateAffichee instanceof \Carbon\Carbon
             ? $dateAffichee->format('d/m/Y')
@@ -311,17 +300,25 @@
     }
 
     // ═══════════════════════════════════════════════════════
+    // ✅ NETTOYAGE DU TITRE : retirer "Rapport" en début
+    // ═══════════════════════════════════════════════════════
+    if (!empty($titreDocument)) {
+        $titreDocument = preg_replace('/^\s*rapport\s+(de\s+|des\s+|d\')?/i', '', $titreDocument);
+        $titreDocument = ucfirst(trim($titreDocument));
+    }
+
+    // ═══════════════════════════════════════════════════════
     // 🎯 TITRES DYNAMIQUES
     // ═══════════════════════════════════════════════════════
     $titresParType = [
-        'rapport_programmation'      => "Rapport des attributions du {$dateSemaineFmt}",
-        'rapport_programmation_date' => "Rapport de planification des implantations du {$dateSemaineFmt}",
-        'programmation_finale'       => "Rapport de clôture de planification des implantations du {$dateSemaineFmt}",
-        'programmation_initiale'     => "Rapport d'implantation du {$dateSemaineFmt}",
-        'programmation_active'       => "Rapport des appréciations du {$dateSemaineFmt}",
+        'rapport_programmation'      => "Attributions du {$dateSemaineFmt}",
+        'rapport_programmation_date' => "Planification des implantations du {$dateSemaineFmt}",
+        'programmation_finale'       => "Clôture de planification des implantations du {$dateSemaineFmt}",
+        'programmation_initiale'     => "Implantation du {$dateSemaineFmt}",
+        'programmation_active'       => "Appréciations du {$dateSemaineFmt}",
     ];
 
-    $titreAffiche = $titreDocument ?? ($titresParType[$type] ?? 'Rapport de programmation');
+    $titreAffiche = $titreDocument ?? ($titresParType[$type] ?? 'Programmation');
 
     // ═══════════════════════════════════════════════════════
     // 🎯 SOUS-TITRES DYNAMIQUES
@@ -355,54 +352,59 @@
         'programmation_active',
     ]);
 
-    $showDateImplantation = in_array($type, [
-        'rapport_programmation_date',
+    $showDateImplantation = false;
+
+    // ═══════════════════════════════════════════════════════
+    // ✅ DÉTERMINER SI C'EST UN TYPE AVEC IMPLANTATION
+    // ═══════════════════════════════════════════════════════
+    $typesAvecImplantation = [
         'programmation_initiale',
         'programmation_active',
         'programmation_finale',
-    ]);
+        'rapport_programmation_date',
+    ];
+
+    $estTypeImplantation = in_array($type, $typesAvecImplantation);
 
     // ═══════════════════════════════════════════════════════
-    // ✅ STAGIAIRES
+    // ✅ CALCUL DU NOMBRE DE BRIGADES (géomètres différents)
     // ═══════════════════════════════════════════════════════
-    $showStagiaire = !empty($lignes->first()['stagiaire'] ?? null);
+    $nbBrigades = collect($lignes ?? [])
+        ->pluck('geometre_nom')
+        ->filter()
+        ->unique()
+        ->count();
 
     // ═══════════════════════════════════════════════════════
-    // ✅ DÉTECTION APPRÉCIATIONS
+    // ✅ LABEL DYNAMIQUE DU 1er STAT
     // ═══════════════════════════════════════════════════════
-    $isAppreciation = ($type === 'programmation_active');
+    $labelPremierStat = $estTypeImplantation ? 'Implantation(s)' : 'Affectation(s)';
 @endphp
 
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    {{-- 🏢 EN-TÊTE IMAGE                                        --}}
-    {{-- ═══════════════════════════════════════════════════════ --}}
+    {{-- 🏢 EN-TÊTE IMAGE --}}
     <div class="pdf-header">
-    <img src="{{ public_path('images/eden-bon.jpeg') }}"
-         alt="Logo EDEN Group"
-         border="0"
-         style="border:none;">
-</div>
+        <img src="{{ public_path('images/eden-bon.jpeg') }}"
+             alt="Logo EDEN Group"
+             border="0"
+             style="border:none;">
+    </div>
 
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    {{-- 📋 TITRE DU DOCUMENT                                    --}}
-    {{-- ═══════════════════════════════════════════════════════ --}}
+    {{-- 📋 TITRE DU DOCUMENT --}}
     <div class="doc-titre">
         <div class="titre-principal">{{ $titreAffiche }}</div>
         <div class="sous-titre">{{ $sousTitreAffiche }}</div>
         <div class="meta">
             <div><strong>📅 Généré le :</strong> {{ $dateGeneration }}</div>
-            <div><strong>📊 {{ $lignes->count() }} Affectation(s)</strong></div>
+            <div><strong>📊 {{ $lignes->count() }} {{ $labelPremierStat }}</strong></div>
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    {{-- 📊 BANDEAU STATISTIQUES                                --}}
-    {{-- ═══════════════════════════════════════════════════════ --}}
+    {{-- 📊 BANDEAU STATISTIQUES --}}
     @if($lignes->count() > 0)
     <div class="stats-banner">
         <div class="stat-item">
             <span class="stat-value">{{ $lignes->count() }}</span>
-            <span class="stat-label">Affectattion(s)</span>
+            <span class="stat-label">{{ $labelPremierStat }}</span>
         </div>
         <div class="stat-item">
             <span class="stat-value">{{ $stats['total_lots'] ?? 0 }}</span>
@@ -412,7 +414,14 @@
             <span class="stat-value">{{ number_format($stats['total_superficie'] ?? 0, 0, ',', ' ') }}</span>
             <span class="stat-label">m² Total</span>
         </div>
-        @if(isset($stats['acceptes']) && $stats['acceptes'] > 0)
+
+        {{-- ✅ BRIGADE (uniquement pour les types avec implantation) --}}
+        @if($estTypeImplantation && $nbBrigades > 0)
+        <div class="stat-item">
+            <span class="stat-value" style="color:#7c3aed;">{{ $nbBrigades }}</span>
+            <span class="stat-label">Brigade(s)</span>
+        </div>
+        @elseif(isset($stats['acceptes']) && $stats['acceptes'] > 0)
         <div class="stat-item">
             <span class="stat-value" style="color:#16a34a;">{{ $stats['acceptes'] }}</span>
             <span class="stat-label">Acceptés</span>
@@ -426,42 +435,37 @@
     </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    {{-- 📋 TABLEAU PRINCIPAL                                   --}}
-    {{-- ═══════════════════════════════════════════════════════ --}}
+    {{-- 📋 TABLEAU PRINCIPAL --}}
     @if($lignes->count() > 0)
     <table class="main-table">
         <thead>
             <tr>
-                <th style="width:22px;">N°</th>
-                <th style="width:85px;">Bénéficiaire / Client</th>
-                <th style="width:60px;">Facilitateur</th>
-                <th style="width:60px;">Grand Site</th>
-                <th style="width:45px;">Site</th>
-                <th style="width:42px;">TF</th>
-                <th style="width:32px;">Bloc</th>
-                <th style="width:60px;">Lots</th>
-                <th style="width:48px;">Superficie</th>
-                <th style="width:48px;">Date d'aff.</th>
+                <th style="width:26px;">N°</th>
+                <th>Bénéficiaire / Client</th>
+                <th>📞 Téléphone</th>
+                <th>Facilitateur</th>
+                <th>Grand Site</th>
+                <th>Site</th>
+                <th>TF</th>
+                <th>Bloc</th>
+                <th>Lots</th>
+                <th>Superficie</th>
+                <th>Date d'aff.</th>
 
                 @if($showFrais)
-                    <th style="width:48px;">💰 Frais</th>
+                    <th>💰 Frais</th>
                 @endif
 
                 @if($showGeometre)
-                    <th style="width:60px;">👷 Géomètre</th>
+                    <th>👷 Géomètre</th>
                 @endif
 
                 @if($showHeure)
-                    <th style="width:45px;">⏰ Heure</th>
+                    <th>⏰ Heure</th>
                 @endif
 
                 @if($showStatut)
-                    <th style="width:60px;">Statut</th>
-                @endif
-
-                @if($showDateImplantation)
-                    <th style="width:52px;">Date d'impl.</th>
+                    <th>Statut</th>
                 @endif
             </tr>
         </thead>
@@ -503,9 +507,10 @@
 
                 <td class="nom-cell">
                     {{ $ligne['beneficiaire'] ?? '—' }}
-                    @if(!empty($ligne['telephone']))
-                        <small>📞 {{ $ligne['telephone'] }}</small>
-                    @endif
+                </td>
+
+                <td class="tel-cell">
+                    {{ !empty($ligne['telephone']) ? $ligne['telephone'] : '—' }}
                 </td>
 
                 <td class="muted-cell">{{ $ligne['facilitateur'] ?? '—' }}</td>
@@ -562,16 +567,6 @@
                         @endif
                     </td>
                 @endif
-
-                @if($showDateImplantation)
-                    <td class="date-impl-cell">
-                        @if(!empty($ligne['date_implantation']))
-                            {{ \Carbon\Carbon::parse($ligne['date_implantation'])->format('d/m/Y') }}
-                        @else
-                            —
-                        @endif
-                    </td>
-                @endif
             </tr>
             @endforeach
         </tbody>
@@ -584,9 +579,7 @@
     </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    {{-- 🏁 PIED DE PAGE                                        --}}
-    {{-- ═══════════════════════════════════════════════════════ --}}
+    {{-- 🏁 PIED DE PAGE --}}
     <div class="footer">
         <div>Document généré par <strong>EDEN GROUP</strong> — {{ $dateGeneration }}</div>
         <div>Page <strong>1</strong></div>

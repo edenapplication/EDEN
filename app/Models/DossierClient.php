@@ -48,7 +48,7 @@ class DossierClient extends Model
     public function paiements()       { return $this->hasMany(PaiementDossier::class); }
     public function paiementsTechniques()    { return $this->hasMany(PaiementTechnique::class, 'dossier_client_id'); }
     public function paiementsMorcellements() { return $this->hasMany(PaiementMorcellement::class, 'dossier_client_id'); }
-    public function paiementsLogistiques()   { return $this->hasMany(PaiementLogistique::class, 'dossier_client_id'); }
+
     public function bons() { return $this->hasMany(BonPaiement::class, 'dossier_client_id')->orderByDesc('date_bon'); }
     public function lots() { return $this->hasMany(Lot::class); }
 
@@ -207,4 +207,27 @@ class DossierClient extends Model
         if (!$champ || !$this->$champ) return null;
         return $this->$champ->format('d/m/Y');
     }
+
+    // app/Models/DossierClient.php
+
+public function paiementsLogistiques()
+{
+    return $this->hasMany(\App\Models\PaiementLogistique::class, 'dossier_client_id');
+}
+
+/**
+ * Indique si les frais logistiques du dossier sont entièrement payés.
+ */
+public function fraisLogistiquesPayes(): bool
+{
+    $prixLogistique = (float) ($this->prix_logistique ?? 0);
+
+    if ($prixLogistique <= 0) {
+        return false;
+    }
+
+    $totalPaye = (float) $this->paiementsLogistiques()->sum('montant');
+
+    return $totalPaye >= $prixLogistique;
+}
 }
