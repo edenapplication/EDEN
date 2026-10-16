@@ -2936,18 +2936,11 @@ public function choixDimanche(Request $request)
         'dossier.paiementsLogistiques',
     ])
     ->where('statut', 'actif')
-    // ✅ GARDER tout sauf les acceptées
+    // ✅ VOIR TOUT sauf les acceptées
     ->where(function ($q) {
         $q->where('statut_acceptation', '!=', 'accepte')
           ->orWhereNull('statut_acceptation');
     });
-
-    if ($dateActive) {
-        $query->where(function($q) use ($dateActive) {
-            $q->whereDate('date_implantation', $dateActive->format('Y-m-d'))
-              ->orWhereNull('date_implantation');
-        });
-    }
 
     $affectations = $query->orderBy('heure_implantation')
         ->orderBy('grand_site_id')
