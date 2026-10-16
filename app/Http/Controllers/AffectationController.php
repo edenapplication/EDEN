@@ -3008,7 +3008,7 @@ $stagiaires = Affectation::whereNotNull('stagiaire')
     ->sort()
     ->values();
 
-return view('admin.affectations.programmation-active', [
+return view('admin.affectations.programmation-initiale', [
     'lignes'         => $lignes,
     'stats'          => $stats,
     'geometres'      => $geometres,

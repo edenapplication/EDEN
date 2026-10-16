@@ -15,15 +15,15 @@ use Illuminate\Support\Facades\Storage;
 class BeneficiaireController extends Controller
 {
     // ════════════════════════════════════════════════════════════
-    // STORE — Ajouter un bénéficiaire (avec lots pré-sélectionnés)
-    // ════════════════════════════════════════════════════════════
-    public function store(Request $request, DossierClient $dossier)
+// STORE — Ajouter un bénéficiaire (avec lots pré-sélectionnés)
+// ════════════════════════════════════════════════════════════
+public function store(Request $request, DossierClient $dossier)
 {
     try {
         $request->validate([
             'nom'                  => 'required|string|max:255',
             'telephone'            => 'nullable|string|max:50',
-            'cni'                  => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'cni'                  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'notes'                => 'nullable|string|max:1000',
             'client_id'            => 'nullable|exists:clients,id',
             'lot_ids'              => 'nullable|array',
@@ -46,7 +46,7 @@ class BeneficiaireController extends Controller
             ? LotAffectation::with('bloc')->whereIn('id', $lotIds)->get()
             : collect();
 
-        // ✅ MODIFIÉ : On ne bloque PLUS si vide, on continue
+        // ✅ On ne bloque PLUS sur la superficie — on autorise le dépassement
         $superficieTotale = 0;
         if ($lots->isNotEmpty()) {
             // Vérifier que tous les lots sont disponibles
@@ -61,32 +61,26 @@ class BeneficiaireController extends Controller
 
             $superficieTotale = $lots->sum('superficie');
 
-            // Vérifier superficie restante du dossier
-            $superficieRestante = $dossier->superficie_restante;
-            if ($superficieTotale > $superficieRestante) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "❌ La superficie totale des lots ({$superficieTotale} m²) "
-                               . "dépasse la superficie disponible du dossier ({$superficieRestante} m²).",
-                ], 422);
+            // ✅ RETIRÉ : Plus de blocage sur superficie_restante
+            // On autorise la superficie des lots à dépasser la superficie voulue.
+        }
+
+        // ✅ Upload CNI — DÉSORMAIS OPTIONNELLE
+        $cniPath = null;
+        if ($request->hasFile('cni') && $request->file('cni')->isValid()) {
+            try {
+                $cniPath = $request->file('cni')->store('beneficiaires/cni', 'public');
+                Log::info('✅ CNI uploadée', ['path' => $cniPath]);
+            } catch (\Exception $e) {
+                // ✅ En cas d'échec, on continue sans CNI (pas d'erreur bloquante)
+                Log::warning('⚠️ Échec upload CNI (ignoré)', ['error' => $e->getMessage()]);
+                $cniPath = null;
             }
         }
 
-        // ✅ Upload CNI
-        $cniPath = null;
-        if ($request->hasFile('cni') && $request->file('cni')->isValid()) {
-            $cniPath = $request->file('cni')->store('beneficiaires/cni', 'public');
-            Log::info('✅ CNI uploadée', ['path' => $cniPath]);
-        }
+        // ✅ RETIRÉ : Plus d'erreur si pas de CNI
 
-        if (!$cniPath) {
-            return response()->json([
-                'success' => false,
-                'message' => '❌ Erreur lors de l\'upload de la CNI.',
-            ], 500);
-        }
-
-        // ✅ Créer le bénéficiaire (superficie peut être 0)
+        // ✅ Créer le bénéficiaire (superficie peut être 0, CNI peut être null)
         $beneficiaire = Beneficiaire::create([
             'dossier_client_id'    => $dossier->id,
             'client_id'            => $clientId,

@@ -32,8 +32,8 @@ class AuthController extends Controller
     }
 
     public function logout()
-    {
-        session()->forget('feb_user_id');
-        return redirect()->route('feb.login');
-    }
+{
+    session()->forget('feb_user_id');
+    return redirect()->route('feb.login');  // ✅ /feb/login
+}
 }

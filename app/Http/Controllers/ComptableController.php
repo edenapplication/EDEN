@@ -3,19 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\DossierClient;
-use App\Models\PaiementTechnique;
 use App\Models\PaiementLogistique;
+use App\Models\BeneficiairePaiement;
 use App\Models\BonPaiement;
 use App\Models\Visite;
 use App\Models\Visiteur;
 use App\Models\GrandSite;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
-
 
 class ComptableController extends Controller
 {
@@ -23,22 +24,14 @@ class ComptableController extends Controller
     // 🔐 AUTHENTIFICATION COMPTABLE
     // ═══════════════════════════════════════════════════════════════
 
-    /**
-     * Afficher le formulaire de connexion comptable
-     */
     public function showLogin()
     {
-        // Si déjà connecté en tant que comptable/admin → rediriger
         if (Auth::check() && in_array(Auth::user()->role, ['comptable', 'admin'])) {
             return redirect()->route('comptable.dashboard');
         }
-
-        return view('comptable.login');
+        return view('admin.comptable.login');
     }
 
-    /**
-     * Traiter la connexion comptable
-     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -47,164 +40,186 @@ class ComptableController extends Controller
         ]);
 
         if (!Auth::attempt($credentials, $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => '❌ Identifiants incorrects.',
-            ]);
+            throw ValidationException::withMessages(['email' => '❌ Identifiants incorrects.']);
         }
 
         $user = Auth::user();
 
-        // Vérifier que le compte est actif
         if (!$user->actif) {
             Auth::logout();
-            throw ValidationException::withMessages([
-                'email' => '🚫 Votre compte est désactivé. Contactez l\'administrateur.',
-            ]);
+            throw ValidationException::withMessages(['email' => '🚫 Compte désactivé.']);
         }
 
-        // Vérifier le rôle
         if (!in_array($user->role, ['comptable', 'admin'])) {
             Auth::logout();
-            throw ValidationException::withMessages([
-                'email' => '⛔ Cet espace est réservé au personnel comptable.',
-            ]);
+            throw ValidationException::withMessages(['email' => '⛔ Espace réservé au personnel comptable.']);
         }
 
         $request->session()->regenerate();
 
         return redirect()->intended(route('comptable.dashboard'))
-            ->with('success', '✅ Bienvenue ' . $user->name . ' — Espace comptable');
+            ->with('success', '✅ Bienvenue ' . $user->name);
     }
 
-    /**
-     * Déconnexion comptable
-     */
    public function logout(Request $request)
 {
     Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
 
-    // ✅ CORRECTION : comptable.auth.login (et non comptable.login)
-    return redirect()->route('comptable.auth.login')
-        ->with('success', '👋 Vous êtes déconnecté.');
+    return redirect()->route('comptable.auth.login')  // ✅ /comptable/login
+        ->with('success', '✅ Déconnecté.');
 }
 
     // ═══════════════════════════════════════════════════════════════
-    // 🏠 DASHBOARD COMPTABLE
+    // 🏠 DASHBOARD COMPTABLE (LOGISTIQUE)
     // ═══════════════════════════════════════════════════════════════
 
     public function dashboard()
     {
         $user = Auth::user();
 
-        // Stats globales
-        $stats = $this->calculerStatsTechnique(new Request());
+        $stats = $this->calculerStatsLogistique(new Request());
 
-        // Pourcentages
         $total = $stats['total_dossiers'];
         $stats['pct_payes']     = $total > 0 ? round(($stats['nb_payes'] / $total) * 100) : 0;
         $stats['pct_partiels']  = $total > 0 ? round(($stats['nb_partiels'] / $total) * 100) : 0;
         $stats['pct_non_payes'] = $total > 0 ? round(($stats['nb_non_payes'] / $total) * 100) : 0;
 
-        // Mes paiements d'aujourd'hui
         $reference = $user->reference ?? $user->email ?? ('USER-' . $user->id);
-        $mesPaiements = PaiementTechnique::where('user_reference', $reference)
+        $mesPaiements = PaiementLogistique::where('user_reference', $reference)
             ->whereDate('created_at', today())
             ->get();
 
-        // 10 derniers paiements globaux
-        $derniersPaiements = PaiementTechnique::with(['dossier.client'])
+        $derniersPaiements = PaiementLogistique::with(['dossier.client'])
             ->orderByDesc('date_paiement')
             ->orderByDesc('id')
             ->limit(10)
             ->get();
 
-        return view('comptable.dashboard', compact(
+        return view('admin.comptable.dashboard', compact(
             'stats', 'mesPaiements', 'derniersPaiements'
         ));
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 💳 LISTE DES PAIEMENTS TECHNIQUES
+    // 💰 LISTE DES PAIEMENTS LOGISTIQUES
     // ═══════════════════════════════════════════════════════════════
 
     public function index(Request $request)
-{
-    $query = DossierClient::with([
-            'client',
-            'grandSite',
-            'paiementsTechniques',
-        ])
-        ->orderByDesc('created_at');
+    {
+        $query = DossierClient::with([
+                'client',
+                'grandSite',
+                'beneficiaires',
+                'paiementsLogistiques',
+            ])
+            ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+            ->orderByDesc('created_at');
 
-    // 🔍 Filtre recherche
-    if ($request->filled('q')) {
-        $q = trim($request->q);
-        $query->where(function ($qry) use ($q) {
-            $qry->whereHas('client', fn($cq) =>
-                $cq->where('name', 'LIKE', "%{$q}%")
-                   ->orWhere('phone', 'LIKE', "%{$q}%"))
-                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-        });
-    }
-
-    // 📊 Filtre statut
-    if ($request->filled('statut')) {
-        if ($request->statut === 'sans_prix') {
-            $query->whereRaw('COALESCE(prix_technique, 0) = 0');
-        } elseif ($request->statut === 'paye') {
-            $query->whereRaw('COALESCE(prix_technique, 0) > 0')
-                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                              WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
-        } elseif ($request->statut === 'non_paye') {
-            $query->whereRaw('COALESCE(prix_technique, 0) > 0')
-                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                              WHERE dossier_client_id = dossiers_clients.id) = 0');
-        } elseif ($request->statut === 'partiel') {
-            $query->whereRaw('COALESCE(prix_technique, 0) > 0')
-                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                              WHERE dossier_client_id = dossiers_clients.id) > 0')
-                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                              WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
+        // Recherche
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+            $query->where(function ($qry) use ($q) {
+                $qry->whereHas('client', fn($cq) =>
+                    $cq->where('name', 'LIKE', "%{$q}%")
+                       ->orWhere('phone', 'LIKE', "%{$q}%"))
+                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+            });
         }
+
+        // Filtre statut
+        if ($request->filled('statut')) {
+            if ($request->statut === 'paye') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+            } elseif ($request->statut === 'non_paye') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
+            } elseif ($request->statut === 'partiel') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
+                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+            }
+        }
+
+        if ($request->filled('grand_site_id')) {
+            $query->where('grand_site_id', $request->grand_site_id);
+        }
+
+        $dossiers = $query->paginate(50)->withQueryString();
+        $dossiersGroupes = $dossiers->getCollection()->groupBy(fn($d) => $d->client_id ?? 0);
+
+        $grandSites = GrandSite::orderBy('nom')->get();
+        $stats = $this->calculerStatsLogistique($request);
+
+        $dossiersSansPrix = DossierClient::where(function ($q) {
+            $q->whereNull('prix_logistique')->orWhere('prix_logistique', 0);
+        })->count();
+
+        return view('admin.comptable.index', compact(
+            'dossiers', 'dossiersGroupes', 'grandSites', 'stats', 'dossiersSansPrix'
+        ));
     }
 
-    // 🏢 Filtre grand site
-    if ($request->filled('grand_site_id')) {
-        $query->where('grand_site_id', $request->grand_site_id);
+    // ═══════════════════════════════════════════════════════════════
+    // 👥 BÉNÉFICIAIRES D'UN DOSSIER
+    // ═══════════════════════════════════════════════════════════════
+
+    public function beneficiairesDossier(DossierClient $dossier)
+    {
+        $dossier->load(['beneficiaires']);
+
+        $prixLogi = $dossier->prix_logistique ?? 0;
+        $totalLogi = PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
+
+        $beneficiaires = $dossier->beneficiaires->map(function ($b) {
+            $payeLogi = BeneficiairePaiement::where('beneficiaire_id', $b->id)
+                ->where('paiement_type', 'logistique')->sum('montant');
+
+            return [
+                'id'         => $b->id,
+                'nom'        => $b->nom,
+                'telephone'  => $b->telephone,
+                'paye_logi'  => $payeLogi,
+                'total_paye' => $payeLogi,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'dossier' => [
+                'id'              => $dossier->id,
+                'nom_dossier'     => $dossier->nom_dossier,
+                'prix_logistique' => $prixLogi,
+                'total_logi'      => $totalLogi,
+                'reste_logi'      => max(0, $prixLogi - $totalLogi),
+            ],
+            'beneficiaires' => $beneficiaires,
+        ]);
     }
 
-    // ✅ Pagination
-    $dossiers = $query->paginate(50)->withQueryString();
-
-    // ✅ Grouper par client
-    $dossiersGroupes = $dossiers->getCollection()->groupBy(function ($d) {
-        return $d->client_id ?? 0;
-    });
-
-    $grandSites = GrandSite::orderBy('nom')->get();
-    $stats = $this->calculerStatsTechnique($request);
-
-    // ✅ Nombre de dossiers sans prix
-    $dossiersSansPrix = DossierClient::where(function ($q) {
-        $q->whereNull('prix_technique')->orWhere('prix_technique', 0);
-    })->count();
-
-    return view('admin.comptable.index', compact(
-        'dossiers', 'dossiersGroupes', 'grandSites', 'stats', 'dossiersSansPrix'
-    ));
-}
-
+    // ═══════════════════════════════════════════════════════════
+// PAIEMENT MULTI-BÉNÉFICIAIRES (LOGISTIQUE)
 // ═══════════════════════════════════════════════════════════
-// DÉFINIR LE PRIX TECHNIQUE D'UN DOSSIER
-// ═══════════════════════════════════════════════════════════
-public function definirPrix(Request $request, DossierClient $dossier)
+public function payerMulti(Request $request, DossierClient $dossier)
 {
     try {
-        // ✅ Validation
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'prix_technique' => 'required|numeric|min:1',
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => '🔒 Session expirée.'], 401);
+        }
+
+        $reference = $user->reference ?? $user->email ?? ('USER-' . $user->id);
+
+        $validator = Validator::make($request->all(), [
+            'versements'                   => 'required|array|min:1',
+            'versements.*.beneficiaire_id' => 'required|exists:beneficiaires,id',
+            'versements.*.type'            => 'required|in:logistique',
+            'versements.*.montant'         => 'required|numeric|min:1',
+            'date_paiement'                => 'required|date',
+            'note'                         => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -214,57 +229,125 @@ public function definirPrix(Request $request, DossierClient $dossier)
             ], 422);
         }
 
-        $prix = floatval($request->prix_technique);
+        DB::beginTransaction();
 
-        // ✅ Vérifier que le prix n'a pas déjà été défini
-        if ($dossier->prix_technique > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => '⚠️ Un prix technique est déjà défini pour ce dossier.',
-            ], 422);
-        }
+        // ✅ Détection ANT
+        $dateDuBon = \Carbon\Carbon::parse($request->date_paiement)->format('Y-m-d');
+        $dateAujourdhui = now()->format('Y-m-d');
+        $prefixeANT = ($dateDuBon !== $dateAujourdhui) ? 'ANT-' : '';
 
-        // ✅ Enregistrer
-        $dossier->update([
-            'prix_technique' => $prix,
+        // ✅ Créer le bon
+        $dossier->load(['paiements']);
+        $totalLogiAvant = PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
+        $totalVersement = collect($request->versements)->sum('montant');
+
+        $bon = BonPaiement::create([
+            'dossier_client_id'        => $dossier->id,
+            'numero_bon'               => $prefixeANT . BonPaiement::genererNumero(),
+            'date_bon'                 => $request->date_paiement,
+            'versement_dossier'        => 0,
+            'versement_technique'      => 0,
+            'versement_logistique'     => $totalVersement,
+            'versement_morcellement'   => 0,
+            'total_dossier_cumul'      => 0,
+            'total_technique_cumul'    => 0,
+            'total_logistique_cumul'   => $totalLogiAvant + $totalVersement,
+            'total_morcellement_cumul' => 0,
+            'afficher_reste'           => true,
+            'notes'                    => $request->note ?? 'Paiement logistique multi-bénéficiaires',
+            'user_reference'           => $reference,
+            'user_id'                  => $user->id,
         ]);
 
+        $paiementsCrees = 0;
+
+        foreach ($request->versements as $v) {
+            $beneficiaireId = $v['beneficiaire_id'];
+            $montant        = floatval($v['montant']);
+
+            // Vérifier que le bénéficiaire appartient au dossier
+            $benefExiste = \App\Models\Beneficiaire::where('id', $beneficiaireId)
+                ->where('dossier_client_id', $dossier->id)
+                ->exists();
+
+            if (!$benefExiste) {
+                throw new \Exception('⚠️ Bénéficiaire invalide pour ce dossier.');
+            }
+
+            // ✅ Après création du bon
+$dateDuBon = \Carbon\Carbon::parse($request->date_paiement)->format('Y-m-d');
+$dateAujourdhui = now()->format('Y-m-d');
+
+if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
+    $dossier->client->update(['antidate' => true]);
+}
+
+            // Créer le paiement logistique
+            $paiement = PaiementLogistique::create([
+                'dossier_client_id' => $dossier->id,
+                'beneficiaire_id'   => $beneficiaireId,
+                'montant'           => $montant,
+                'date_paiement'     => $request->date_paiement,
+                'note'              => 'Bon ' . $bon->numero_bon,
+                'user_reference'    => $reference,
+            ]);
+
+            // ✅ Traçabilité AVEC bon_id
+            BeneficiairePaiement::create([
+                'beneficiaire_id'   => $beneficiaireId,
+                'dossier_client_id' => $dossier->id,
+                'paiement_type'     => 'logistique',
+                'paiement_id'       => $paiement->id,
+                'montant'           => $montant,
+                'date_paiement'     => $request->date_paiement,
+                'user_reference'    => $reference,
+                'bon_id'            => $bon->id,   // ✅ LIEN DIRECT
+            ]);
+
+            $paiementsCrees++;
+        }
+
+        // Mettre à jour les totaux cumulés du bon
+        $nouveauTotal = PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
+        $bon->update(['total_logistique_cumul' => $nouveauTotal]);
+
+        DB::commit();
+
+        // Créer la visite
+        $this->creerVisiteDepuisBon($bon, $dossier, $user);
+
         return response()->json([
-            'success' => true,
-            'message' => 'Prix technique défini : ' . number_format($prix, 0, ',', ' ') . ' FCFA',
-            'prix'    => $prix,
+            'success'         => true,
+            'message'         => '✅ ' . $paiementsCrees . ' paiement(s) enregistré(s) — Bon ' . $bon->numero_bon,
+            'bon_numero'      => $bon->numero_bon,
+            'bon_id'          => $bon->id,
+            'total_verse'     => $totalVersement,
+            'paiements_crees' => $paiementsCrees,
         ]);
 
     } catch (\Exception $e) {
-        Log::error('message');
+        DB::rollBack();
+        Log::error('Erreur payerMulti: ' . $e->getMessage());
+
         return response()->json([
             'success' => false,
-            'message' => '❌ Erreur : ' . $e->getMessage(),
+            'message' => '❌ ' . $e->getMessage(),
         ], 500);
     }
 }
 
     // ═══════════════════════════════════════════════════════════════
-    // 💳 PAIEMENT AJAX
+    // 👤 CRÉER UN BÉNÉFICIAIRE (AJAX)
     // ═══════════════════════════════════════════════════════════════
 
-    public function payerAjax(Request $request, DossierClient $dossier)
+    public function creerBeneficiaireAjax(Request $request, DossierClient $dossier)
     {
         try {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '🔒 Session expirée. Reconnectez-vous.'
-                ], 401);
-            }
-
-            $reference = $user->reference ?? $user->email ?? ('USER-' . $user->id);
-
             $validator = Validator::make($request->all(), [
-                'montant'       => 'required|numeric|min:1',
-                'date_paiement' => 'required|date',
-                'note'          => 'nullable|string|max:500',
+                'nom'       => 'required|string|max:150',
+                'telephone' => 'nullable|string|max:50',
+                'client_id' => 'nullable|exists:clients,id',
+                'cni'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             ]);
 
             if ($validator->fails()) {
@@ -274,105 +357,54 @@ public function definirPrix(Request $request, DossierClient $dossier)
                 ], 422);
             }
 
-            $dossier->load('paiementsTechniques');
-            $dejaPaye = $dossier->paiementsTechniques->sum('montant');
-            $prixRef  = $dossier->prix_technique ?? 0;
-            $montant  = floatval($request->montant);
-
-            if ($prixRef > 0 && ($dejaPaye + $montant) > $prixRef) {
+            if (!$request->filled('client_id') && !$request->hasFile('cni')) {
                 return response()->json([
                     'success' => false,
-                    'message' => '⚠️ Dépassement ! Total : ' .
-                        number_format($dejaPaye + $montant, 0, ',', ' ') .
-                        ' FCFA > Référence : ' . number_format($prixRef, 0, ',', ' ') . ' FCFA'
+                    'message' => '⚠️ La CNI est obligatoire pour un nouveau bénéficiaire.',
                 ], 422);
             }
 
-            // Créer le paiement
-            PaiementTechnique::create([
-                'dossier_client_id' => $dossier->id,
-                'montant'           => $montant,
-                'date_paiement'     => $request->date_paiement,
-                'note'              => $request->note ?? 'Paiement technique (Comptable)',
-                'user_reference'    => $reference,
-            ]);
-
-            // Créer le bon
-            $dossier->load(['paiements', 'paiementsTechniques', 'paiementsMorcellements']);
-            $totalLogistique = PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
-
-            $bon = BonPaiement::create([
-                'dossier_client_id'        => $dossier->id,
-                'numero_bon'               => BonPaiement::genererNumero(),
-                'date_bon'                 => $request->date_paiement,
-                'versement_dossier'        => 0,
-                'versement_technique'      => $montant,
-                'versement_logistique'     => 0,
-                'versement_morcellement'   => 0,
-                'total_dossier_cumul'      => $dossier->paiements->sum('montant'),
-                'total_technique_cumul'    => $dossier->paiementsTechniques->sum('montant'),
-                'total_logistique_cumul'   => $totalLogistique,
-                'total_morcellement_cumul' => $dossier->paiementsMorcellements->sum('montant'),
-                'afficher_reste'           => true,
-                'notes'                    => 'Paiement technique via interface comptable',
-                'user_reference'           => $reference,
-                'user_id'                  => $user->id,
-            ]);
-
-            $this->creerVisiteDepuisBon($bon, $dossier, $user);
-
-            // Recalculer
-            $dossier->refresh();
-            $dossier->load('paiementsTechniques');
-            $nouveauPaye  = $dossier->paiementsTechniques->sum('montant');
-            $nouveauReste = max(0, $prixRef - $nouveauPaye);
-            $pct = $prixRef > 0 ? min(100, round(($nouveauPaye / $prixRef) * 100)) : 0;
-
-            if ($nouveauPaye >= $prixRef && $prixRef > 0) {
-                $statut = 'paye';     $label = '✅ Payé';        $couleur = '#16a34a';
-            } elseif ($nouveauPaye > 0) {
-                $statut = 'partiel';  $label = '⏳ Partiel (' . $pct . '%)';  $couleur = '#f59e0b';
-            } else {
-                $statut = 'non_paye'; $label = '❌ Non payé';    $couleur = '#dc2626';
+            $cniPath = null;
+            if ($request->hasFile('cni')) {
+                $cniPath = $request->file('cni')->store('cni_beneficiaires', 'public');
             }
 
+            $benef = \App\Models\Beneficiaire::create([
+                'dossier_client_id'    => $dossier->id,
+                'client_id'            => $request->client_id ?: $dossier->client_id,
+                'nom'                  => $request->nom,
+                'telephone'            => $request->telephone,
+                'cni_path'             => $cniPath,
+                'superficie_attribuee' => 0,
+            ]);
+
             return response()->json([
-                'success'    => true,
-                'message'    => '✅ Paiement de ' . number_format($montant, 0, ',', ' ') .
-                                ' FCFA enregistré !',
-                'bon_numero' => $bon->numero_bon,
-                'data' => [
-                    'dossier_id'    => $dossier->id,
-                    'deja_paye'     => $nouveauPaye,
-                    'deja_paye_fmt' => number_format($nouveauPaye, 0, ',', ' '),
-                    'reste'         => $nouveauReste,
-                    'reste_fmt'     => number_format($nouveauReste, 0, ',', ' '),
-                    'prix_ref'      => $prixRef,
-                    'prix_ref_fmt'  => number_format($prixRef, 0, ',', ' '),
-                    'pourcentage'   => $pct,
-                    'statut'        => $statut,
-                    'label'         => $label,
-                    'couleur'       => $couleur,
+                'success' => true,
+                'message' => 'Bénéficiaire créé',
+                'beneficiaire' => [
+                    'id'        => $benef->id,
+                    'nom'       => $benef->nom,
+                    'telephone' => $benef->telephone,
                 ],
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erreur payerAjax: ' . $e->getMessage());
+            Log::error('Erreur creerBeneficiaireAjax : ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 📜 HISTORIQUE D'UN DOSSIER
+    // 📜 HISTORIQUE D'UN DOSSIER (LOGISTIQUE)
     // ═══════════════════════════════════════════════════════════════
 
     public function historique(DossierClient $dossier)
     {
-        $dossier->load(['client', 'grandSite', 'paiementsTechniques']);
-        $paiements = $dossier->paiementsTechniques()
+        $dossier->load(['client', 'grandSite', 'paiementsLogistiques']);
+        $paiements = $dossier->paiementsLogistiques()
             ->orderByDesc('date_paiement')
             ->get();
 
@@ -380,154 +412,12 @@ public function definirPrix(Request $request, DossierClient $dossier)
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 📊 RAPPORT TECHNIQUE
-    // ═══════════════════════════════════════════════════════════════
-
-    public function rapport(Request $request)
-    {
-        $query = DossierClient::with(['client', 'grandSite', 'paiementsTechniques'])
-            ->whereRaw('COALESCE(prix_technique, 0) > 0')
-            ->orderByDesc('created_at');
-
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($qry) use ($q) {
-                $qry->whereHas('client', fn($cq) =>
-                    $cq->where('name', 'LIKE', "%{$q}%")
-                       ->orWhere('phone', 'LIKE', "%{$q}%"))
-                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-            });
-        }
-
-        if ($request->filled('grand_site_id')) {
-            $query->where('grand_site_id', $request->grand_site_id);
-        }
-
-        if ($request->filled('statut')) {
-            if ($request->statut === 'paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
-            } elseif ($request->statut === 'non_paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
-            } elseif ($request->statut === 'partiel') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
-            }
-        }
-
-        $dossiers   = $query->paginate(50)->withQueryString();
-        $grandSites = GrandSite::orderBy('nom')->get();
-        $stats      = $this->calculerStatsTechnique($request);
-
-        return view('admin.comptable.rapport-technique', compact('dossiers', 'grandSites', 'stats'));
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // 📄 EXPORT DU RAPPORT
-    // ═══════════════════════════════════════════════════════════════
-
-    public function rapportExport(Request $request)
-    {
-        $query = DossierClient::with(['client', 'grandSite', 'paiementsTechniques'])
-            ->whereRaw('COALESCE(prix_technique, 0) > 0')
-            ->orderByDesc('created_at');
-
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($qry) use ($q) {
-                $qry->whereHas('client', fn($cq) =>
-                    $cq->where('name', 'LIKE', "%{$q}%")
-                       ->orWhere('phone', 'LIKE', "%{$q}%"))
-                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-            });
-        }
-        if ($request->filled('grand_site_id')) {
-            $query->where('grand_site_id', $request->grand_site_id);
-        }
-        if ($request->filled('statut')) {
-            if ($request->statut === 'paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_technique');
-            } elseif ($request->statut === 'non_paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
-            } elseif ($request->statut === 'partiel') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_techniques 
-                                  WHERE dossier_client_id = dossiers_clients.id) < prix_technique');
-            }
-        }
-
-        $dossiers = $query->get();
-        $stats    = $this->calculerStatsTechnique($request);
-
-        if ($request->type === 'pdf') {
-            $pdf = Pdf::loadView(
-                'admin.comptable.rapport-technique-pdf',
-                compact('dossiers', 'stats')
-            )->setPaper('a4', 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
-
-            return $pdf->download('rapport_technique_' . now()->format('Y-m-d') . '.pdf');
-        }
-
-        // Export CSV
-        $filename = 'rapport_technique_' . now()->format('Y-m-d_H-i') . '.csv';
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
-        $callback = function () use ($dossiers) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            fputcsv($file, [
-                '#', 'Client', 'Téléphone', 'Dossier', 'Grand Site',
-                'Réf. Technique', 'Payé', 'Reste', 'Progression %',
-                'Statut', 'Dernier paiement',
-            ], ';');
-
-            foreach ($dossiers as $i => $d) {
-                $paye  = $d->paiementsTechniques->sum('montant');
-                $prix  = $d->prix_technique ?? 0;
-                $reste = max(0, $prix - $paye);
-                $pct   = $prix > 0 ? min(100, round(($paye / $prix) * 100)) : 0;
-                $statut = $paye >= $prix && $prix > 0
-                    ? 'Payé'
-                    : ($paye > 0 ? 'Partiel' : 'Non payé');
-                $dernier = $d->paiementsTechniques->sortByDesc('date_paiement')->first();
-
-                fputcsv($file, [
-                    $i + 1,
-                    $d->client?->name ?? '-',
-                    $d->client?->phone ?? '-',
-                    $d->nom_dossier ?? '-',
-                    $d->grandSite?->nom ?? '-',
-                    $prix,
-                    $paye,
-                    $reste,
-                    $pct,
-                    $statut,
-                    $dernier ? \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') : '-',
-                ], ';');
-            }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // 🕐 HISTORIQUE GLOBAL
+    // 🕐 HISTORIQUE GLOBAL (LOGISTIQUE)
     // ═══════════════════════════════════════════════════════════════
 
     public function historiqueGlobal(Request $request)
     {
-        $query = PaiementTechnique::with(['dossier.client', 'dossier.grandSite'])
+        $query = PaiementLogistique::with(['dossier.client', 'dossier.grandSite', 'beneficiaire'])
             ->orderByDesc('date_paiement')
             ->orderByDesc('id');
 
@@ -552,14 +442,14 @@ public function definirPrix(Request $request, DossierClient $dossier)
             $query->where('user_reference', $request->reference);
         }
 
-        $paiements   = $query->paginate(50)->withQueryString();
+        $paiements = $query->paginate(50)->withQueryString();
         $totalFiltre = (clone $query)->reorder()->sum('montant');
 
-        return view('comptable.historique-global', compact('paiements', 'totalFiltre'));
+        return view('admin.comptable.historique-global', compact('paiements', 'totalFiltre'));
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 👤 MES PAIEMENTS
+    // 👤 MES PAIEMENTS (LOGISTIQUE)
     // ═══════════════════════════════════════════════════════════════
 
     public function mesPaiements(Request $request)
@@ -567,7 +457,7 @@ public function definirPrix(Request $request, DossierClient $dossier)
         $user = Auth::user();
         $reference = $user->reference ?? $user->email ?? ('USER-' . $user->id);
 
-        $query = PaiementTechnique::with(['dossier.client', 'dossier.grandSite'])
+        $query = PaiementLogistique::with(['dossier.client', 'dossier.grandSite'])
             ->where('user_reference', $reference)
             ->orderByDesc('date_paiement')
             ->orderByDesc('id');
@@ -584,24 +474,67 @@ public function definirPrix(Request $request, DossierClient $dossier)
         $stats = [
             'total_montant' => (clone $query)->reorder()->sum('montant'),
             'total_count'   => (clone $query)->reorder()->count(),
-            'aujourdhui'    => PaiementTechnique::where('user_reference', $reference)
+            'aujourdhui'    => PaiementLogistique::where('user_reference', $reference)
                                 ->whereDate('created_at', today())->sum('montant'),
-            'ce_mois'       => PaiementTechnique::where('user_reference', $reference)
+            'ce_mois'       => PaiementLogistique::where('user_reference', $reference)
                                 ->whereMonth('created_at', now()->month)
                                 ->whereYear('created_at', now()->year)->sum('montant'),
         ];
 
-        return view('comptable.mes-paiements', compact('paiements', 'stats'));
+        return view('admin.comptable.mes-paiements', compact('paiements', 'stats'));
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 🛠️ MÉTHODES PRIVÉES
+    // 📊 RAPPORT LOGISTIQUE
     // ═══════════════════════════════════════════════════════════════
 
-    private function calculerStatsTechnique(Request $request): array
+    public function rapport(Request $request)
     {
-        $query = DossierClient::with('paiementsTechniques')
-            ->whereRaw('COALESCE(prix_technique, 0) > 0');
+        $query = DossierClient::with(['client', 'grandSite', 'paiementsLogistiques'])
+            ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+            ->orderByDesc('created_at');
+
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+            $query->where(function ($qry) use ($q) {
+                $qry->whereHas('client', fn($cq) =>
+                    $cq->where('name', 'LIKE', "%{$q}%")
+                       ->orWhere('phone', 'LIKE', "%{$q}%"))
+                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+            });
+        }
+
+        if ($request->filled('grand_site_id')) {
+            $query->where('grand_site_id', $request->grand_site_id);
+        }
+
+        if ($request->filled('statut')) {
+            if ($request->statut === 'paye') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+            } elseif ($request->statut === 'non_paye') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
+            } elseif ($request->statut === 'partiel') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
+                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+            }
+        }
+
+        $dossiers = $query->paginate(50)->withQueryString();
+        $grandSites = GrandSite::orderBy('nom')->get();
+        $stats = $this->calculerStatsLogistique($request);
+
+        return view('admin.comptable.rapport-logistique', compact('dossiers', 'grandSites', 'stats'));
+    }
+
+    public function rapportExport(Request $request)
+    {
+        $query = DossierClient::with(['client', 'grandSite', 'paiementsLogistiques'])
+            ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+            ->orderByDesc('created_at');
 
         if ($request->filled('q')) {
             $q = trim($request->q);
@@ -615,64 +548,164 @@ public function definirPrix(Request $request, DossierClient $dossier)
         if ($request->filled('grand_site_id')) {
             $query->where('grand_site_id', $request->grand_site_id);
         }
+        if ($request->filled('statut')) {
+            if ($request->statut === 'paye') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+            } elseif ($request->statut === 'non_paye') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
+            } elseif ($request->statut === 'partiel') {
+                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
+                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                                  WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+            }
+        }
+
+        $dossiers = $query->get();
+        $stats = $this->calculerStatsLogistique($request);
+
+        if ($request->type === 'pdf') {
+            $pdf = Pdf::loadView('admin.comptable.rapport-logistique-pdf', compact('dossiers', 'stats'))
+                ->setPaper('a4', 'landscape')->setOptions(['defaultFont' => 'sans-serif']);
+            return $pdf->download('rapport_logistique_' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        // CSV
+        $filename = 'rapport_logistique_' . now()->format('Y-m-d_H-i') . '.csv';
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($dossiers) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($file, ['#', 'Client', 'Téléphone', 'Dossier', 'Grand Site',
+                'Réf. Logistique', 'Payé', 'Reste', 'Progression %', 'Statut', 'Dernier paiement'], ';');
+
+            foreach ($dossiers as $i => $d) {
+                $paye  = $d->paiementsLogistiques->sum('montant');
+                $prix  = $d->prix_logistique ?? 0;
+                $reste = max(0, $prix - $paye);
+                $pct   = $prix > 0 ? min(100, round(($paye / $prix) * 100)) : 0;
+                $statut = $paye >= $prix && $prix > 0 ? 'Payé' : ($paye > 0 ? 'Partiel' : 'Non payé');
+                $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
+
+                fputcsv($file, [
+                    $i + 1,
+                    $d->client?->name ?? '-',
+                    $d->client?->phone ?? '-',
+                    $d->nom_dossier ?? '-',
+                    $d->grandSite?->nom ?? '-',
+                    $prix, $paye, $reste, $pct, $statut,
+                    $dernier ? \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') : '-',
+                ], ';');
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ⚙️ DÉFINIR LE PRIX LOGISTIQUE
+    // ═══════════════════════════════════════════════════════════════
+
+    public function definirPrix(Request $request, DossierClient $dossier)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'prix_logistique' => 'required|numeric|min:1',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
+
+            $prix = floatval($request->prix_logistique);
+
+            if ($dossier->prix_logistique > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '⚠️ Un prix logistique est déjà défini.',
+                ], 422);
+            }
+
+            $dossier->update(['prix_logistique' => $prix]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Prix logistique défini : ' . number_format($prix, 0, ',', ' ') . ' FCFA',
+                'prix'    => $prix,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur definirPrix: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🛠️ MÉTHODES PRIVÉES
+    // ═══════════════════════════════════════════════════════════════
+
+    private function calculerStatsLogistique(Request $request): array
+    {
+        $query = DossierClient::with('paiementsLogistiques')
+            ->whereRaw('COALESCE(prix_logistique, 0) > 0');
+
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+            $query->where(function ($qry) use ($q) {
+                $qry->whereHas('client', fn($cq) =>
+                    $cq->where('name', 'LIKE', "%{$q}%")
+                       ->orWhere('phone', 'LIKE', "%{$q}%"))
+                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+            });
+        }
+
+        if ($request->filled('grand_site_id')) {
+            $query->where('grand_site_id', $request->grand_site_id);
+        }
 
         $tous = $query->get();
 
         $nbPayes = 0; $nbPartiels = 0; $nbNonPayes = 0;
-        $payePayes = 0; $payePartiels = 0; $restePartiels = 0;
-        $prixNonPayes = 0; $prixTotal = 0; $payeTotal = 0; $progSum = 0;
+        $prixTotal = 0; $payeTotal = 0; $progSum = 0;
 
         foreach ($tous as $d) {
-            $paye  = $d->paiementsTechniques->sum('montant');
-            $prix  = $d->prix_technique ?? 0;
-            $reste = max(0, $prix - $paye);
-            $pct   = $prix > 0 ? min(100, ($paye / $prix) * 100) : 0;
+            $paye = $d->paiementsLogistiques->sum('montant');
+            $prix = $d->prix_logistique ?? 0;
+            $pct = $prix > 0 ? min(100, ($paye / $prix) * 100) : 0;
 
             $prixTotal += $prix;
             $payeTotal += $paye;
-            $progSum   += $pct;
+            $progSum += $pct;
 
             if ($paye >= $prix && $prix > 0) {
                 $nbPayes++;
-                $payePayes += $paye;
             } elseif ($paye > 0) {
                 $nbPartiels++;
-                $payePartiels  += $paye;
-                $restePartiels += $reste;
             } else {
                 $nbNonPayes++;
-                $prixNonPayes += $prix;
             }
         }
-
-        $paiementPeriode = 0;
-        if ($request->filled('date_debut') || $request->filled('date_fin')) {
-            $dateQuery = PaiementTechnique::whereIn('dossier_client_id', $tous->pluck('id'));
-            if ($request->filled('date_debut')) {
-                $dateQuery->whereDate('date_paiement', '>=', $request->date_debut);
-            }
-            if ($request->filled('date_fin')) {
-                $dateQuery->whereDate('date_paiement', '<=', $request->date_fin);
-            }
-            $paiementPeriode = $dateQuery->sum('montant');
-        }
-
-        $total = $tous->count();
 
         return [
-            'total_dossiers'         => $total,
+            'total_dossiers'         => $tous->count(),
             'nb_payes'               => $nbPayes,
             'nb_partiels'            => $nbPartiels,
             'nb_non_payes'           => $nbNonPayes,
-            'prix_technique_total'   => $prixTotal,
-            'paye_technique_total'   => $payeTotal,
-            'reste_technique_total'  => max(0, $prixTotal - $payeTotal),
-            'paye_payes'             => $payePayes,
-            'paye_partiels'          => $payePartiels,
-            'reste_partiels'         => $restePartiels,
-            'prix_non_payes'         => $prixNonPayes,
-            'progression_moyenne'    => $total > 0 ? round($progSum / $total) : 0,
-            'paiement_periode_total' => $paiementPeriode,
+            'prix_logistique_total'  => $prixTotal,
+            'paye_logistique_total'  => $payeTotal,
+            'reste_logistique_total' => max(0, $prixTotal - $payeTotal),
+            'progression_moyenne'    => $tous->count() > 0 ? round($progSum / $tous->count()) : 0,
         ];
     }
 
@@ -690,20 +723,16 @@ public function definirPrix(Request $request, DossierClient $dossier)
             ->whereDate('date_visite', $dateVisite)
             ->first();
 
-        $detailsPaiements = [];
-        if ($bon->versement_technique > 0) {
-            $detailsPaiements[] = '🛠️ Technique: ' .
-                number_format($bon->versement_technique, 0, ',', ' ') . ' FCFA';
+        $note = '💳 Paiement logistique - Bon ' . $bon->numero_bon . "\n";
+        if ($bon->versement_logistique > 0) {
+            $note .= '🚗 Logistique: ' . number_format($bon->versement_logistique, 0, ',', ' ') . ' FCFA';
         }
-
-        $note = '💳 Paiement effectué - Bon ' . $bon->numero_bon . "\n";
-        $note .= implode("\n", $detailsPaiements);
         $note .= "\n📋 Dossier: " . ($dossier->nom_dossier ?? 'N/A');
 
         if ($visiteExistante) {
             $visiteExistante->update([
-                'note'         => $note,
-                'bon_id'       => $bon->id,
+                'note' => $note,
+                'bon_id' => $bon->id,
                 'paiement_lie' => true,
             ]);
             return;

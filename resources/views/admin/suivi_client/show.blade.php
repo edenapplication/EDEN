@@ -19,19 +19,21 @@
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9998; }
 .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:9999; width:400px; max-height:90vh; overflow-y:auto; }
 
-.paiement-blocs { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:16px; }
+/* ✅ GRILLE 4 COLONNES POUR LES BLOCS DE PAIEMENT */
+.paiement-blocs { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-top:16px; }
 .paiement-bloc {
-    border-radius:12px; padding:16px;
+    border-radius:12px; padding:14px;
     border:1px solid #e2e8f0;
     display:flex; flex-direction:column;
 }
-.paiement-bloc.bloc-dossier   { background:#eff6ff; border-left:4px solid #0d6efd; }
-.paiement-bloc.bloc-technique { background:#fff7ed; border-left:4px solid #ea580c; }
-.paiement-bloc.bloc-morcel    { background:#fefce8; border-left:4px solid #ca8a04; }
+.paiement-bloc.bloc-dossier     { background:#eff6ff; border-left:4px solid #0d6efd; }
+.paiement-bloc.bloc-technique   { background:#fff7ed; border-left:4px solid #ea580c; }
+.paiement-bloc.bloc-logistique  { background:#eef2ff; border-left:4px solid #6366f1; }
+.paiement-bloc.bloc-morcel      { background:#fefce8; border-left:4px solid #ca8a04; }
 
-.paiement-bloc h6 { font-weight:700; font-size:13px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
-.pay-total-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
-.pay-historique { margin-top:10px; max-height:160px; overflow-y:auto; }
+.paiement-bloc h6 { font-weight:700; font-size:12px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+.pay-total-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; }
+.pay-historique { margin-top:10px; max-height:150px; overflow-y:auto; }
 
 .badge-new {
     background: #10b981; color: #fff;
@@ -154,7 +156,10 @@
 .benef-histo-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 .benef-histo-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-@media (max-width: 992px) {
+@media (max-width: 1200px) {
+    .paiement-blocs { grid-template-columns:repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
     .paiement-blocs { grid-template-columns:1fr; }
 }
 </style>
@@ -213,7 +218,7 @@
 <div class="row g-3">
 
     {{-- ═══════════════════════════════════════════════════════════
-         COLONNE GAUCHE : INFOS CLIENT + VISITES
+         COLONNE GAUCHE : INFOS CLIENT + VISITES + HISTORIQUE
          ═══════════════════════════════════════════════════════════ --}}
     <div class="col-md-4">
         
@@ -236,7 +241,7 @@
             <div class="info-row"><span>Date création</span><span>{{ $client->created_at?->format('d/m/Y H:i') ?? '-' }}</span></div>
         </div>
 
-        {{-- VISITES (limité à ~3 visibles + scroll) --}}
+        {{-- VISITES --}}
         <div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
                     border-left:4px solid #0d6efd;">
             <div style="display:flex;justify-content:space-between;align-items:center;
@@ -293,78 +298,77 @@
             @endif
         </div>
 
-        {{-- HISTORIQUE DES BÉNÉFICIAIRES (global, sous les visites) --}}
-@php
-    // Récupérer tous les historiques des bénéficiaires du dossier
-    $benefHistoGlobal = collect();
-    if ($dossier) {
-        $benefIds = $dossier->beneficiaires->pluck('id')->toArray();
-        $benefHistoGlobal = $dossier->historiques
-            ->whereIn('beneficiaire_id', $benefIds)
-            ->sortByDesc('created_at');
-    }
-@endphp
+        {{-- HISTORIQUE GÉNÉRAL DES BÉNÉFICIAIRES --}}
+        @php
+            $benefHistoGlobal = collect();
+            if ($dossier) {
+                $benefIds = $dossier->beneficiaires->pluck('id')->toArray();
+                $benefHistoGlobal = $dossier->historiques
+                    ->whereIn('beneficiaire_id', $benefIds)
+                    ->sortByDesc('created_at');
+            }
+        @endphp
 
-<div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
-            border-left:4px solid #7c3aed;">
-    <div style="display:flex;justify-content:space-between;align-items:center;
-                margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
-            📜 Historique Général des Affectations ({{ $benefHistoGlobal->count() }})
-        </div>
-    </div>
-
-    @if($benefHistoGlobal->count() > 0)
-        <div class="benef-histo-scroll">
-            @foreach($benefHistoGlobal as $h)
-                @php
-                    $iconeH = match($h->type_action) {
-                        'ajout_beneficiaire'         => '➕',
-                        'modification_beneficiaire'  => '✏️',
-                        'suppression_beneficiaire'   => '🗑️',
-                        'affectation_lot'            => '📦',
-                        'modification_affectation'   => '✏️',
-                        'annulation_affectation'     => '↩️',
-                        'etape_beneficiaire'         => '📊',
-                        default                      => '📌',
-                    };
-                    $couleurH = match($h->type_action) {
-                        'ajout_beneficiaire'         => '#16a34a',
-                        'modification_beneficiaire'  => '#f59e0b',
-                        'suppression_beneficiaire'   => '#dc2626',
-                        'affectation_lot'            => '#0d6efd',
-                        'modification_affectation'   => '#f59e0b',
-                        'annulation_affectation'     => '#7c3aed',
-                        'etape_beneficiaire'         => '#0891b2',
-                        default                      => '#64748b',
-                    };
-                @endphp
-                <div style="border-left:3px solid {{ $couleurH }};
-                            padding:8px 10px;margin-bottom:6px;
-                            background:#f8fafc;border-radius:6px;font-size:11px;">
-                    <div style="color:#1e3a5f;font-weight:600;">
-                        {{ $iconeH }} {{ $h->resume }}
-                    </div>
-                    <div style="color:#94a3b8;font-size:9px;margin-top:3px;">
-                        📅 {{ $h->created_at->format('d/m/Y H:i') }}
-                        @if($h->user)
-                            · 👤 {{ $h->user->name }}
-                        @endif
-                    </div>
+        <div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
+                    border-left:4px solid #7c3aed;">
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        margin-bottom:10px;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
+                    📜 Historique Général des Affectations ({{ $benefHistoGlobal->count() }})
                 </div>
-            @endforeach
+            </div>
+
+            @if($benefHistoGlobal->count() > 0)
+                <div class="benef-histo-scroll">
+                    @foreach($benefHistoGlobal as $h)
+                        @php
+                            $iconeH = match($h->type_action) {
+                                'ajout_beneficiaire'         => '➕',
+                                'modification_beneficiaire'  => '✏️',
+                                'suppression_beneficiaire'   => '🗑️',
+                                'affectation_lot'            => '📦',
+                                'modification_affectation'   => '✏️',
+                                'annulation_affectation'     => '↩️',
+                                'etape_beneficiaire'         => '📊',
+                                default                      => '📌',
+                            };
+                            $couleurH = match($h->type_action) {
+                                'ajout_beneficiaire'         => '#16a34a',
+                                'modification_beneficiaire'  => '#f59e0b',
+                                'suppression_beneficiaire'   => '#dc2626',
+                                'affectation_lot'            => '#0d6efd',
+                                'modification_affectation'   => '#f59e0b',
+                                'annulation_affectation'     => '#7c3aed',
+                                'etape_beneficiaire'         => '#0891b2',
+                                default                      => '#64748b',
+                            };
+                        @endphp
+                        <div style="border-left:3px solid {{ $couleurH }};
+                                    padding:8px 10px;margin-bottom:6px;
+                                    background:#f8fafc;border-radius:6px;font-size:11px;">
+                            <div style="color:#1e3a5f;font-weight:600;line-height:1.4;">
+                                {{ $iconeH }} {!! $h->resume !!}
+                            </div>
+                            <div style="color:#94a3b8;font-size:9px;margin-top:3px;">
+                                📅 {{ $h->created_at->format('d/m/Y H:i') }}
+                                @if($h->user)
+                                    · 👤 {{ $h->user->name }}
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px;">
+                    Aucun historique de bénéficiaire
+                </div>
+            @endif
         </div>
-    @else
-        <div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px;">
-            Aucun historique de bénéficiaire
-        </div>
-    @endif
-</div>
 
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════
-         COLONNE DROITE : DOSSIERS (BOUCLE COMPLÈTE)
+         COLONNE DROITE : DOSSIERS
          ═══════════════════════════════════════════════════════════ --}}
     <div class="col-md-8">
         @if($dossier)
@@ -449,40 +453,35 @@
                     <div class="info-row"><span>📐 Superficie voulue</span>
                         <span>{{ $dossier->superficie_voulue ? number_format($dossier->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}</span>
                     </div>
-                    <div class="info-row"><span>💰 Prix superficie</span>
-                        <span>{{ $dossier->prix_superficie ? number_format($dossier->prix_superficie, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                    </div>
-                    <div class="info-row"><span>💰 Prix technique</span>
-                        <span>{{ $dossier->prix_technique ? number_format($dossier->prix_technique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                    </div>
-                    <div class="info-row"><span>💰 Prix logistique</span>
-                        <span>{{ $dossier->prix_logistique ? number_format($dossier->prix_logistique, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                    </div>
-                    <div class="info-row"><span>💰 Prix morcellement</span>
-                        <span>{{ $dossier->prix_morcellement ? number_format($dossier->prix_morcellement, 0, ',', ' ') . ' FCFA' : '-' }}</span>
-                    </div>
 
                     @php
+                        // ✅ PAIEMENTS — 4 types
                         $totalDossier   = $dossier->paiements->sum('montant');
-                        $prixRef        = $dossier->prix_superficie    ?? 0;
-                        $resteDossier   = max(0, $prixRef - $totalDossier);
-                        $prixTech       = $dossier->prix_technique     ?? 0;
-                        $prixMorcel     = $dossier->prix_morcellement  ?? 0;
-                        $prixLogistique = $dossier->prix_logistique    ?? 0;
                         $totalTechnique = $dossier->paiementsTechniques->sum('montant');
                         $totalMorcel    = $dossier->paiementsMorcellements->sum('montant');
+                        $totalLogistique = $dossier->paiementsLogistiques?->sum('montant') ?? 0;
+
+                        // ✅ PRIX DE RÉFÉRENCE — 4 types
+                        $prixRef        = $dossier->prix_superficie    ?? 0;
+                        $prixTech       = $dossier->prix_technique     ?? 0;
+                        $prixLogistique = $dossier->prix_logistique    ?? 0;
+                        $prixMorcel     = $dossier->prix_morcellement  ?? 0;
+
+                        // ✅ RESTES
+                        $resteDossier   = max(0, $prixRef - $totalDossier);
                         $resteTech      = max(0, $prixTech - $totalTechnique);
+                        $resteLogistique = max(0, $prixLogistique - $totalLogistique);
                         $resteMorcel    = max(0, $prixMorcel - $totalMorcel);
                     @endphp
 
                     {{-- Prix configurables --}}
-                    <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #e2e8f0;">
+                    <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-top:14px;margin-bottom:14px;border:1px solid #e2e8f0;">
                         <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px;">
                             💰 Prix de référence du dossier
                         </div>
                         <div class="row g-2">
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#64748b;">💰 Prix superficie (FCFA)</label>
+                                <label style="font-size:11px;color:#0d6efd;">📁 Prix superficie (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-superficie-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixRef }}">
@@ -500,16 +499,16 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#7c3aed;">🚗 Prix logistique (FCFA)</label>
+                                <label style="font-size:11px;color:#6366f1;">🚗 Prix logistique (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-logistique-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixLogistique }}">
                                     <button onclick="majPrix({{ $dossier->id }})"
-                                            class="btn btn-sm" style="background:#7c3aed;color:white;font-size:11px;">✓</button>
+                                            class="btn btn-sm" style="background:#6366f1;color:white;font-size:11px;">✓</button>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label style="font-size:11px;color:#ca8a04;">Prix morcellement (FCFA)</label>
+                                <label style="font-size:11px;color:#ca8a04;">✂️ Prix morcellement (FCFA)</label>
                                 <div style="display:flex;gap:6px;">
                                     <input type="number" id="prix-morcellement-{{ $dossier->id }}"
                                            class="form-control form-control-sm" value="{{ $prixMorcel }}">
@@ -520,9 +519,10 @@
                         </div>
                     </div>
 
-                    {{-- BLOCS PAIEMENT --}}
+                    {{-- ✅ 4 BLOCS DE PAIEMENT : DOSSIER / TECHNIQUE / LOGISTIQUE / MORCELLEMENT --}}
                     <div class="paiement-blocs">
-                        {{-- BLOC DOSSIER --}}
+
+                        {{-- BLOC 1 : DOSSIER --}}
                         <div class="paiement-bloc bloc-dossier">
                             <h6 style="color:#0d6efd;">📁 Paiement Parcelle</h6>
                             @if($prixRef > 0)
@@ -552,19 +552,19 @@
                                 @forelse($dossier->paiements->sortByDesc('date_paiement') as $p)
                                 <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
                                     <div style="flex:1;min-width:0;">
-                                        <div style="font-size:12px;">{{ $p->date_paiement }}</div>
+                                        <div style="font-size:11px;">{{ $p->date_paiement }}</div>
                                         @if($p->note)
-                                            <div style="font-size:11px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
+                                            <div style="font-size:10px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
                                         @endif
                                     </div>
                                     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                                        <span class="pay-amt" style="color:#16a34a;">
+                                        <span class="pay-amt" style="color:#16a34a;font-size:11px;">
                                             {{ number_format($p->montant,0,',',' ') }}
                                         </span>
                                         <form action="{{ route('paiements-dossiers.destroy', $p->id) }}" method="POST">
                                             @csrf @method('DELETE')
                                             <button type="submit" onclick="return confirm('Supprimer ?')"
-                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;">🗑</button>
+                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;">🗑</button>
                                         </form>
                                     </div>
                                 </div>
@@ -574,7 +574,7 @@
                             </div>
                         </div>
 
-                        {{-- BLOC TECHNIQUE --}}
+                        {{-- BLOC 2 : TECHNIQUE --}}
                         <div class="paiement-bloc bloc-technique">
                             <h6 style="color:#ea580c;">🛠️ Paiement Technique</h6>
                             @if($prixTech > 0)
@@ -604,19 +604,19 @@
                                 @forelse($dossier->paiementsTechniques->sortByDesc('date_paiement') as $p)
                                 <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
                                     <div style="flex:1;min-width:0;">
-                                        <div style="font-size:12px;">{{ $p->date_paiement }}</div>
+                                        <div style="font-size:11px;">{{ $p->date_paiement }}</div>
                                         @if($p->note)
-                                            <div style="font-size:11px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
+                                            <div style="font-size:10px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
                                         @endif
                                     </div>
                                     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                                        <span class="pay-amt" style="color:#16a34a;">
+                                        <span class="pay-amt" style="color:#16a34a;font-size:11px;">
                                             {{ number_format($p->montant,0,',',' ') }}
                                         </span>
                                         <form action="{{ route('paiements-techniques.destroy', $p->id) }}" method="POST">
                                             @csrf @method('DELETE')
                                             <button type="submit" onclick="return confirm('Supprimer ?')"
-                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;">🗑</button>
+                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;">🗑</button>
                                         </form>
                                     </div>
                                 </div>
@@ -626,9 +626,57 @@
                             </div>
                         </div>
 
-                        {{-- BLOC MORCELLEMENT --}}
+                        {{-- ✅ BLOC 3 : LOGISTIQUE (NOUVEAU) --}}
+                        <div class="paiement-bloc bloc-logistique">
+                            <h6 style="color:#6366f1;">🚗 Paiement Logistique</h6>
+                            @if($prixLogistique > 0)
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Référence</span>
+                                <span style="font-weight:600;">{{ number_format($prixLogistique, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            @endif
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Payé</span>
+                                <span class="pay-amt" style="color:#6366f1;">{{ number_format($totalLogistique, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            <div class="pay-total-row">
+                                <span style="color:#64748b;">Reste</span>
+                                <span style="font-weight:700;color:{{ $resteLogistique > 0 ? '#dc2626' : '#16a34a' }};">
+                                    {{ number_format($resteLogistique, 0, ',', ' ') }} FCFA
+                                </span>
+                            </div>
+                            @if($prixLogistique > 0)
+                            <div style="height:6px;background:#e2e8f0;border-radius:3px;margin:8px 0;">
+                                @php $pctL = $prixLogistique > 0 ? min(100, round(($totalLogistique/$prixLogistique)*100)) : 0; @endphp
+                                <div style="width:{{ $pctL }}%;height:100%;background:#6366f1;border-radius:3px;"></div>
+                            </div>
+                            <div style="font-size:10px;text-align:right;color:#6366f1;font-weight:700;">{{ $pctL }}%</div>
+                            @endif
+                            <div class="pay-historique">
+                                @forelse(($dossier->paiementsLogistiques ?? collect())->sortByDesc('date_paiement') as $p)
+                                <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="font-size:11px;">{{ $p->date_paiement }}</div>
+                                        @if($p->note)
+                                            <div style="font-size:10px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
+                                        @endif
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                        <span class="pay-amt" style="color:#16a34a;font-size:11px;">
+                                            {{ number_format($p->montant,0,',',' ') }}
+                                        </span>
+            
+                                    </div>
+                                </div>
+                                @empty
+                                <div style="color:#94a3b8;font-size:11px;">Aucun paiement</div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- BLOC 4 : MORCELLEMENT --}}
                         <div class="paiement-bloc bloc-morcel">
-                            <h6 style="color:#ca8a04;">Paiement Morcellement</h6>
+                            <h6 style="color:#ca8a04;">✂️ Paiement Morcellement</h6>
                             @if($prixMorcel > 0)
                             <div class="pay-total-row">
                                 <span style="color:#64748b;">Référence</span>
@@ -656,19 +704,19 @@
                                 @forelse($dossier->paiementsMorcellements->sortByDesc('date_paiement') as $p)
                                 <div class="pay-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
                                     <div style="flex:1;min-width:0;">
-                                        <div style="font-size:12px;">{{ $p->date_paiement }}</div>
+                                        <div style="font-size:11px;">{{ $p->date_paiement }}</div>
                                         @if($p->note)
-                                            <div style="font-size:11px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
+                                            <div style="font-size:10px;color:#64748b;word-break:break-word;">{{ $p->note }}</div>
                                         @endif
                                     </div>
                                     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                                        <span class="pay-amt" style="color:#16a34a;">
+                                        <span class="pay-amt" style="color:#16a34a;font-size:11px;">
                                             {{ number_format($p->montant,0,',',' ') }}
                                         </span>
                                         <form action="{{ route('paiements-morcellements.destroy', $p->id) }}" method="POST">
                                             @csrf @method('DELETE')
                                             <button type="submit" onclick="return confirm('Supprimer ?')"
-                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;">🗑</button>
+                                                    style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;">🗑</button>
                                         </form>
                                     </div>
                                 </div>
@@ -679,7 +727,7 @@
                         </div>
                     </div>
 
-                    {{-- BÉNÉFICIAIRES (triés par ordre de création) --}}
+                    {{-- BÉNÉFICIAIRES --}}
                     @php
                         $beneficiaires = $dossier->beneficiaires->sortBy('created_at')->values();
                     @endphp
@@ -699,7 +747,6 @@
                         </div>
 
                         @php
-                            // Pré-calcul des superficies par bénéficiaire (ordre de création)
                             $benefData = [];
                             foreach ($beneficiaires as $index => $b) {
                                 $affs = $b->affectations()
@@ -718,7 +765,7 @@
 
                         @if(count($benefData) > 0)
 
-                        {{-- LÉGENDE : numéro + nom + superficie totale --}}
+                        {{-- LÉGENDE --}}
                         <div class="benef-legende">
                             @foreach($benefData as $bd)
                                 <div class="benef-legende-item">
@@ -746,7 +793,7 @@
                             @endforeach
                         </div>
 
-                        {{-- PANNEAUX DÉTAILLÉS DES BÉNÉFICIAIRES --}}
+                        {{-- PANNEAUX DÉTAILLÉS --}}
                         <div id="benef-panels-{{ $dossier->id }}">
                             @foreach($benefData as $bd)
                                 @php
@@ -755,10 +802,6 @@
                                     $benefEtapesConfig = \App\Models\Beneficiaire::etapesConfig();
                                     $benefEtapesOrdre  = \App\Models\Beneficiaire::etapesOrdre();
                                     $benefEtapeActuelle = $b->etape_actuelle;
-                                    // Historiques SPÉCIFIQUES à ce bénéficiaire
-                                    $benefHistoriques = $dossier->historiques
-                                        ->where('beneficiaire_id', $b->id)
-                                        ->sortByDesc('created_at');
                                 @endphp
 
                                 <div class="benef-panel {{ $bd['index'] === 1 ? 'active' : '' }}"
@@ -815,9 +858,9 @@
                                                             📎 CNI
                                                         </a>
                                                     @else
-                                                        <span style="background:#fee2e2;color:#dc2626;font-size:10px;
+                                                        <span style="background:#f1f5f9;color:#64748b;font-size:10px;
                                                                      padding:3px 8px;border-radius:6px;font-weight:600;">
-                                                            ⚠️ CNI manquante
+                                                            📎 Pas de CNI
                                                         </span>
                                                     @endif
                                                 </div>
@@ -1039,10 +1082,8 @@
                                             </div>
                                         </div>
 
-                                        {{-- HISTORIQUE GÉNÉRAL DU BÉNÉFICIAIRE (tous types d'actions) --}}
+                                        {{-- HISTORIQUE GÉNÉRAL DU BÉNÉFICIAIRE --}}
                                         @php
-                                            // Historique général : tous les historiques liés à ce bénéficiaire
-                                            // (déjà filtré ci-dessus via $benefHistoriques)
                                             $benefHistoriquesGeneraux = $dossier->historiques
                                                 ->where('beneficiaire_id', $b->id)
                                                 ->sortByDesc('created_at');
@@ -1061,7 +1102,7 @@
                                                             align-items:center;gap:6px;">
                                                     <span id="benef-histo-gen-icon-{{ $b->id }}"
                                                           style="font-size:12px;transition:transform 0.2s;">▶</span>
-                                                    📜 Historique des affectations de ce bénéficiare
+                                                    📜 Historique des affectations de ce bénéficiaire
                                                     <span style="background:#4f46e5;color:white;
                                                                  padding:1px 8px;border-radius:10px;
                                                                  font-size:9px;font-weight:700;">
@@ -1102,8 +1143,8 @@
                                                     <div style="background:white;border-left:3px solid {{ $couleurH }};
                                                                 border-radius:6px;padding:8px 10px;margin-bottom:5px;
                                                                 font-size:11px;">
-                                                        <div style="color:#1e3a5f;font-weight:600;">
-                                                            {{ $iconeH }} {{ $h->resume }}
+                                                        <div style="color:#1e3a5f;font-weight:600;line-height:1.4;">
+                                                            {{ $iconeH }} {!! $h->resume !!}
                                                         </div>
                                                         <div style="font-size:9px;color:#94a3b8;margin-top:2px;">
                                                             📅 {{ $h->created_at->format('d/m/Y H:i') }}
@@ -1153,7 +1194,7 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════
-     MODALS
+     MODALES
      ═══════════════════════════════════════════════════════════ --}}
 
 {{-- MODAL PAIEMENT --}}
@@ -1389,7 +1430,7 @@
             </div>
             <div>
                 <label style="font-size:11px;font-weight:700;color:#64748b;">
-                    CNI (obligatoire) <span id="benefCniOblig">*</span>
+                    CNI <span style="color:#94a3b8;font-weight:400;">(optionnelle)</span>
                 </label>
                 <input type="file" id="benefCni" class="form-control form-control-sm"
                        accept="image/*,application/pdf">
@@ -1397,13 +1438,13 @@
             </div>
         </div>
 
-        {{-- SECTION LOTS : désormais OPTIONNELLE --}}
+        {{-- SECTION LOTS --}}
         <div id="benefLotsSection" style="background:#f0fdf4;border:1px solid #bbf7d0;
                                             border-radius:8px;padding:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <div style="font-size:11px;font-weight:700;color:#16a34a;
                             text-transform:uppercase;">
-                    📦 Sélection des lots <span style="color:#64748b;font-weight:400;text-transform:none;">(optionnel — vous pourrez en ajouter plus tard)</span>
+                    📦 Sélection des lots <span style="color:#64748b;font-weight:400;text-transform:none;">(optionnel)</span>
                 </div>
             </div>
 
@@ -1502,44 +1543,30 @@ let benefEditId = null;
 let benefLotsSelectionnes = new Set();
 
 // ════════════════════════════════════════════════════════════════
-// NAVIGATION ENTRE DOSSIERS (ONGLETS)
+// NAVIGATION ENTRE DOSSIERS
 // ════════════════════════════════════════════════════════════════
 function showDossier(id, tab, event) {
     if (event) event.preventDefault();
-
-    document.querySelectorAll('.dossier-panel').forEach(p => {
-        p.style.display = 'none';
-    });
-
-    document.querySelectorAll('.dossier-tab').forEach(t => {
-        t.classList.remove('active');
-    });
-
+    document.querySelectorAll('.dossier-panel').forEach(p => { p.style.display = 'none'; });
+    document.querySelectorAll('.dossier-tab').forEach(t => { t.classList.remove('active'); });
     const panel = document.getElementById(id);
     if (panel) panel.style.display = 'block';
-
     if (tab) tab.classList.add('active');
 }
 
 // ════════════════════════════════════════════════════════════════
-// NAVIGATION ENTRE BÉNÉFICIAIRES (BASCULEMENT PAR NUMÉRO)
+// NAVIGATION ENTRE BÉNÉFICIAIRES
 // ════════════════════════════════════════════════════════════════
 function showBenef(dossierId, benefId, btn) {
     const selector = document.getElementById('benef-selector-' + dossierId);
     if (selector) {
-        selector.querySelectorAll('.benef-num-btn').forEach(b => {
-            b.classList.remove('active');
-        });
+        selector.querySelectorAll('.benef-num-btn').forEach(b => { b.classList.remove('active'); });
     }
     if (btn) btn.classList.add('active');
-
     const panels = document.getElementById('benef-panels-' + dossierId);
     if (panels) {
-        panels.querySelectorAll('.benef-panel').forEach(p => {
-            p.classList.remove('active');
-        });
+        panels.querySelectorAll('.benef-panel').forEach(p => { p.classList.remove('active'); });
     }
-
     const target = document.getElementById('benef-panel-' + dossierId + '-' + benefId);
     if (target) target.classList.add('active');
 }
@@ -1740,23 +1767,7 @@ function supprimerEtapeBenef() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// TOGGLE HISTORIQUE BÉNÉFICIAIRE (étapes)
-// ════════════════════════════════════════════════════════════════
-function toggleBenefHistorique(benefId) {
-    const content = document.getElementById('benef-histo-content-' + benefId);
-    const icon    = document.getElementById('benef-histo-icon-' + benefId);
-    if (!content) return;
-    if (content.style.display === 'none' || content.style.display === '') {
-        content.style.display = 'block';
-        if (icon) icon.style.transform = 'rotate(90deg)';
-    } else {
-        content.style.display = 'none';
-        if (icon) icon.style.transform = 'rotate(0deg)';
-    }
-}
-
-// ════════════════════════════════════════════════════════════════
-// TOGGLE HISTORIQUE GÉNÉRAL DU BÉNÉFICIAIRE (nouveau)
+// TOGGLE HISTORIQUE
 // ════════════════════════════════════════════════════════════════
 function toggleBenefHistoriqueGeneral(benefId) {
     const content = document.getElementById('benef-histo-gen-content-' + benefId);
@@ -2096,7 +2107,7 @@ function afficherHistoriqueAffectations() {
     const couleurs = {'affectation_lot':'#0d6efd','modification_affectation':'#f59e0b','annulation_affectation':'#dc2626'};
     container.innerHTML = filtered.map(h => `
         <div style="background:white;border-left:4px solid ${couleurs[h.type_action] || '#64748b'};border-radius:8px;padding:12px 14px;margin-bottom:10px;">
-            <div style="font-size:13px;color:#1e3a5f;font-weight:700;">${icones[h.type_action] || '📌'} ${h.resume}</div>
+            <div style="font-size:13px;color:#1e3a5f;font-weight:700;line-height:1.4;">${icones[h.type_action] || '📌'} ${h.resume}</div>
             <div style="font-size:10px;color:#94a3b8;margin-top:4px;">📅 ${h.date} ${h.user ? '· 👤 ' + h.user : ''}</div>
         </div>
     `).join('');
@@ -2255,8 +2266,8 @@ function ouvrirModalBenef(dossierId, benef) {
     document.getElementById('benefNotes').value      = benef?.notes ?? '';
     document.getElementById('benefTitre').textContent = benef ? '✏️ Modifier un bénéficiaire' : '👥 Ajouter un bénéficiaire';
 
-    document.getElementById('benefCniOblig').style.display = benef ? 'none' : 'inline';
-    document.getElementById('benefCni').required = !benef;
+    // ✅ CNI toujours optionnelle
+    document.getElementById('benefCni').required = false;
 
     const clientWrapper = document.getElementById('benefClientWrapper');
     if (benef) clientWrapper.style.display = 'none';
@@ -2444,8 +2455,8 @@ function sauvegarderBenef() {
     if (clientId) formData.append('client_id', clientId);
 
     if (!benefEditId) {
-        if (!cniFile) { showToast('⚠️ La CNI est obligatoire'); return; }
-        // ✅ Lots désormais OPTIONNELS
+        // ✅ CNI non obligatoire — vérification retirée
+        // ✅ Lots optionnels
         if (benefLotsSelectionnes.size > 0) {
             benefLotsSelectionnes.forEach(id => formData.append('lot_ids[]', id));
             formData.append('date_affectation', document.getElementById('benefLotDate').value);
@@ -2531,7 +2542,7 @@ function majPrix(dossierId) {
     const superficie = document.getElementById('prix-superficie-' + dossierId)?.value ?? '';
     const technique = document.getElementById('prix-technique-' + dossierId)?.value ?? '';
     const morcellement = document.getElementById('prix-morcellement-' + dossierId)?.value ?? '';
-    const logistique = document.getElementById('prix-logistique-' + dossierId)?.value;
+    const logistique = document.getElementById('prix-logistique-' + dossierId)?.value ?? '';
 
     if (window.EdenLoader) window.EdenLoader.show();
     fetch(`/admin/dossiers/${dossierId}/maj-prix`, {
@@ -2541,7 +2552,7 @@ function majPrix(dossierId) {
             prix_superficie: superficie !== '' ? parseFloat(superficie) : null,
             prix_technique: technique !== '' ? parseFloat(technique) : null,
             prix_morcellement: morcellement !== '' ? parseFloat(morcellement) : null,
-            prix_logistique: logistique,
+            prix_logistique: logistique !== '' ? parseFloat(logistique) : null,
         }),
     })
     .then(r => r.json())
@@ -2551,19 +2562,6 @@ function majPrix(dossierId) {
         else alert(data.message || 'Erreur');
     })
     .catch(e => { if (window.EdenLoader) window.EdenLoader.hide(); alert('Erreur réseau'); });
-}
-
-function toggleHistorique(dossierId) {
-    const content = document.getElementById('historique-content-' + dossierId);
-    const btnText = document.getElementById('btn-histo-texte-' + dossierId);
-    if (!content) return;
-    if (content.style.display === 'none' || content.style.display === '') {
-        content.style.display = 'block';
-        btnText.textContent = 'Masquer';
-    } else {
-        content.style.display = 'none';
-        btnText.textContent = 'Afficher';
-    }
 }
 
 function closePaiement() {

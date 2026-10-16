@@ -57,6 +57,59 @@
     50% { transform: scale(1.05); opacity: 0.8; }
 }
 
+/* ✅ POINT ROUGE ANTIDATE CLIENT */
+.antidate-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.25);
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: pulse-antidate 2s ease-in-out infinite;
+}
+
+@keyframes pulse-antidate {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.25);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 0 6px rgba(220,38,38,0.15);
+    }
+}
+
+/* ✅ POINT ROUGE ANTIDATE DOSSIER */
+.dossier-antidate-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc2626;
+    margin-left: 6px;
+    vertical-align: middle;
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.2);
+}
+
+.btn-antidate-retirer {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 6px;
+    transition: all 0.2s;
+}
+.btn-antidate-retirer:hover {
+    background: #fcd34d;
+    transform: scale(1.05);
+}
+
 .btn-toggle-new {
     font-size: 11px; padding: 4px 12px;
     border-radius: 6px; border: 1px solid #e2e8f0;
@@ -325,6 +378,12 @@
     cursor:pointer; font-size:12px; font-weight:700;
     color:#64748b; transition:all 0.2s;
 }
+
+/* ✅ NOUVEAU BLOC LOGISTIQUE */
+.paiement-bloc.bloc-logistique {
+    background: #eef2ff;
+    border-left: 4px solid #6366f1;
+}
 </style>
 
 {{-- EN-TÊTE --}}
@@ -369,9 +428,9 @@
         <span style="font-size:10px;color:#94a3b8;align-self:center;margin-right:4px;">Clients :</span>
         <button class="btn btn-success" onclick="actionGroupee('mark_as_new')">🆕 Nouveaux</button>
         <button class="btn btn-warning" onclick="actionGroupee('mark_as_old')">📌 Anciens</button>
-        
+
         <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" 
+            <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
                     data-bs-toggle="dropdown" aria-expanded="false">
                 👤 Sexe
             </button>
@@ -381,7 +440,6 @@
             </ul>
         </div>
 
-        {{-- ✅ ÉTAPE D'AVANCEMENT --}}
         <button class="btn" style="background:#f59e0b;color:white;" onclick="ouvrirModalEtapeGroupee()">
             📊 Étape
         </button>
@@ -505,33 +563,48 @@
          data-id="{{ $client->id }}">
         <div class="d-flex justify-content-between align-items-start">
             <div style="flex:1;display:flex;align-items:flex-start;gap:8px;">
-                <input type="checkbox" class="client-checkbox" 
+                <input type="checkbox" class="client-checkbox"
                        onchange="toggleSelection(this, {{ $client->id }})"
                        data-client-id="{{ $client->id }}">
-                       
+
                 <div style="flex:1;">
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <div style="font-weight:700;font-size:15px;color:#1e3a5f;"
+                        <div style="font-weight:700;font-size:15px;color:#1e3a5f;display:flex;align-items:center;gap:6px;"
                              id="nom-{{ $client->id }}" class="client-nom">
-                            {{ $client->name }}
+                            <span>{{ $client->name }}</span>
+
+                            {{-- ✅ Point rouge antidate --}}
+                            <span class="antidate-dot"
+                                  id="antidate-dot-{{ $client->id }}"
+                                  style="{{ ($client->antidate ?? false) ? '' : 'display:none;' }}"
+                                  title="Client avec bon(s) antidaté(s)"></span>
+
+                            {{-- ✅ Bouton retirer antidate --}}
+                            <button class="btn-antidate-retirer"
+                                    id="btn-antidate-{{ $client->id }}"
+                                    style="{{ ($client->antidate ?? false) ? '' : 'display:none;' }}"
+                                    onclick="retirerAntidate({{ $client->id }})"
+                                    title="Retirer la marque ANTIDATÉ">
+                                ✅ Retirer
+                            </button>
                         </div>
-                        
+
                         @if($client->is_new)
                             <span class="badge-new" id="badge-{{ $client->id }}">🆕 Nouveau</span>
                         @else
                             <span class="badge-old" id="badge-{{ $client->id }}">Ancien</span>
                         @endif
-                        
+
                         @if($client->sexe == 'masculin')
                             <span class="badge-sex-masculin">👨 Masculin</span>
                         @elseif($client->sexe == 'feminin')
                             <span class="badge-sex-feminin">👩 Féminin</span>
                         @endif
-                        
+
                         <button onclick="ouvrirEditNom({{ $client->id }}, '{{ addslashes($client->name) }}')"
                                 style="background:none;border:none;color:#f59e0b;cursor:pointer;font-size:13px;padding:2px 6px;"
                                 title="Modifier le nom">✏️</button>
-                        
+
                         <button class="btn-toggle-new {{ $client->is_new ? 'is-new' : '' }}"
                                 onclick="toggleNew({{ $client->id }})"
                                 id="btn-new-{{ $client->id }}">
@@ -545,16 +618,14 @@
                             💬 WhatsApp
                         </button>
                     </div>
-                    
+
                     <div style="font-size:12px;color:#64748b;margin-top:2px;">
                         📞 {{ $client->phone ?? '-' }}
                         &nbsp;·&nbsp; 📂 <span id="nb-dossiers-{{ $client->id }}">{{ $client->dossiers->count() }}</span> dossier(s)
                         &nbsp;·&nbsp; 📅 {{ $client->created_at?->format('d/m/Y') ?? '-' }}
                     </div>
 
-                    {{-- ═══════════════════════════════════════════════════════════
-                         📦 LOTS AFFECTÉS (dossier) — Résumé rapide
-                         ═══════════════════════════════════════════════════════════ --}}
+                    {{-- LOTS AFFECTÉS --}}
                     @php
                         $lotsDossierTotal = 0;
                         $lotsBenefTotal = 0;
@@ -586,7 +657,7 @@
                          💰 STATUTS DE PAIEMENT PAR DOSSIER (CÔTE À CÔTE)
                          ═══════════════════════════════════════════════════════════ --}}
                     @if($client->dossiers->count() > 0)
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:10px;margin-top:8px;">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:10px;margin-top:8px;">
                         @foreach($client->dossiers as $d)
                             @php
                                 $tD = $d->paiements->sum('montant');
@@ -598,6 +669,19 @@
                                 $rT = $d->prix_technique     ?? 0;
                                 $rM = $d->prix_morcellement  ?? 0;
                                 $rL = $d->prix_logistique    ?? 0;
+
+                                // ✅ Détecter si AU MOINS un bon antidaté existe pour ce dossier
+                                $aBonAntidate = false;
+                                $bonsDuDossier = \App\Models\BonPaiement::where('dossier_client_id', $d->id)
+                                    ->whereNotNull('date_bon')
+                                    ->get();
+
+                                foreach ($bonsDuDossier as $b) {
+                                    if ($b->date_bon && $b->date_bon->format('Y-m-d') !== now()->format('Y-m-d')) {
+                                        $aBonAntidate = true;
+                                        break;
+                                    }
+                                }
 
                                 $statutD = $rD > 0 ? ($tD >= $rD ? 'solde' : ($tD > 0 ? 'en_cours' : 'vide')) : ($tD > 0 ? 'en_cours' : 'vide');
                                 $statutT = $rT > 0 ? ($tT >= $rT ? 'solde' : ($tT > 0 ? 'en_cours' : 'vide')) : ($tT > 0 ? 'en_cours' : 'vide');
@@ -620,19 +704,24 @@
                             @endphp
 
                             <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;">
-
                                 <div style="font-size:11px;color:#1e3a5f;font-weight:700;margin-bottom:8px;
                                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
                                      title="{{ $d->nom_dossier }}">
                                     📂 {{ $d->nom_dossier }}
+                                    {{-- ✅ Point rouge si au moins un bon antidaté --}}
+                                    @if($aBonAntidate)
+                                        <span class="dossier-antidate-dot"
+                                              title="Ce dossier a au moins un bon antidaté"></span>
+                                    @endif
                                     <span style="color:#6b7280;font-weight:normal;font-size:10px;">
                                         ({{ $d->created_at?->format('d/m/Y') ?? '-' }})
                                         · {{ $d->superficie_voulue ? number_format($d->superficie_voulue, 0, ',', ' ') . ' m²' : '-' }}
                                     </span>
                                 </div>
 
+                                {{-- ✅ 4 BLOCS DE PAIEMENT : Dossier / Technique / Logistique / Morcellement --}}
                                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
-
+                                    {{-- BLOC DOSSIER --}}
                                     @if($tD > 0 || $rD > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
                                         {{ $couleurs[$statutD]['icone'] }}
@@ -649,6 +738,7 @@
                                     </span>
                                     @endif
 
+                                    {{-- BLOC TECHNIQUE --}}
                                     @if($tT > 0 || $rT > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutT]['bg'] }};color:{{ $couleurs[$statutT]['text'] }};border:1.5px solid {{ $couleurs[$statutT]['border'] }};">
                                         {{ $couleurs[$statutT]['icone'] }}
@@ -665,6 +755,7 @@
                                     </span>
                                     @endif
 
+                                    {{-- ✅ BLOC LOGISTIQUE (NOUVEAU) --}}
                                     @if($tL > 0 || $rL > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutL]['bg'] }};color:{{ $couleurs[$statutL]['text'] }};border:1.5px solid {{ $couleurs[$statutL]['border'] }};">
                                         {{ $couleurs[$statutL]['icone'] }}
@@ -681,6 +772,7 @@
                                     </span>
                                     @endif
 
+                                    {{-- BLOC MORCELLEMENT --}}
                                     @if($tM > 0 || $rM > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutM]['bg'] }};color:{{ $couleurs[$statutM]['text'] }};border:1.5px solid {{ $couleurs[$statutM]['border'] }};">
                                         {{ $couleurs[$statutM]['icone'] }}
@@ -777,13 +869,13 @@
                                 });
                             @endphp
 
-                            <div class="benef-card" 
+                            <div class="benef-card"
                                  data-benef-id="{{ $b->id }}"
                                  data-client-id="{{ $client->id }}"
                                  data-dossier-id="{{ $d->id }}"
                                  onclick="toggleBenefSelection(event, {{ $b->id }})">
-                                
-                                <input type="checkbox" 
+
+                                <input type="checkbox"
                                        class="benef-checkbox"
                                        data-benef-id="{{ $b->id }}"
                                        data-client-id="{{ $client->id }}"
@@ -983,11 +1075,11 @@
         <h5 style="color:#1e3a5f;font-weight:800;margin:0;">
             📊 Appliquer une étape d'avancement
         </h5>
-        <button onclick="fermerModalEtapeGroupee()" 
+        <button onclick="fermerModalEtapeGroupee()"
                 style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
 
-    <div id="etapeGroupeeResume" 
+    <div id="etapeGroupeeResume"
          style="background:#f1f5f9;border-radius:8px;padding:12px;
                 margin-bottom:14px;font-size:12px;color:#475569;">
     </div>
@@ -1042,6 +1134,46 @@ let selectedClients = new Set();
 let selectedBenefs  = new Set();
 
 // ════════════════════════════════════════════════════════════════
+// ✅ RETIRER LA MARQUE ANTIDATÉ (CLIENT)
+// ════════════════════════════════════════════════════════════════
+function retirerAntidate(clientId) {
+    if (!confirm('Retirer la marque ANTIDATÉ de ce client ?')) {
+        return;
+    }
+
+    if (window.EdenLoader) window.EdenLoader.show();
+
+    fetch(`/admin/suivi-client/toggle-antidate/${clientId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': CSRF,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+
+        if (data.success && !data.antidate) {
+            const dot = document.getElementById('antidate-dot-' + clientId);
+            if (dot) dot.style.display = 'none';
+
+            const btn = document.getElementById('btn-antidate-' + clientId);
+            if (btn) btn.style.display = 'none';
+
+            showToast('✅ Marque ANTIDATÉ retirée', 'success');
+        } else {
+            showToast('❌ ' + (data.message || 'Erreur'), 'error');
+        }
+    })
+    .catch(err => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        showToast('❌ Erreur réseau : ' + err.message, 'error');
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
 // EXPORT PDF
 // ════════════════════════════════════════════════════════════════
 function exporterPdf() {
@@ -1056,7 +1188,7 @@ function exporterPdf() {
     const dossier = document.getElementById('filtre-dossier')?.value || '';
     const logistique = document.getElementById('filtre-logistique')?.value || '';
     const lots = document.getElementById('filtre-lots')?.value || '';
-    
+
     let url = '{{ route("suivi-client.export-pdf") }}?';
     if (q) url += 'q=' + encodeURIComponent(q) + '&';
     if (du) url += 'du=' + du + '&';
@@ -1069,7 +1201,7 @@ function exporterPdf() {
     if (dossier) url += 'dossier_solde=' + dossier + '&';
     if (logistique) url += 'logistique_solde=' + logistique + '&';
     if (lots) url += 'lots=' + lots + '&';
-    
+
     window.open(url, '_blank');
 }
 
@@ -1092,16 +1224,16 @@ function toggleSelection(checkbox, clientId) {
 // ════════════════════════════════════════════════════════════════
 function toggleBenefSelection(event, benefId) {
     event.stopPropagation();
-    
+
     const cb = document.querySelector(`.benef-checkbox[data-benef-id="${benefId}"]`);
     const card = document.querySelector(`.benef-card[data-benef-id="${benefId}"]`);
-    
+
     if (event.target.type === 'checkbox') {
         // déjà togglé
     } else {
         cb.checked = !cb.checked;
     }
-    
+
     if (cb.checked) {
         selectedBenefs.add(benefId);
         card?.classList.add('selected');
@@ -1109,19 +1241,19 @@ function toggleBenefSelection(event, benefId) {
         selectedBenefs.delete(benefId);
         card?.classList.remove('selected');
     }
-    
+
     mettreAJourActionBar();
 }
 
 function selectionnerBenefsClient(clientId, select) {
     const section = document.querySelector(`.benef-section[data-client-id="${clientId}"]`);
     if (!section) return;
-    
+
     const cards = section.querySelectorAll('.benef-card');
     cards.forEach(card => {
         const benefId = parseInt(card.dataset.benefId);
         const cb = card.querySelector('.benef-checkbox');
-        
+
         cb.checked = select;
         if (select) {
             selectedBenefs.add(benefId);
@@ -1131,7 +1263,7 @@ function selectionnerBenefsClient(clientId, select) {
             card.classList.remove('selected');
         }
     });
-    
+
     mettreAJourActionBar();
 }
 
@@ -1145,14 +1277,14 @@ function selectionnerTout() {
             card.classList.add('selected');
         }
     });
-    
+
     document.querySelectorAll('.client-card:not([style*="display: none"]) .benef-checkbox').forEach(cb => {
         cb.checked = true;
         const benefId = parseInt(cb.dataset.benefId);
         selectedBenefs.add(benefId);
         cb.closest('.benef-card')?.classList.add('selected');
     });
-    
+
     mettreAJourActionBar();
 }
 
@@ -1163,14 +1295,14 @@ function deselectionnerTout() {
         selectedClients.delete(id);
         document.querySelector(`.client-card[data-id="${id}"]`)?.classList.remove('selected');
     });
-    
+
     document.querySelectorAll('.benef-checkbox').forEach(cb => {
         cb.checked = false;
         const benefId = parseInt(cb.dataset.benefId);
         selectedBenefs.delete(benefId);
         cb.closest('.benef-card')?.classList.remove('selected');
     });
-    
+
     mettreAJourActionBar();
 }
 
@@ -1178,9 +1310,9 @@ function mettreAJourActionBar() {
     const bar = document.getElementById('actionBar');
     const summary = document.getElementById('selectionSummary');
     const total = selectedClients.size + selectedBenefs.size;
-    
+
     document.getElementById('selectedCount').textContent = total;
-    
+
     if (total > 0) {
         bar.classList.add('visible');
         summary.style.display = 'flex';
@@ -1224,10 +1356,10 @@ function actionGroupee(action) {
     document.getElementById('modalConfirmationMessage').textContent = config.message;
     document.getElementById('modalConfirmationBtn').textContent = config.btnText;
     document.getElementById('modalConfirmationBtn').className = `btn ${config.btnClass}`;
-    
+
     const liste = document.getElementById('modalConfirmationListe');
     let html = '';
-    
+
     if (idsClients.length > 0) {
         html += '<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:6px;">👤 Clients :</div>';
         idsClients.forEach(id => {
@@ -1239,7 +1371,7 @@ function actionGroupee(action) {
             }
         });
     }
-    
+
     if (idsBenefs.length > 0) {
         html += '<div style="font-size:12px;color:#7c3aed;font-weight:700;margin:8px 0 6px 0;">👥 Bénéficiaires :</div>';
         idsBenefs.forEach(id => {
@@ -1250,9 +1382,9 @@ function actionGroupee(action) {
             }
         });
     }
-    
+
     liste.innerHTML = html;
-    
+
     document.getElementById('modalConfirmationOverlay').style.display = 'block';
     document.getElementById('modalConfirmation').style.display = 'block';
     document.getElementById('modalConfirmationBtn').dataset.action = action;
@@ -1279,7 +1411,6 @@ function executerActionConfirmee() {
 
     fermerModalConfirmation();
 
-    // ✅ SUPPRESSION UNIFIÉE : clients + bénéficiaires cochés
     if (action === 'delete') {
         if (idsClients.length === 0 && idsBenefs.length === 0) {
             showToast('⚠️ Aucun élément sélectionné', 'warning');
@@ -1290,7 +1421,6 @@ function executerActionConfirmee() {
 
         const promises = [];
 
-        // Suppression des bénéficiaires
         idsBenefs.forEach(id => {
             promises.push(
                 fetch(`/admin/beneficiaires/${id}`, {
@@ -1300,7 +1430,6 @@ function executerActionConfirmee() {
             );
         });
 
-        // Suppression des clients
         idsClients.forEach(id => {
             promises.push(
                 fetch(`/admin/suivi-client/${id}`, {
@@ -1335,19 +1464,16 @@ function executerActionConfirmee() {
         return;
     }
 
-    // Export documents
     if (action === 'export_documents') {
         exporterDocuments(idsClients);
         return;
     }
 
-    // Export PDF sélection
     if (action === 'export_pdf_selected') {
         exporterPdfSelection(idsClients);
         return;
     }
 
-    // Export Excel sélection
     if (action === 'export_excel_selected') {
         const params = new URLSearchParams();
         idsClients.forEach(id => params.append('client_ids[]', id));
@@ -1386,7 +1512,7 @@ function executerActionConfirmee() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// SUPPRIMER UN BÉNÉFICIAIRE (individuel)
+// SUPPRIMER UN BÉNÉFICIAIRE
 // ════════════════════════════════════════════════════════════════
 function supprimerBenef(benefId, benefNom) {
     if (!confirm(`⚠️ Supprimer définitivement le bénéficiaire « ${benefNom} » ?\n\nLes lots affectés seront libérés.`)) {
@@ -1448,7 +1574,7 @@ function supprimerBenef(benefId, benefNom) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// EXPORTER PDF DES SÉLECTIONNÉS
+// EXPORT PDF SÉLECTION
 // ════════════════════════════════════════════════════════════════
 function exporterPdfSelection(ids) {
     if (window.EdenLoader) window.EdenLoader.show();
@@ -1483,7 +1609,7 @@ function exporterPdfSelection(ids) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// EXPORTER DOCUMENTS
+// EXPORT DOCUMENTS
 // ════════════════════════════════════════════════════════════════
 function exporterDocuments(ids) {
     document.getElementById('modalProgressOverlay').style.display = 'block';
@@ -1555,7 +1681,7 @@ function exporterDocuments(ids) {
             setTimeout(() => {
                 document.getElementById('progressContent').style.display = 'none';
                 document.getElementById('progressResult').style.display = 'block';
-                document.getElementById('resultMessage').textContent = 
+                document.getElementById('resultMessage').textContent =
                     `${documents.length} document(s) récupéré(s) pour ${total - errors.length} client(s) sur ${total}.${errors.length > 0 ? ' ' + errors.length + ' erreur(s).' : ''}`;
                 if (documents.length > 0) telechargerDocumentsZip(documents);
             }, 500);
@@ -1600,7 +1726,7 @@ function telechargerDocumentsZip(documents) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// WHATSAPP INDIVIDUEL
+// WHATSAPP
 // ════════════════════════════════════════════════════════════════
 function envoyerWhatsAppClient(clientId) {
     window.open(`/admin/clients/${clientId}/whatsapp`, '_blank');
@@ -1620,7 +1746,7 @@ function fermerBenefDetail() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// TOGGLE NEW STATUS
+// TOGGLE NEW
 // ════════════════════════════════════════════════════════════════
 function toggleNew(clientId) {
     const btn = document.getElementById('btn-new-' + clientId);

@@ -12,6 +12,10 @@ use App\Models\Visite; // ✅ Correction : use App\Models\Visite
 use App\Models\Visiteur;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Beneficiaire;
+use App\Models\BeneficiairePaiement;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BonPaiementController extends Controller
 {
@@ -71,101 +75,65 @@ class BonPaiementController extends Controller
         return view('admin.bons.creer', compact('dossier','totaux', 'user'));
     }
 
-    // Enregistrer un bon
-    public function store(Request $request, DossierClient $dossier)
-    {
-        // ✅ 1. Vérifier la référence (sécurité)
-        $reference = $request->input('reference') ?? session('reference_utilisateur');
-        
-        if (!$reference) {
-            return back()->withInput()->with('error', '🔑 Référence requise.');
-        }
-        
-        // ✅ 2. Nettoyer la référence (trim seulement - garder la casse)
-        $reference = trim($reference);
-        
-        // ✅ 3. Vérifier que la référence existe en base (SENSIBLE à la casse)
-        $user = User::where('reference', $reference)->first();
-        if (!$user) {
-            session()->forget('reference_utilisateur');
-            return back()->withInput()->with('error', '❌ Référence "' . $reference . '" invalide. Vérifiez la casse.');
-        }
+// ═══════════════════════════════════════════════════════════
+// ENREGISTRER UN BON
+// ═══════════════════════════════════════════════════════════
+public function store(Request $request, DossierClient $dossier)
+{
+    // ✅ 1. Vérifier la référence
+    $reference = $request->input('reference') ?? session('reference_utilisateur');
 
-        // ✅ 4. Validation des données
-        $request->validate([
-            'date_bon'              => 'required|date',
-            'versement_dossier'     => 'nullable|numeric|min:0',
-            'versement_technique'   => 'nullable|numeric|min:0',
-            'versement_logistique'  => 'nullable|numeric|min:0',
-            'versement_morcellement'=> 'nullable|numeric|min:0',
-            'afficher_reste'        => 'nullable|boolean',
-            'notes'                 => 'nullable|string',
-        ]);
+    if (!$reference) {
+        return back()->withInput()->with('error', '🔑 Référence requise.');
+    }
 
-        // ✅ 5. Charger les paiements existants
-        $dossier->load([
-            'paiements',
-            'paiementsTechniques',
-            'paiementsMorcellements',
-        ]);
+    $reference = trim($reference);
 
-        // ✅ 6. Enregistrer les paiements liés
-        $vDossier     = floatval($request->versement_dossier     ?? 0);
-        $vTechnique   = floatval($request->versement_technique   ?? 0);
-        $vLogistique  = floatval($request->versement_logistique  ?? 0);
-        $vMorcellement= floatval($request->versement_morcellement?? 0);
+    $user = User::where('reference', $reference)->first();
+    if (!$user) {
+        session()->forget('reference_utilisateur');
+        return back()->withInput()->with('error', '❌ Référence "' . $reference . '" invalide.');
+    }
 
-        if ($vDossier > 0) {
-            PaiementDossier::create([
-                'dossier_client_id' => $dossier->id,
-                'montant'           => $vDossier,
-                'date_paiement'     => $request->date_bon,
-                'note'              => 'Bon ' . BonPaiement::genererNumero(),
-                'user_reference'    => $reference,
-            ]);
-        }
-        if ($vTechnique > 0) {
-            PaiementTechnique::create([
-                'dossier_client_id' => $dossier->id,
-                'montant'           => $vTechnique,
-                'date_paiement'     => $request->date_bon,
-                'note'              => 'Technique',
-                'user_reference'    => $reference,
-            ]);
-        }
-        if ($vLogistique > 0) {
-            PaiementLogistique::create([
-                'dossier_client_id' => $dossier->id,
-                'montant'           => $vLogistique,
-                'date_paiement'     => $request->date_bon,
-                'note'              => 'Logistique',
-                'user_reference'    => $reference,
-            ]);
-        }
-        if ($vMorcellement > 0) {
-            PaiementMorcellement::create([
-                'dossier_client_id' => $dossier->id,
-                'montant'           => $vMorcellement,
-                'date_paiement'     => $request->date_bon,
-                'note'              => 'Morcellement',
-                'user_reference'    => $reference,
-            ]);
-        }
+    // ✅ 2. Validation
+    $request->validate([
+        'date_bon'                     => 'required|date',
+        'versement_dossier'            => 'nullable|numeric|min:0',
+        'versement_morcellement'       => 'nullable|numeric|min:0',
+        'versements'                   => 'nullable|array',
+        'versements.*.type'            => 'required_with:versements|in:technique,logistique',
+        'versements.*.montant'         => 'required_with:versements|numeric|min:1',
+        'afficher_reste'               => 'nullable|boolean',
+        'notes'                        => 'nullable|string',
+    ]);
 
-        // ✅ 7. Recharger pour avoir les nouveaux totaux cumulés
-        $dossier->load([
-            'paiements',
-            'paiementsTechniques',
-            'paiementsMorcellements',
-        ]);
+    $vDossier      = floatval($request->versement_dossier ?? 0);
+    $vMorcellement = floatval($request->versement_morcellement ?? 0);
+    $versements    = $request->input('versements', []);
 
-        // ✅ 8. Calculer les logistiques
+    $vTechnique  = 0;
+    $vLogistique = 0;
+    foreach ($versements as $v) {
+        if ($v['type'] === 'technique') $vTechnique += floatval($v['montant']);
+        if ($v['type'] === 'logistique') $vLogistique += floatval($v['montant']);
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // ✅ 3. Détection ANT
+        $dateDuBon = \Carbon\Carbon::parse($request->date_bon)->format('Y-m-d');
+        $dateAujourdhui = now()->format('Y-m-d');
+        $prefixeANT = ($dateDuBon !== $dateAujourdhui) ? 'ANT-' : '';
+
+        // ✅ 4. Créer le bon
+        $dossier->refresh();
+        $dossier->load(['paiements', 'paiementsTechniques', 'paiementsMorcellements']);
         $totalLogistique = PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
 
-        // ✅ 9. Créer le bon
         $bon = BonPaiement::create([
             'dossier_client_id'        => $dossier->id,
-            'numero_bon'               => BonPaiement::genererNumero(),
+            'numero_bon'               => $prefixeANT . BonPaiement::genererNumero(),
             'date_bon'                 => $request->date_bon,
             'versement_dossier'        => $vDossier,
             'versement_technique'      => $vTechnique,
@@ -181,15 +149,130 @@ class BonPaiementController extends Controller
             'user_id'                  => $user->id,
         ]);
 
-        // ✅ 10. CRÉER UNE VISITE AUTOMATIQUEMENT
+        
+
+        // ✅ 5. Parcelle
+        if ($vDossier > 0) {
+            PaiementDossier::create([
+                'dossier_client_id' => $dossier->id,
+                'montant'           => $vDossier,
+                'date_paiement'     => $request->date_bon,
+                'note'              => 'Bon ' . $bon->numero_bon,
+                'user_reference'    => $reference,
+            ]);
+        }
+
+        // ✅ 6. Morcellement
+        if ($vMorcellement > 0) {
+            PaiementMorcellement::create([
+                'dossier_client_id' => $dossier->id,
+                'montant'           => $vMorcellement,
+                'date_paiement'     => $request->date_bon,
+                'note'              => 'Bon ' . $bon->numero_bon,
+                'user_reference'    => $reference,
+            ]);
+        }
+
+        // ✅ 7. Versements par bénéficiaire
+        foreach ($versements as $v) {
+            $benefId   = $v['beneficiaire_id'] ?? null;
+            $type      = $v['type'];
+            $montant   = floatval($v['montant']);
+
+            if ($montant <= 0) continue;
+
+            // Créer le bénéficiaire si nouveau
+            if ($benefId === '__NEW__') {
+                $nomNew = trim($v['new_benef_nom'] ?? '');
+                if (empty($nomNew)) {
+                    throw new \Exception('⚠️ Nom du nouveau bénéficiaire obligatoire.');
+                }
+
+                $nouveau = Beneficiaire::create([
+                    'dossier_client_id'    => $dossier->id,
+                    'client_id'            => $dossier->client_id,
+                    'nom'                  => $nomNew,
+                    'telephone'            => $v['new_benef_tel'] ?? null,
+                    'superficie_attribuee' => 0,
+                ]);
+                $benefId = $nouveau->id;
+            } else {
+                $ok = Beneficiaire::where('id', $benefId)
+                    ->where('dossier_client_id', $dossier->id)
+                    ->exists();
+                if (!$ok) throw new \Exception('⚠️ Bénéficiaire invalide.');
+            }
+
+            // Créer le paiement
+            if ($type === 'technique') {
+                $paiement = PaiementTechnique::create([
+                    'dossier_client_id' => $dossier->id,
+                    'beneficiaire_id'   => $benefId,
+                    'montant'           => $montant,
+                    'date_paiement'     => $request->date_bon,
+                    'note'              => 'Bon ' . $bon->numero_bon,
+                    'user_reference'    => $reference,
+                ]);
+            } else {
+                $paiement = PaiementLogistique::create([
+                    'dossier_client_id' => $dossier->id,
+                    'beneficiaire_id'   => $benefId,
+                    'montant'           => $montant,
+                    'date_paiement'     => $request->date_bon,
+                    'note'              => 'Bon ' . $bon->numero_bon,
+                    'user_reference'    => $reference,
+                ]);
+            }
+
+            // ✅ Traçabilité AVEC bon_id
+            BeneficiairePaiement::create([
+                'beneficiaire_id'   => $benefId,
+                'dossier_client_id' => $dossier->id,
+                'paiement_type'     => $type,
+                'paiement_id'       => $paiement->id,
+                'montant'           => $montant,
+                'date_paiement'     => $request->date_bon,
+                'user_reference'    => $reference,
+                'bon_id'            => $bon->id,   // ✅ LIEN DIRECT
+            ]);
+        }
+
+        // ✅ 8. Mettre à jour les cumuls
+        $dossier->refresh();
+        $dossier->load(['paiements', 'paiementsTechniques', 'paiementsMorcellements']);
+        $totalLogistique = PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
+
+        $bon->update([
+            'total_dossier_cumul'      => $dossier->paiements->sum('montant'),
+            'total_technique_cumul'    => $dossier->paiementsTechniques->sum('montant'),
+            'total_logistique_cumul'   => $totalLogistique,
+            'total_morcellement_cumul' => $dossier->paiementsMorcellements->sum('montant'),
+        ]);
+
+        // ✅ 12. Marquer le client comme antidaté si nécessaire
+$dateDuBon = \Carbon\Carbon::parse($request->date_bon)->format('Y-m-d');
+$dateAujourdhui = now()->format('Y-m-d');
+
+if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
+    $dossier->client->update(['antidate' => true]);
+}
+
+        // ✅ 9. Créer la visite
         $this->creerVisiteDepuisBon($bon, $dossier, $user);
 
-        // ✅ 11. Nettoyer la session après création
-        session()->forget('reference_utilisateur');
+        DB::commit();
 
-        return redirect()->route('bons.show', $bon->id)
-                         ->with('success', 'Bon créé — ' . $bon->numero_bon . ' (Référence: ' . $reference . ')');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur création bon: ' . $e->getMessage());
+        return back()->withInput()->with('error', '❌ ' . $e->getMessage());
     }
+
+    session()->forget('reference_utilisateur');
+
+    return redirect()->route('bons.show', $bon->id)
+        ->with('success', 'Bon créé — ' . $bon->numero_bon);
+}
 
     /**
      * Créer une visite automatiquement à partir d'un bon de paiement

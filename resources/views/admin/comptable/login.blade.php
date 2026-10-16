@@ -16,7 +16,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 50%, #ea580c 100%);
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #a855f7 100%);
             position: relative;
             overflow: hidden;
             padding: 20px;
@@ -57,7 +57,7 @@
         }
 
         .login-header {
-            background: linear-gradient(135deg, #dc2626, #ea580c);
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
             padding: 32px 30px 26px;
             text-align: center;
             color: white;
@@ -93,8 +93,8 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #fee2e2;
-            color: #991b1b;
+            background: #faf5ff;
+            color: #6b21a8;
             padding: 6px 14px;
             border-radius: 50px;
             font-size: 12px;
@@ -128,9 +128,9 @@
         }
         .form-input:focus {
             outline: none;
-            border-color: #dc2626;
+            border-color: #7c3aed;
             background: white;
-            box-shadow: 0 0 0 4px rgba(220,38,38,0.1);
+            box-shadow: 0 0 0 4px rgba(124,58,237,0.1);
         }
         .form-input.is-invalid {
             border-color: #dc2626;
@@ -195,13 +195,13 @@
         }
         .remember-row input[type="checkbox"] {
             width: 16px; height: 16px;
-            accent-color: #dc2626;
+            accent-color: #7c3aed;
             cursor: pointer;
         }
 
         .btn-login {
             width: 100%;
-            background: linear-gradient(135deg, #dc2626, #ea580c);
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
             color: white;
             border: none;
             padding: 14px;
@@ -219,14 +219,9 @@
         }
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(220,38,38,0.4);
+            box-shadow: 0 8px 20px rgba(124,58,237,0.4);
         }
-        .btn-login:active { transform: translateY(0); }
-        .btn-login:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
         .login-footer {
             padding: 18px 30px;
@@ -236,21 +231,17 @@
             font-size: 12px;
             color: #64748b;
         }
-        .login-footer a {
-            color: #dc2626;
-            text-decoration: none;
-            font-weight: 700;
-        }
+        .login-footer a { color: #7c3aed; text-decoration: none; font-weight: 700; }
         .login-footer a:hover { text-decoration: underline; }
 
         .info-block {
             margin-top: 16px;
             padding: 12px 14px;
-            background: #eff6ff;
-            border-left: 4px solid #0d6efd;
+            background: #faf5ff;
+            border-left: 4px solid #7c3aed;
             border-radius: 8px;
             font-size: 11px;
-            color: #1e40af;
+            color: #6b21a8;
             line-height: 1.5;
         }
         .info-block strong { font-weight: 800; }
@@ -269,9 +260,9 @@
 
     {{-- EN-TÊTE --}}
     <div class="login-header">
-        <div class="login-icon">💰</div>
-        <h1>Espace Comptable</h1>
-        <p>EDEN GROUP — Gestion des paiements techniques</p>
+        <div class="login-icon">🚗</div>
+        <h1>Espace Comptable Logistique</h1>
+        <p>EDEN GROUP — Gestion des encaissements</p>
     </div>
 
     {{-- CORPS --}}
@@ -353,19 +344,15 @@
 
             <button type="submit" class="btn-login" id="btnLogin">
                 <i class="bi bi-box-arrow-in-right"></i>
-                <span>Se connecter à l'espace comptable</span>
+                <span>Se connecter</span>
             </button>
 
         </form>
 
         <div class="info-block">
             <strong>ℹ️ Information :</strong><br>
-            Cette page est réservée aux <strong>comptables</strong> et aux <strong>administrateurs</strong>.<br>
-            Si vous n'êtes pas comptable, utilisez la
-            <a href="{{ route('login') }}"
-               style="color:#1e40af;font-weight:800;text-decoration:underline;">
-                connexion standard
-            </a>.
+            Cette page est réservée aux <strong>comptables logistiques</strong> et aux <strong>administrateurs</strong>.<br>
+            Pour tout autre accès, contactez votre administrateur.
         </div>
 
     </div>
@@ -373,10 +360,6 @@
     {{-- PIED --}}
     <div class="login-footer">
         🔒 Connexion sécurisée — <strong>EDEN GROUP</strong> © {{ date('Y') }}
-        <br>
-        <span style="font-size:10px;color:#94a3b8;">
-            Toute tentative d'accès non autorisée est enregistrée.
-        </span>
     </div>
 
 </div>

@@ -4,6 +4,17 @@
 <style>
 .bon-card { background:white; border-radius:12px; padding:16px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-left:4px solid #1d4ed8; }
 .versement-chip { display:inline-block; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-right:4px; }
+
+/* ✅ Point rouge pour bons antidatés */
+.ant-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc2626;
+    margin-right: 6px;
+    vertical-align: middle;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -15,7 +26,6 @@
         </div>
     </div>
     <div class="d-flex gap-2">
-        {{-- ✅ MODIFICATION : bouton avec onclick --}}
         <a href="#" class="btn btn-primary" onclick="demanderReference({{ $dossier->id }})">
             + Nouveau bon
         </a>
@@ -63,64 +73,72 @@
     </div>
 </div>
 
-{{-- LISTE DES BONS --}}
-@forelse($dossier->bons as $bon)
-<div class="bon-card">
-    <div class="d-flex justify-content-between align-items-start">
-        <div>
-            <div style="font-weight:700;font-size:14px;color:#1e3a5f;">
-                {{ $bon->numero_bon }}
-                <span style="font-size:12px;color:#64748b;font-weight:400;margin-left:8px;">
-                    📅 {{ $bon->date_bon->format('d/m/Y') }}
-                </span>
-                @if(isset($bon->user_reference) && $bon->user_reference)
-                    <span style="font-size:10px;color:#1d4ed8;font-weight:600;margin-left:8px;background:#eff6ff;padding:2px 8px;border-radius:4px;">
-                        🔑 {{ $bon->user_reference }}
+{{-- LISTE DES BONS (triés par date de création décroissante) --}}
+@php
+    $bonsTries = $dossier->bons->sortByDesc('created_at');
+@endphp
+
+@forelse($bonsTries as $bon)
+    @php
+        $estAntidate = $bon->date_bon && $bon->date_bon->format('Y-m-d') !== now()->format('Y-m-d');
+    @endphp
+
+    <div class="bon-card">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div style="font-weight:700;font-size:14px;color:#1e3a5f;">
+                    {{-- ✅ Point rouge si antidaté --}}
+                    @if($estAntidate)
+                        <span class="ant-dot" title="Bon antidaté"></span>
+                    @endif
+
+                    {{ $bon->numero_bon }}
+                    <span style="font-size:12px;color:#64748b;font-weight:400;margin-left:8px;">
+                        📅 {{ $bon->date_bon->format('d/m/Y') }}
                     </span>
-                @endif
-            </div>
-            <div style="margin-top:8px;">
-                @if($bon->versement_dossier > 0)
-                    <span class="versement-chip" style="background:#dbeafe;color:#1d4ed8;">
-                        📁Terrain : {{ number_format($bon->versement_dossier,0,',',' ') }} FCFA
-                    </span>
-                @endif
-                @if($bon->versement_technique > 0)
-                    <span class="versement-chip" style="background:#ffedd5;color:#ea580c;">
-                        🛠️Dossier Tech : {{ number_format($bon->versement_technique,0,',',' ') }} FCFA
-                    </span>
-                @endif
-                @if($bon->versement_logistique > 0)
-                    <span class="versement-chip" style="background:#f3e8ff;color:#7c3aed;">
-                        🚗 Logistique : {{ number_format($bon->versement_logistique,0,',',' ') }} FCFA
-                    </span>
-                @endif
-                @if($bon->versement_morcellement > 0)
-                    <span class="versement-chip" style="background:#fef9c3;color:#ca8a04;">
-                        ✂️ Morcellement : {{ number_format($bon->versement_morcellement,0,',',' ') }} FCFA
-                    </span>
-                @endif
-                <span style="font-size:12px;font-weight:800;color:#16a34a;margin-left:8px;">
-                    = {{ number_format($bon->total_versement,0,',',' ') }} FCFA
-                </span>
-            </div>
-            @if(isset($bon->user) && $bon->user)
-                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
-                    👤 Signé par : {{ $bon->user->name }}
                 </div>
-            @endif
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('bons.show', $bon->id) }}" class="btn btn-primary btn-sm" style="font-size:11px;">👁 Voir</a>
-            <a href="{{ route('bons.pdf', $bon->id) }}" class="btn btn-outline-danger btn-sm" style="font-size:11px;">🖨️</a>
-            <form action="{{ route('bons.destroy', $bon->id) }}" method="POST" style="display:inline;"
-                  onsubmit="return confirm('Supprimer ce bon ?')">
-                @csrf @method('DELETE')
-                <button class="btn btn-outline-danger btn-sm" style="font-size:11px;">🗑</button>
-            </form>
+                <div style="margin-top:8px;">
+                    @if($bon->versement_dossier > 0)
+                        <span class="versement-chip" style="background:#dbeafe;color:#1d4ed8;">
+                            📁Terrain : {{ number_format($bon->versement_dossier,0,',',' ') }} FCFA
+                        </span>
+                    @endif
+                    @if($bon->versement_technique > 0)
+                        <span class="versement-chip" style="background:#ffedd5;color:#ea580c;">
+                            🛠️Dossier Tech : {{ number_format($bon->versement_technique,0,',',' ') }} FCFA
+                        </span>
+                    @endif
+                    @if($bon->versement_logistique > 0)
+                        <span class="versement-chip" style="background:#f3e8ff;color:#7c3aed;">
+                            🚗 Logistique : {{ number_format($bon->versement_logistique,0,',',' ') }} FCFA
+                        </span>
+                    @endif
+                    @if($bon->versement_morcellement > 0)
+                        <span class="versement-chip" style="background:#fef9c3;color:#ca8a04;">
+                            ✂️ Morcellement : {{ number_format($bon->versement_morcellement,0,',',' ') }} FCFA
+                        </span>
+                    @endif
+                    <span style="font-size:12px;font-weight:800;color:#16a34a;margin-left:8px;">
+                        = {{ number_format($bon->total_versement,0,',',' ') }} FCFA
+                    </span>
+                </div>
+                @if(isset($bon->user) && $bon->user)
+                    <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
+                        👤 Signé par : {{ $bon->user->name }}
+                    </div>
+                @endif
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ route('bons.show', $bon->id) }}" class="btn btn-primary btn-sm" style="font-size:11px;">👁 Voir</a>
+                <a href="{{ route('bons.pdf', $bon->id) }}" class="btn btn-outline-danger btn-sm" style="font-size:11px;">🖨️</a>
+                <form action="{{ route('bons.destroy', $bon->id) }}" method="POST" style="display:inline;"
+                      onsubmit="return confirm('Supprimer ce bon ?')">
+                    @csrf @method('DELETE')
+                    <button class="btn btn-outline-danger btn-sm" style="font-size:11px;">🗑</button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 @empty
 <div style="text-align:center;padding:40px;color:#94a3b8;">
     <div style="font-size:40px;">🧾</div>
@@ -135,21 +153,20 @@
 <script>
 function demanderReference(dossierId) {
     const reference = prompt('🔑 Entrez votre numéro de référence (signature) :');
-    
+
     if (reference === null) {
         return false;
     }
-    
+
     const ref = reference.trim();
-    
+
     if (ref === '') {
         alert('⚠️ La référence ne peut pas être vide.');
         return false;
     }
-    
+
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
-    
-    // ✅ Vérifier si la référence existe
+
     fetch('/admin/verifier-reference', {
         method: 'POST',
         headers: {
@@ -161,7 +178,6 @@ function demanderReference(dossierId) {
     .then(response => response.json())
     .then(data => {
         if (data.existe) {
-            // ✅ Référence valide → rediriger vers la création
             window.location.href = '/admin/bons/' + dossierId + '/creer?reference=' + encodeURIComponent(ref);
         } else {
             alert('❌ La référence "' + ref + '" n\'existe pas. Veuillez contacter l\'administrateur.');
@@ -173,4 +189,4 @@ function demanderReference(dossierId) {
     });
 }
 </script>
-@endsection
+@endsection  

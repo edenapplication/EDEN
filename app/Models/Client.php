@@ -8,10 +8,11 @@ use App\Traits\Auditable;
 class Client extends Model
 {
     use Auditable;
-    protected $fillable = ['name', 'phone', 'email', 'is_new', 'sexe'];
+    protected $fillable = ['name', 'phone', 'email', 'is_new', 'sexe', 'antidate'];
 
     protected $casts = [
         'is_new' => 'boolean',
+        'antidate'  => 'boolean',
     ];
 
     // ═══ RELATIONS ═══
@@ -24,6 +25,13 @@ class Client extends Model
     {
         return $this->hasMany(DossierClient::class);
     }
+
+    public function toggleAntidate(): bool
+{
+    $this->antidate = !$this->antidate;
+    $this->save();
+    return $this->antidate;
+}
 
     // Compatibilité ancienne relation
     public function dossierClient()

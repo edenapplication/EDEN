@@ -1,5 +1,5 @@
 <?php
-// app/Models/Beneficiaire.php
+
 
 namespace App\Models;
 
@@ -112,4 +112,38 @@ class Beneficiaire extends Model
             'morcellement'        => 4,
         ];
     }
+
+    // ✅ Relations avec les paiements
+public function paiements()
+{
+    return $this->hasMany(BeneficiairePaiement::class, 'beneficiaire_id');
+}
+
+public function paiementsTechniques()
+{
+    return $this->hasMany(PaiementTechnique::class, 'beneficiaire_id');
+}
+
+public function paiementsLogistiques()
+{
+    return $this->hasMany(PaiementLogistique::class, 'beneficiaire_id');
+}
+
+// ✅ Total payé par ce bénéficiaire (tous types)
+public function getTotalPayeAttribute(): float
+{
+    return $this->paiements()->sum('montant');
+}
+
+// ✅ Total payé par type
+public function getTotalPayeTechniqueAttribute(): float
+{
+    return $this->paiements()->where('paiement_type', 'technique')->sum('montant');
+}
+
+public function getTotalPayeLogistiqueAttribute(): float
+{
+    return $this->paiements()->where('paiement_type', 'logistique')->sum('montant');
+}
+
 }

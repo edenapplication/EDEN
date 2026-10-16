@@ -79,9 +79,7 @@ class VisiteController extends Controller
             ->groupBy('visiteur_id')
             ->pluck('total', 'visiteur_id');
 
-        $visites    = $query->orderBy('date_visite', 'desc')
-                            ->orderBy('heure_arrivee', 'desc')
-                            ->paginate(30)->withQueryString();
+       $visites = $query->orderBy('created_at', 'desc')->paginate(50);
         $grandsites = GrandSite::orderBy('nom')->get();
         $sites      = Site::orderBy('name')->get();
 

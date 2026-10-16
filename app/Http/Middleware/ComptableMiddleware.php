@@ -11,7 +11,8 @@ class ComptableMiddleware
     public function handle(Request $request, Closure $next)
     {
         if (!Auth::check()) {
-            return redirect()->route('login')
+            // ✅ Rediriger vers le login COMPTABLE (pas 'login')
+            return redirect()->route('comptable.auth.login')
                 ->with('error', '🔒 Vous devez être connecté.');
         }
 

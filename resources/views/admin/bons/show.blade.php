@@ -40,9 +40,6 @@
         <div style="font-size:13px;color:#64748b;">
             📅 {{ $bon->date_bon->format('d/m/Y') }}
             &nbsp;·&nbsp; Créé le {{ $bon->created_at->format('d/m/Y à H:i') }}
-            @if(isset($bon->user_reference) && $bon->user_reference)
-                &nbsp;·&nbsp; 🔑 <span style="color:#1d4ed8;font-weight:700;">{{ $bon->user_reference }}</span>
-            @endif
         </div>
     </div>
     <div class="d-flex gap-2">
@@ -55,11 +52,6 @@
         </button>
         <a href="{{ route('bons.pdf', $bon->id) }}"
            class="btn btn-danger btn-sm">🖨️ PDF</a>
-        <form action="{{ route('bons.destroy', $bon->id) }}" method="POST"
-              onsubmit="return confirm('Supprimer ce bon définitivement ?')">
-            @csrf @method('DELETE')
-            <button class="btn btn-outline-danger btn-sm">🗑 Supprimer</button>
-        </form>
     </div>
 </div>
 

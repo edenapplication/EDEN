@@ -33,12 +33,10 @@
                 {{ $user->agence?->nom ?? 'Aucune agence' }}
             </span>
         </div>
-        <form method="POST" action="{{ route('feb.logout') }}" style="display:inline;">
-            @csrf
-            <button style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;">
-                Déconnexion
-            </button>
-        </form>
+        <form method="POST" action="{{ route('feb.logout') }}">
+    @csrf
+    <button type="submit">🚪 Déconnexion</button>
+</form>
     </div>
 </div>
 

@@ -77,13 +77,12 @@ class GeometreAuthController extends Controller
      * Déconnexion géomètre
      */
     public function logout(Request $request)
-    {
-        Auth::logout();
+{
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('geometre.login')
-            ->with('success', '✅ Vous avez été déconnecté.');
-    }
+    return redirect()->route('geometre.login')  // ✅ /geometre/login
+        ->with('success', '✅ Vous avez été déconnecté.');
+}
 }

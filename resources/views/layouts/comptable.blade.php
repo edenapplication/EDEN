@@ -11,11 +11,11 @@
 
     <style>
         :root {
-            --comptable-primary: #dc2626;
-            --comptable-dark:    #991b1b;
-            --comptable-accent:  #ea580c;
-            --comptable-bg:      #fef2f2;
-            --comptable-border:  #fecaca;
+            --comptable-primary: #7c3aed;
+            --comptable-dark:    #6d28d9;
+            --comptable-light:   #a855f7;
+            --comptable-bg:      #faf5ff;
+            --comptable-border:  #e9d5ff;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,10 +30,10 @@
 
         /* ═══ BARRE SUPÉRIEURE ═══ */
         .comptable-topbar {
-            background: linear-gradient(135deg, var(--comptable-primary), var(--comptable-dark));
+            background: linear-gradient(135deg, var(--comptable-primary), var(--comptable-light));
             color: white;
             padding: 16px 24px;
-            box-shadow: 0 4px 16px rgba(220,38,38,0.25);
+            box-shadow: 0 4px 16px rgba(124,58,237,0.25);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -76,7 +76,7 @@
         }
         .btn-logout:hover { background: rgba(255,255,255,0.25); }
 
-        /* ═══ NAVIGATION GLISSANTE ═══ */
+        /* ═══ NAVIGATION ═══ */
         .comptable-nav {
             background: white;
             border-bottom: 2px solid var(--comptable-border);
@@ -138,7 +138,7 @@
         .alert-success { background: #dcfce7; color: #15803d; }
         .alert-danger  { background: #fee2e2; color: #b91c1c; }
         .alert-warning { background: #fef3c7; color: #b45309; }
-        .alert-info    { background: #dbeafe; color: #1e40af; }
+        .alert-info    { background: #f3e8ff; color: #7c3aed; }
 
         .btn-comptable {
             background: var(--comptable-primary);
@@ -186,35 +186,35 @@
 <header class="comptable-topbar">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="brand">
-            <div class="brand-icon">💰</div>
+            <div class="brand-icon">🚗</div>
             <div>
-                <div>Espace Comptable</div>
-                <div style="font-size:11px;opacity:0.75;font-weight:500;">
-                    EDEN GROUP — Gestion des paiements
+                <div>Espace Comptable Logistique</div>
+                <div style="font-size:11px;opacity:0.85;font-weight:500;">
+                    EDEN GROUP — Gestion des encaissements logistiques
                 </div>
             </div>
         </div>
 
         <div class="d-flex align-items-center gap-3">
             <div class="user-info">
-                <span class="user-badge">💰 COMPTABLE</span>
+                <span class="user-badge">🚗 COMPTABLE</span>
                 <span style="font-weight:700;">{{ auth()->user()->name ?? 'Utilisateur' }}</span>
-                <span style="opacity:0.7;font-size:11px;">
+                <span style="opacity:0.8;font-size:11px;">
                     🔑 {{ auth()->user()->reference ?? 'N/A' }}
                 </span>
             </div>
 
             <form method="POST" action="{{ route('comptable.auth.logout') }}" style="margin:0;">
-    @csrf
-    <button type="submit" class="btn-logout">
-        <i class="bi bi-box-arrow-right"></i> Déconnexion
-    </button>
-</form>
+                @csrf
+                <button type="submit" class="btn-logout" title="Se déconnecter">
+                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                </button>
+            </form>
         </div>
     </div>
 </header>
 
-{{-- ═══ NAVIGATION GLISSANTE ═══ --}}
+{{-- ═══ NAVIGATION ═══ --}}
 <nav class="comptable-nav">
     <div class="comptable-nav-inner">
 
@@ -226,20 +226,26 @@
 
         <a href="{{ route('comptable.index') }}"
            class="comptable-nav-link {{ request()->routeIs('comptable.index') ? 'active' : '' }}">
-            <i class="bi bi-credit-card-fill"></i>
-            <span>Paiement Technique</span>
+            <i class="bi bi-truck"></i>
+            <span>Paiement Logistique</span>
         </a>
 
         <a href="{{ route('comptable.rapport') }}"
            class="comptable-nav-link {{ request()->routeIs('comptable.rapport*') ? 'active' : '' }}">
             <i class="bi bi-bar-chart-fill"></i>
-            <span>Rapport Technique</span>
+            <span>Rapport Logistique</span>
         </a>
 
         <a href="{{ route('comptable.historique-global') }}"
            class="comptable-nav-link {{ request()->routeIs('comptable.historique-global') ? 'active' : '' }}">
             <i class="bi bi-clock-history"></i>
             <span>Historique global</span>
+        </a>
+
+        <a href="{{ route('comptable.mes-paiements') }}"
+           class="comptable-nav-link {{ request()->routeIs('comptable.mes-paiements') ? 'active' : '' }}">
+            <i class="bi bi-person-check-fill"></i>
+            <span>Mes paiements</span>
         </a>
 
     </div>
@@ -278,7 +284,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-{{-- Container Toast global --}}
+{{-- Toast container --}}
 <div id="comptable-toast-container"
      style="position:fixed;bottom:20px;right:20px;z-index:99999;
             display:flex;flex-direction:column;gap:10px;">

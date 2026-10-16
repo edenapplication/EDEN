@@ -46,11 +46,14 @@ class LoginController extends Controller
         };
     }
 
-    public function logout(Request $request)
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return redirect()->route('login');
-    }
+   public function logout(Request $request)
+{
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect()->route('login')  // ✅ /login (le bon)
+        ->with('success', '✅ Vous avez été déconnecté.');
+}
+
 }

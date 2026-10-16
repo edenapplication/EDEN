@@ -48,6 +48,18 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\GeometreAuthController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\ComptableController;
+use Illuminate\Support\Facades\Auth;
+
+Route::get('/login',   [LoginController::class, 'showLogin'])->name('login');
+Route::post('/login',  [LoginController::class, 'login'])->name('login.post');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// ═══════════════════════════════════════════════════════════
+// 🔐 AUTH GÉOMÈTRE
+// ═══════════════════════════════════════════════════════════
+Route::get('/geometre/login',   [GeometreAuthController::class, 'showLogin'])->name('geometre.login');
+Route::post('/geometre/login',  [GeometreAuthController::class, 'login'])->name('geometre.login.post');
+Route::post('/geometre/logout', [GeometreAuthController::class, 'logout'])->name('geometre.logout');
 
 Route::middleware(['auth', 'check.role:admin'])
     ->prefix('admin/audits')
@@ -88,12 +100,14 @@ Route::middleware(['auth', 'comptable'])
         // Dashboard
         Route::get('/', [ComptableController::class, 'dashboard'])->name('dashboard');
 
-        // Paiement
+        // Paiement logistique
         Route::get('/paiements', [ComptableController::class, 'index'])->name('index');
-        Route::post('/dossier/{dossier}/payer-ajax', [ComptableController::class, 'payerAjax'])->name('payerAjax');
+        Route::post('/dossier/{dossier}/payer-multi', [ComptableController::class, 'payerMulti'])->name('payer-multi');
         Route::get('/dossier/{dossier}/historique', [ComptableController::class, 'historique'])->name('historique');
+        Route::get('/dossier/{dossier}/beneficiaires', [ComptableController::class, 'beneficiairesDossier'])->name('beneficiaires');
+        Route::post('/dossier/{dossier}/beneficiaire-ajax', [ComptableController::class, 'creerBeneficiaireAjax'])->name('beneficiaire-ajax');
 
-        // Rapport
+        // Rapport logistique
         Route::get('/rapport', [ComptableController::class, 'rapport'])->name('rapport');
         Route::get('/rapport/export', [ComptableController::class, 'rapportExport'])->name('rapport.export');
 
@@ -102,21 +116,7 @@ Route::middleware(['auth', 'comptable'])
 
         // Mes paiements
         Route::get('/mes-paiements', [ComptableController::class, 'mesPaiements'])->name('mes-paiements');
-
-        Route::post('/dossier/{dossier}/definir-prix', [ComptableController::class, 'definirPrix'])
-    ->name('definir-prix');
     });
-
-// ── AUTHENTIFICATION ────────────────────────────────────────────
-Route::get('/login',  [LoginController::class, 'showLogin'])->name('login');
-Route::post('/login', [LoginController::class, 'login'])->name('login.post');
-Route::post('/logout',[LoginController::class, 'logout'])->name('logout');
-// ── CONNEXION GÉOMÈTRE ──────────────────────────────────────────
-Route::prefix('geometre')->name('geometre.')->group(function () {
-    Route::get('/login',  [GeometreAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [GeometreAuthController::class, 'login'])->name('login.post');
-    Route::post('/logout',[GeometreAuthController::class, 'logout'])->name('logout');
-});
 // ── PAGE D'ACCUEIL ──────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home')->middleware('auth');
 
@@ -262,6 +262,8 @@ Route::get('/api/grand-sites/{grandSite}/sites',
         // ── CLIENTS ──
         Route::post('/clients/{clientId}/modifier-nom', [SuiviClientController::class, 'modifierNom'])->name('clients.modifier-nom');
         Route::get('/clients/{client}/whatsapp',        [SuiviClientController::class, 'whatsappClient'])->name('clients.whatsapp');
+        Route::post('/suivi-client/toggle-antidate/{clientId}', [SuiviClientController::class, 'toggleAntidate'])
+    ->name('suivi-client.toggle-antidate');
 
         // ── DOSSIERS ──
         Route::post('/dossiers/{dossierId}/maj-prix', [DossierClientController::class, 'majPrix'])->name('dossiers.maj-prix');

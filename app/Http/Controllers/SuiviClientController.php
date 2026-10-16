@@ -186,6 +186,7 @@ class SuiviClientController extends Controller
             'dossiers.beneficiaires.affectations.grandSite',
             'dossiers.beneficiaires.affectations.bloc',
             'dossiers.beneficiaires.affectations.lot',
+            'dossiers.bons',
         ])->orderByDesc('created_at');
 
         $query = $this->appliquerFiltres($query, $request);
@@ -1227,6 +1228,28 @@ private function appliquerEtapeBenef($benef, $etape, $date)
         ['etape' => $etape, 'date' => $date],
         $benef->id
     );
+}
+
+public function toggleAntidate($clientId)
+{
+    try {
+        $client = \App\Models\Client::findOrFail($clientId);
+        $nouveauStatut = $client->toggleAntidate();
+
+        return response()->json([
+            'success'   => true,
+            'antidate'  => $nouveauStatut,
+            'message'   => $nouveauStatut
+                ? '🔴 Client marqué comme ANTIDATÉ'
+                : '✅ Marque ANTIDATÉ retirée',
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
 }
 
 }
