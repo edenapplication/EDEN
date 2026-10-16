@@ -55,13 +55,13 @@ body { font-family:DejaVu Sans, sans-serif; font-size:8px; color:#1e293b; }
 table.data { width:100%; border-collapse:collapse; }
 thead tr { background:#7c3aed; color:white; }
 thead th {
-    padding:6px 5px; font-size:7.5px; font-weight:bold;
+    padding:6px 5px; font-size:7pt; font-weight:bold;
     text-align:left; white-space:nowrap;
 }
 tbody tr:nth-child(even) { background:#f8fafc; }
 tbody td {
-    padding:6px 5px; border-bottom:1px solid #e2e8f0;
-    font-size:7.5px; vertical-align:top;
+    padding:5px 4px; border-bottom:1px solid #e2e8f0;
+    font-size:7pt; vertical-align:top;
 }
 tfoot td {
     background:#1e3a5f; color:white; font-weight:bold;
@@ -71,25 +71,55 @@ tfoot td {
 /* ═══ BADGES ═══ */
 .statut {
     padding:2px 6px; border-radius:8px;
-    font-size:7px; font-weight:bold;
+    font-size:6.5pt; font-weight:bold;
     display:inline-block;
+    white-space:nowrap;
 }
 .statut-paye     { background:#dcfce7; color:#15803d; }
 .statut-partiel  { background:#fef3c7; color:#b45309; }
 .statut-nonpaye  { background:#fee2e2; color:#b91c1c; }
 
-.benef-badge {
-    background:#faf5ff; color:#7c3aed;
-    padding:2px 6px; border-radius:5px;
-    font-size:7px; font-weight:bold;
-    border:1px solid #c4b5fd;
+.benef-nom {
+    font-weight:bold;
+    color:#6d28d9;
+    font-size:7.5pt;
+}
+
+.site-badge {
+    background:#ecfdf5; color:#15803d;
+    padding:1px 5px; border-radius:5px;
+    font-size:6.5pt; font-weight:bold;
+    border:1px solid #86efac;
     display:inline-block;
-    margin-bottom:2px;
+    white-space:nowrap;
+}
+
+.tf-badge {
+    background:#fef3c7; color:#92400e;
+    padding:1px 5px; border-radius:5px;
+    font-size:6.5pt; font-weight:bold;
+    border:1px solid #fcd34d;
+    display:inline-block;
+    white-space:nowrap;
+}
+
+.date-badge {
+    background:#eff6ff; color:#1e3a5f;
+    padding:1px 5px; border-radius:5px;
+    font-size:6.5pt; font-weight:bold;
+    border:1px solid #bfdbfe;
+    display:inline-block;
+    white-space:nowrap;
+}
+.date-badge.vide {
+    background:#f8fafc; color:#94a3b8;
+    border:1px dashed #cbd5e1;
+    font-weight:500;
 }
 
 /* ═══ PROGRESSION ═══ */
 .progress-wrap {
-    width:45px; height:5px; background:#e2e8f0;
+    width:40px; height:5px; background:#e2e8f0;
     border-radius:3px; display:inline-block;
     vertical-align:middle; overflow:hidden;
 }
@@ -218,130 +248,144 @@ tfoot td {
     </tr>
 </table>
 
-{{-- TABLEAU --}}
+{{-- TABLEAU — une ligne par bénéficiaire --}}
 <table class="data">
     <thead>
         <tr>
             <th style="width:20px;">#</th>
-            <th>Client</th>
+            <th>Bénéficiaire</th>
             <th>Téléphone</th>
-            <th>Dossier</th>
             <th>Grand Site</th>
-            <th>Bénéficiaire(s)</th>
+            <th>Site</th>
+            <th>TF</th>
+            <th>Implant. prévue</th>
             <th style="text-align:right;">Réf.</th>
             <th style="text-align:right;">Payé</th>
             <th style="text-align:right;">Reste</th>
             <th style="text-align:center;">Prog.</th>
             <th style="text-align:center;">Statut</th>
-            <th>Dernier</th>
         </tr>
     </thead>
     <tbody>
-    @foreach($dossiers as $i => $d)
+    @php $row = 0; @endphp
+
+    @foreach($dossiers as $d)
         @php
             $payeLogi  = $d->paiementsLogistiques->sum('montant');
             $prixLogi  = $d->prix_logistique ?? 0;
-            $resteLogi = max(0, $prixLogi - $payeLogi);
-            $pct       = $prixLogi > 0 ? min(100, round(($payeLogi / $prixLogi) * 100)) : 0;
 
-            if ($payeLogi >= $prixLogi && $prixLogi > 0) {
-                $statut = 'paye';     $label = '✅ Payé';      $couleur = '#16a34a';
-            } elseif ($payeLogi > 0) {
-                $statut = 'partiel';  $label = '⏳ Partiel';   $couleur = '#f59e0b';
-            } else {
-                $statut = 'nonpaye';  $label = '❌ Non payé';  $couleur = '#dc2626';
-            }
+            $benefs   = $d->beneficiaires ?? collect();
+            $nbBenefs = max(1, $benefs->count());
 
-            $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
+            // ✅ Site & TF
+            $premiereAffectation = $d->affectations->first();
+            $siteNom = $premiereAffectation?->site?->name;
+            $tfNom   = $premiereAffectation?->tf?->title;
 
-            // Bénéficiaires qui ont payé
-            $benefsPaiement = \App\Models\BeneficiairePaiement::with('beneficiaire')
-                ->where('dossier_client_id', $d->id)
-                ->where('paiement_type', 'logistique')
-                ->get()
-                ->groupBy('beneficiaire_id');
-
-            $benefsListe = [];
-            foreach ($benefsPaiement as $benefId => $paiements) {
-                $benefsListe[] = [
-                    'nom' => $paiements->first()->beneficiaire?->nom ?? 'Inconnu',
-                    'montant' => $paiements->sum('montant'),
-                ];
-            }
-
-            // Bénéficiaires sans paiement
-            $benefsSansPaiement = $d->beneficiaires->filter(function ($b) use ($benefsPaiement) {
-                return !isset($benefsPaiement[$b->id]);
-            });
-
-            foreach ($benefsSansPaiement as $b) {
-                $benefsListe[] = ['nom' => $b->nom, 'montant' => 0];
+            if (!$siteNom || !$tfNom) {
+                $premiereAffBenef = \App\Models\Affectation::where('dossier_client_id', $d->id)
+                    ->with(['site', 'tf'])
+                    ->first();
+                $siteNom = $siteNom ?? $premiereAffBenef?->site?->name;
+                $tfNom   = $tfNom   ?? $premiereAffBenef?->tf?->title;
             }
         @endphp
-        <tr>
-            <td>{{ $i + 1 }}</td>
-            <td><strong>{{ $d->client?->name ?? '-' }}</strong></td>
-            <td>{{ $d->client?->phone ?? '-' }}</td>
-            <td>{{ $d->nom_dossier ?? '-' }}</td>
-            <td>{{ $d->grandSite?->nom ?? '-' }}</td>
 
-            {{-- Bénéficiaires --}}
-            <td>
-                @if(count($benefsListe) > 0)
-                    @foreach($benefsListe as $b)
-                        <div class="benef-badge">
-                            👤 {{ $b['nom'] }}
-                            @if($b['montant'] > 0)
-                                : <span style="color:#16a34a;">{{ number_format($b['montant'], 0, ',', ' ') }}</span> FCFA
-                            @else
-                                : <span style="color:#94a3b8;">0</span>
-                            @endif
-                        </div>
-                    @endforeach
-                @else
-                    <span class="val-gris">Aucun bénéficiaire</span>
-                @endif
-            </td>
+        @forelse($benefs as $b)
+            @php
+                $row++;
 
-            <td style="text-align:right;" class="val-violet">
-                {{ number_format($prixLogi, 0, ',', ' ') }}
-            </td>
-            <td style="text-align:right;" class="val-vert">
-                {{ number_format($payeLogi, 0, ',', ' ') }}
-            </td>
-            <td style="text-align:right;" class="val-rouge">
-                {{ number_format($resteLogi, 0, ',', ' ') }}
-            </td>
-            <td style="text-align:center;">
-                <span class="progress-wrap">
-                    <span class="progress-bar" style="width:{{ $pct }}%;background:{{ $couleur }};"></span>
-                </span>
-                <span style="font-size:7px;color:{{ $couleur }};font-weight:bold;margin-left:3px;">
-                    {{ $pct }}%
-                </span>
-            </td>
-            <td style="text-align:center;">
-                <span class="statut statut-{{ $statut }}">{{ $label }}</span>
-            </td>
-            <td>
-                @if($dernier)
-                    <span style="font-size:7.5px;color:#475569;">
-                        📅 {{ \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') }}
+                $payeBenef = \App\Models\BeneficiairePaiement::where('dossier_client_id', $d->id)
+                    ->where('beneficiaire_id', $b->id)
+                    ->where('paiement_type', 'logistique')
+                    ->sum('montant');
+
+                $prixBenef  = $prixLogi / $nbBenefs;
+                $resteBenef = max(0, $prixBenef - $payeBenef);
+                $pctBenef   = $prixBenef > 0 ? min(100, round(($payeBenef / $prixBenef) * 100)) : 0;
+
+                if ($payeBenef >= $prixBenef && $prixBenef > 0) {
+                    $statutB = 'paye';     $labelB = 'Payé';      $couleurB = '#16a34a';
+                } elseif ($payeBenef > 0) {
+                    $statutB = 'partiel';  $labelB = 'Partiel';   $couleurB = '#f59e0b';
+                } else {
+                    $statutB = 'nonpaye';  $labelB = 'Non payé';  $couleurB = '#dc2626';
+                }
+            @endphp
+            <tr>
+                <td>{{ $row }}</td>
+
+                <td>
+                    <span class="benef-nom">👤 {{ $b->nom }}</span>
+                </td>
+
+                <td>
+                    {{ $b->telephone ?? '—' }}
+                </td>
+
+                <td>
+                    {{ $d->grandSite?->nom ?? '—' }}
+                </td>
+
+                <td>
+                    @if($siteNom)
+                        <span class="site-badge">{{ $siteNom }}</span>
+                    @else
+                        <span class="val-gris">—</span>
+                    @endif
+                </td>
+
+                <td>
+                    @if($tfNom)
+                        <span class="tf-badge">{{ $tfNom }}</span>
+                    @else
+                        <span class="val-gris">—</span>
+                    @endif
+                </td>
+
+                <td>
+                    @if($b->implantation_prevue)
+                        <span class="date-badge">
+                            {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
+                        </span>
+                    @else
+                        <span class="date-badge vide">— non planifiée —</span>
+                    @endif
+                </td>
+
+                <td style="text-align:right;" class="val-violet">
+                    {{ number_format($prixBenef, 0, ',', ' ') }}
+                </td>
+                <td style="text-align:right;" class="val-vert">
+                    {{ number_format($payeBenef, 0, ',', ' ') }}
+                </td>
+                <td style="text-align:right;" class="val-rouge">
+                    {{ number_format($resteBenef, 0, ',', ' ') }}
+                </td>
+                <td style="text-align:center;">
+                    <span class="progress-wrap">
+                        <span class="progress-bar" style="width:{{ $pctBenef }}%;background:{{ $couleurB }};"></span>
                     </span>
-                    <br>
-                    <span style="font-size:7px;color:#94a3b8;">
-                        {{ number_format($dernier->montant, 0, ',', ' ') }} FCFA
+                    <span style="font-size:6.5pt;color:{{ $couleurB }};font-weight:bold;margin-left:3px;">
+                        {{ $pctBenef }}%
                     </span>
-                @else
-                    <span class="val-gris">—</span>
-                @endif
-            </td>
-        </tr>
+                </td>
+                <td style="text-align:center;">
+                    <span class="statut statut-{{ $statutB }}">{{ $labelB }}</span>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="12" style="text-align:center;color:#94a3b8;padding:10px;">
+                    Aucun bénéficiaire pour ce dossier
+                </td>
+            </tr>
+        @endforelse
     @endforeach
     </tbody>
     <tfoot>
         <tr>
-            <td colspan="6" style="text-align:right;">TOTAUX</td>
+            <td colspan="7" style="text-align:right;">TOTAUX</td>
             <td style="text-align:right;">
                 {{ number_format($stats['prix_logistique_total'], 0, ',', ' ') }}
             </td>
@@ -351,7 +395,7 @@ tfoot td {
             <td style="text-align:right;color:#fca5a5;">
                 {{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }}
             </td>
-            <td colspan="3" style="text-align:center;">
+            <td colspan="2" style="text-align:center;">
                 {{ $stats['progression_moyenne'] }}% moy.
             </td>
         </tr>

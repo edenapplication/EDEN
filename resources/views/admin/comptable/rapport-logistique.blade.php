@@ -81,35 +81,42 @@
     }
     .progress-bar-mini > div { height: 100%; border-radius: 3px; }
 
-    /* ═══ Bénéficiaires avec date prévue ═══ */
-    .benef-line {
-        display: flex; align-items: center; gap: 6px;
-        padding: 3px 6px; border-radius: 6px;
-        font-size: 11px; margin-bottom: 3px;
-        background: #faf5ff; border-left: 3px solid #7c3aed;
+    /* ═══ Ligne bénéficiaire ═══ */
+    .benef-nom {
+        font-weight: 800;
+        color: #6d28d9;
+        font-size: 12px;
     }
-    .benef-line .nom {
-        font-weight: 700; color: #6d28d9;
-        flex: 1; white-space: nowrap;
-    }
-    .benef-line .date {
+    .benef-date {
+        display: inline-block;
         background: #eff6ff; color: #1e3a5f;
-        padding: 2px 6px; border-radius: 4px;
+        padding: 2px 8px; border-radius: 6px;
         font-weight: 700; font-size: 10px;
         border: 1px solid #bfdbfe;
         white-space: nowrap;
     }
-    .benef-line .date.vide {
+    .benef-date.vide {
         background: #f8fafc; color: #94a3b8;
         border: 1px dashed #cbd5e1;
         font-weight: 500;
     }
-    .benef-line .montant {
-        color: #16a34a; font-weight: 700;
-        font-size: 10px;
+
+    /* ═══ Site / TF badges ═══ */
+    .site-badge {
+        display: inline-block;
+        background: #ecfdf5; color: #15803d;
+        padding: 2px 8px; border-radius: 6px;
+        font-weight: 700; font-size: 10px;
+        border: 1px solid #86efac;
+        white-space: nowrap;
     }
-    .benef-line .montant.zero {
-        color: #94a3b8; font-weight: 500;
+    .tf-badge {
+        display: inline-block;
+        background: #fef3c7; color: #92400e;
+        padding: 2px 8px; border-radius: 6px;
+        font-weight: 700; font-size: 10px;
+        border: 1px solid #fcd34d;
+        white-space: nowrap;
     }
 
     .btn-payer {
@@ -148,7 +155,7 @@
         <div class="col-md-3">
             <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">🔍 Recherche</label>
             <input type="text" name="q" class="form-control form-control-sm"
-                   placeholder="Nom, téléphone, dossier..." value="{{ request('q') }}">
+                   placeholder="Nom bénéficiaire, téléphone..." value="{{ request('q') }}">
         </div>
         <div class="col-md-2">
             <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">🏢 Grand Site</label>
@@ -277,27 +284,29 @@
     </a>
 </div>
 
-{{-- TABLEAU --}}
+{{-- TABLEAU — Liste des bénéficiaires uniquement --}}
 <div class="rapport-table-wrap">
 <table class="rapport-table">
     <thead>
         <tr>
             <th>#</th>
-            <th>Client</th>
-            <th>Téléphone</th>
-            <th>Dossier</th>
-            <th>Grand Site</th>
-            <th>👥 Bénéficiaire(s) & Date prévue</th>
+            <th>👤 Bénéficiaire</th>
+            <th>📞 Téléphone</th>
+            <th>🏢 Grand Site</th>
+            <th>🗺️ Site</th>
+            <th>📄 TF</th>
+            <th>📅 Implantation prévue</th>
             <th style="text-align:right;">Réf. Logistique</th>
             <th style="text-align:right;">Payé</th>
             <th style="text-align:right;">Reste</th>
             <th>Progression</th>
             <th>Statut</th>
-            <th>Dernier paiement</th>
         </tr>
     </thead>
     <tbody>
-    @foreach($dossiers as $i => $d)
+    @php $row = 0; @endphp
+
+    @foreach($dossiers as $d)
         @php
             $payeLogi  = $d->paiementsLogistiques->sum('montant');
             $prixLogi  = $d->prix_logistique ?? 0;
@@ -312,115 +321,138 @@
                 $statut = 'nonpaye';  $label = '❌ Non payé';  $couleur = '#dc2626';
             }
 
-            $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
+            $benefs = $d->beneficiaires ?? collect();
+            $nbBenefs = max(1, $benefs->count());
 
-            // ✅ Récupérer les paiements logistiques par bénéficiaire
-            $benefsPaiement = \App\Models\BeneficiairePaiement::with('beneficiaire')
-                ->where('dossier_client_id', $d->id)
-                ->where('paiement_type', 'logistique')
-                ->get()
-                ->groupBy('beneficiaire_id');
+            // ✅ Récupérer Site & TF depuis la première affectation du dossier
+            $premiereAffectation = $d->affectations->first();
+            $siteNom = $premiereAffectation?->site?->name;
+            $tfNom   = $premiereAffectation?->tf?->title;
 
-            // ✅ Construire la liste des bénéficiaires avec leur date prévue + montant
-            $benefsListe = [];
-
-            // 1. Bénéficiaires du dossier (source principale)
-            foreach (($d->beneficiaires ?? collect()) as $b) {
-                $montant = isset($benefsPaiement[$b->id])
-                    ? $benefsPaiement[$b->id]->sum('montant')
-                    : 0;
-
-                $benefsListe[] = [
-                    'nom'            => $b->nom,
-                    'date_prevue'    => $b->implantation_prevue,
-                    'montant'        => $montant,
-                ];
+            // ✅ Fallback : si le dossier n'a pas d'affectation directe, essayer via le bénéficiaire
+            if (!$siteNom || !$tfNom) {
+                $premiereAffBenef = \App\Models\Affectation::where('dossier_client_id', $d->id)
+                    ->with(['site', 'tf'])
+                    ->first();
+                $siteNom = $siteNom ?? $premiereAffBenef?->site?->name;
+                $tfNom   = $tfNom   ?? $premiereAffBenef?->tf?->title;
             }
-
-            // 2. Paiements orphelins (bénéficiaire non listé sur le dossier)
-            foreach ($benefsPaiement as $benefId => $paiements) {
-                if (($d->beneficiaires ?? collect())->contains('id', $benefId)) continue;
-
-                $benefsListe[] = [
-                    'nom'         => $paiements->first()->beneficiaire?->nom ?? 'Inconnu',
-                    'date_prevue' => $paiements->first()->beneficiaire?->implantation_prevue,
-                    'montant'     => $paiements->sum('montant'),
-                ];
-            }
-
-            // Trier par date prévue (les plus proches en premier)
-            usort($benefsListe, function ($a, $b) {
-                if (!$a['date_prevue'] && !$b['date_prevue']) return 0;
-                if (!$a['date_prevue']) return 1;
-                if (!$b['date_prevue']) return -1;
-                return strcmp($a['date_prevue'], $b['date_prevue']);
-            });
         @endphp
-        <tr>
-            <td>{{ $i + 1 }}</td>
-            <td><strong>{{ $d->client?->name ?? '-' }}</strong></td>
-            <td>{{ $d->client?->phone ?? '-' }}</td>
-            <td>{{ $d->nom_dossier ?? '-' }}</td>
-            <td>{{ $d->grandSite?->nom ?? '-' }}</td>
 
-            {{-- ✅ Colonne BÉNÉFICIAIRES + DATE PRÉVUE + MONTANT --}}
-            <td style="min-width:280px;">
-                @if(count($benefsListe) > 0)
-                    @foreach($benefsListe as $b)
-                        <div class="benef-line">
-                            <span class="nom">👤 {{ $b['nom'] }}</span>
+        @forelse($benefs as $b)
+            @php
+                $row++;
 
-                            @if($b['date_prevue'])
-                                <span class="date">
-                                    📅 {{ \Carbon\Carbon::parse($b['date_prevue'])->format('d/m/Y') }}
-                                </span>
-                            @else
-                                <span class="date vide">
-                                    — non planifiée —
-                                </span>
-                            @endif
+                // ✅ Paiements logistiques de ce bénéficiaire
+                $payeBenef = \App\Models\BeneficiairePaiement::where('dossier_client_id', $d->id)
+                    ->where('beneficiaire_id', $b->id)
+                    ->where('paiement_type', 'logistique')
+                    ->sum('montant');
 
-                            <span class="montant {{ $b['montant'] > 0 ? '' : 'zero' }}">
-                                {{ number_format($b['montant'], 0, ',', ' ') }} F
-                            </span>
+                $prixBenef  = $prixLogi / $nbBenefs;
+                $resteBenef = max(0, $prixBenef - $payeBenef);
+                $pctBenef   = $prixBenef > 0 ? min(100, round(($payeBenef / $prixBenef) * 100)) : 0;
+
+                if ($payeBenef >= $prixBenef && $prixBenef > 0) {
+                    $statutB = 'paye';     $labelB = '✅ Payé';      $couleurB = '#16a34a';
+                } elseif ($payeBenef > 0) {
+                    $statutB = 'partiel';  $labelB = '⏳ Partiel';   $couleurB = '#f59e0b';
+                } else {
+                    $statutB = 'nonpaye';  $labelB = '❌ Non payé';  $couleurB = '#dc2626';
+                }
+            @endphp
+            <tr>
+                <td>{{ $row }}</td>
+
+                <td>
+                    <span class="benef-nom">👤 {{ $b->nom }}</span>
+                </td>
+
+                <td>
+                    <span style="font-size:11px;color:#1e40af;font-weight:600;">
+                        📞 {{ $b->telephone ?? '—' }}
+                    </span>
+                </td>
+
+                <td>
+                    <span style="font-size:11px;color:#64748b;">
+                        {{ $d->grandSite?->nom ?? '—' }}
+                    </span>
+                </td>
+
+                {{-- ✅ Colonne SITE --}}
+                <td>
+                    @if($siteNom)
+                        <span class="site-badge">🗺️ {{ $siteNom }}</span>
+                    @else
+                        <span style="color:#94a3b8;font-size:11px;">—</span>
+                    @endif
+                </td>
+
+                {{-- ✅ Colonne TF --}}
+                <td>
+                    @if($tfNom)
+                        <span class="tf-badge">📄 {{ $tfNom }}</span>
+                    @else
+                        <span style="color:#94a3b8;font-size:11px;">—</span>
+                    @endif
+                </td>
+
+                <td>
+                    @if($b->implantation_prevue)
+                        <span class="benef-date">
+                            📅 {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
+                        </span>
+                    @else
+                        <span class="benef-date vide">
+                            — non planifiée —
+                        </span>
+                    @endif
+                </td>
+
+                <td style="text-align:right;color:#7c3aed;font-weight:700;">
+                    {{ number_format($prixBenef, 0, ',', ' ') }}
+                </td>
+
+                <td style="text-align:right;color:#16a34a;font-weight:700;">
+                    {{ number_format($payeBenef, 0, ',', ' ') }}
+                </td>
+
+                <td style="text-align:right;color:#dc2626;font-weight:700;">
+                    {{ number_format($resteBenef, 0, ',', ' ') }}
+                </td>
+
+                <td>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <div class="progress-bar-mini">
+                            <div style="width:{{ $pctBenef }}%;background:{{ $couleurB }};"></div>
                         </div>
-                    @endforeach
-                @else
-                    <span style="color:#94a3b8;font-size:11px;">Aucun bénéficiaire</span>
-                @endif
-            </td>
-
-            <td style="text-align:right;color:#7c3aed;font-weight:700;">{{ number_format($prixLogi, 0, ',', ' ') }}</td>
-            <td style="text-align:right;color:#16a34a;font-weight:700;">{{ number_format($payeLogi, 0, ',', ' ') }}</td>
-            <td style="text-align:right;color:#dc2626;font-weight:700;">{{ number_format($resteLogi, 0, ',', ' ') }}</td>
-            <td>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <div class="progress-bar-mini">
-                        <div style="width:{{ $pct }}%;background:{{ $couleur }};"></div>
+                        <span style="font-size:11px;font-weight:700;color:{{ $couleurB }};">
+                            {{ $pctBenef }}%
+                        </span>
                     </div>
-                    <span style="font-size:11px;font-weight:700;color:{{ $couleur }};">{{ $pct }}%</span>
-                </div>
-            </td>
-            <td><span class="badge-statut {{ $statut }}">{{ $label }}</span></td>
-            <td>
-                @if($dernier)
-                    <span style="font-size:11px;color:#64748b;">📅 {{ \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') }}</span>
-                    <br>
-                    <span style="font-size:10px;color:#94a3b8;">{{ number_format($dernier->montant, 0, ',', ' ') }} FCFA</span>
-                @else
-                    <span style="color:#94a3b8;">—</span>
-                @endif
-            </td>
-        </tr>
+                </td>
+
+                <td>
+                    <span class="badge-statut {{ $statutB }}">{{ $labelB }}</span>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="12" style="text-align:center;color:#94a3b8;padding:20px;">
+                    Aucun bénéficiaire pour ce dossier
+                </td>
+            </tr>
+        @endforelse
     @endforeach
     </tbody>
     <tfoot>
         <tr>
-            <td colspan="6">TOTAUX</td>
+            <td colspan="7">TOTAUX</td>
             <td style="text-align:right;">{{ number_format($stats['prix_logistique_total'], 0, ',', ' ') }}</td>
             <td style="text-align:right;color:#4ade80;">{{ number_format($stats['paye_logistique_total'], 0, ',', ' ') }}</td>
             <td style="text-align:right;color:#fca5a5;">{{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }}</td>
-            <td colspan="3" style="text-align:center;">{{ $stats['progression_moyenne'] }}% moy.</td>
+            <td colspan="2" style="text-align:center;">{{ $stats['progression_moyenne'] }}% moy.</td>
         </tr>
     </tfoot>
 </table>
@@ -433,8 +465,8 @@
 @else
     <div class="alert alert-info" style="text-align:center;padding:60px 20px;background:white;border-radius:12px;">
         <div style="font-size:48px;">📭</div>
-        <h4 style="color:#1e3a5f;font-weight:800;margin-top:12px;">Aucun dossier trouvé</h4>
-        <p style="color:#64748b;font-size:13px;margin:0;">Aucun dossier logistique ne correspond à vos critères.</p>
+        <h4 style="color:#1e3a5f;font-weight:800;margin-top:12px;">Aucun bénéficiaire trouvé</h4>
+        <p style="color:#64748b;font-size:13px;margin:0;">Aucun bénéficiaire logistique ne correspond à vos critères.</p>
         @if(request('date_implantation_prevue'))
             <a href="{{ route('comptable.rapport') }}" class="btn btn-outline-primary btn-sm" style="margin-top:12px;">
                 ✖ Effacer le filtre

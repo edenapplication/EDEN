@@ -494,9 +494,15 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
             'client',
             'grandSite',
             'paiementsLogistiques',
-            'beneficiaires',        // ✅ pour récupérer implantation_prevue
+            'beneficiaires',  
+            'affectations.site',    // ✅ AJOUT — pour récupérer le SITE
+        'affectations.tf',      // ✅ AJOUT — pour récupérer le TF      // ✅ pour récupérer implantation_prevue
         ])
-        ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+         ->whereHas('beneficiaires') 
+        ->where(function ($q) {
+    $q->whereRaw('COALESCE(prix_logistique, 0) > 0')
+      ->orWhereHas('beneficiaires');
+})
         ->orderByDesc('created_at');
 
     // ─── Recherche ───
@@ -552,7 +558,10 @@ public function rapportExport(Request $request)
             'grandSite',
             'paiementsLogistiques',
             'beneficiaires',
+            'affectations.site',    // ✅ AJOUT — pour récupérer le SITE
+        'affectations.tf',      // ✅ AJOUT — pour récupérer le TF
         ])
+         ->whereHas('beneficiaires') 
         ->whereRaw('COALESCE(prix_logistique, 0) > 0')
         ->orderByDesc('created_at');
 
@@ -609,7 +618,7 @@ public function rapportExport(Request $request)
         return $pdf->download('rapport_logistique_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    // ═══════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
     // 📊 EXPORT CSV
     // ═══════════════════════════════════════════════════════════
     $filename = 'rapport_logistique_' . now()->format('Y-m-d_H-i') . '.csv';
@@ -629,7 +638,8 @@ public function rapportExport(Request $request)
             'Téléphone',
             'Dossier',
             'Grand Site',
-            'Implantation prévue',
+            'Site',              // ✅ AJOUT
+            'TF',                // ✅ AJOUT
             'Bénéficiaire(s)',
             'Réf. Logistique',
             'Payé',
@@ -648,13 +658,12 @@ public function rapportExport(Request $request)
 
             $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
 
-            // ✅ Date implantation prévue (la plus récente sur les bénéficiaires)
-            $dateImplantationPrevue = ($d->beneficiaires ?? collect())
-                ->whereNotNull('implantation_prevue')
-                ->sortByDesc('implantation_prevue')
-                ->first()?->implantation_prevue;
+            // ✅ Site & TF (depuis la 1ère affectation)
+            $premiereAffectation = $d->affectations->first();
+            $siteNom = $premiereAffectation?->site?->name ?? '-';
+            $tfNom   = $premiereAffectation?->tf?->title ?? '-';
 
-            // ✅ Bénéficiaires avec montant payé si disponible
+            // Bénéficiaires avec montant payé
             $benefsPaiement = \App\Models\BeneficiairePaiement::with('beneficiaire')
                 ->where('dossier_client_id', $d->id)
                 ->where('paiement_type', 'logistique')
@@ -683,9 +692,8 @@ public function rapportExport(Request $request)
                 $d->client?->phone ?? '-',
                 $d->nom_dossier ?? '-',
                 $d->grandSite?->nom ?? '-',
-                $dateImplantationPrevue
-                    ? \Carbon\Carbon::parse($dateImplantationPrevue)->format('d/m/Y')
-                    : '-',
+                $siteNom,       // ✅ AJOUT
+                $tfNom,         // ✅ AJOUT
                 $benefsTexte,
                 $prix,
                 $paye,
