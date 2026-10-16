@@ -2933,11 +2933,15 @@ public function choixDimanche(Request $request)
     $query = Affectation::with([
         'beneficiaire', 'client', 'grandSite', 'site', 'tf', 'bloc', 'lot',
         'geometre', 'dossier.facilitateur',
-        'dossier.paiementsLogistiques',   // ✅ AJOUT
+        'dossier.paiementsLogistiques',
     ])
     ->where('statut', 'actif')
     ->where('etape_programmation', 'cloturee')
-    ->where('statut_acceptation', 'en_attente');
+    // ✅ GARDER tout sauf les acceptées
+    ->where(function ($q) {
+        $q->where('statut_acceptation', '!=', 'accepte')
+          ->orWhereNull('statut_acceptation');
+    });
 
     if ($dateActive) {
         $query->where(function($q) use ($dateActive) {
@@ -2995,7 +2999,7 @@ public function choixDimanche(Request $request)
             'date_implantation'  => $premier->date_implantation,
             'geometre_id'        => $premier->geometre_id,
             'geometre_nom'       => $premier->geometre?->name,
-            'frais_paye'         => $fraisPaye,   // ✅ CORRIGÉ
+            'frais_paye'         => $fraisPaye,
             'statut_presence'    => $premier->statut_presence ?? 'en_attente',
             'etape_programmation'=> $etape,
             'validee'            => $validee,

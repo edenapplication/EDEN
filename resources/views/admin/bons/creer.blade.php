@@ -377,7 +377,7 @@ function autoCreerBeneficiaireSiClient(benefId, callback) {
         formData.append('telephone', CLIENT_TEL);
         formData.append('client_id', CLIENT_ID);
 
-        fetch(`/admin/comptable/dossier/${DOSSIER_ID}/beneficiaire-ajax`, {
+        fetch(`/admin/dossiers/${DOSSIER_ID}/beneficiaires`, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
             body: formData,
@@ -674,7 +674,7 @@ function sauvegarderBenef() {
     btn.disabled = true;
     btn.innerHTML = '⏳ Enregistrement...';
 
-    fetch(`/admin/comptable/dossier/${DOSSIER_ID}/beneficiaire-ajax`, {
+    fetch(`/admin/dossiers/${DOSSIER_ID}/beneficiaires`, {
         method: 'POST',
         headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
         body: formData,
