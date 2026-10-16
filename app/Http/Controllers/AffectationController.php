@@ -2936,7 +2936,6 @@ public function choixDimanche(Request $request)
         'dossier.paiementsLogistiques',
     ])
     ->where('statut', 'actif')
-    ->where('etape_programmation', 'cloturee')
     // ✅ GARDER tout sauf les acceptées
     ->where(function ($q) {
         $q->where('statut_acceptation', '!=', 'accepte')
