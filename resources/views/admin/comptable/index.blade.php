@@ -489,25 +489,24 @@ const CSRF_TOKEN = '{{ csrf_token() }}';
 // ═══════════════════════════════════════════════════════════
 // FILTRAGE DYNAMIQUE
 // ═══════════════════════════════════════════════════════════
-function filtrerDossiers() {
-    const recherche = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
-    document.querySelectorAll('.dossier-card').forEach(row => {
-        const texte = row.textContent.toLowerCase();
-        row.style.display = (!recherche || texte.includes(recherche)) ? '' : 'none';
-    });
-    document.querySelectorAll('.client-card').forEach(card => {
-        const visibles = card.querySelectorAll('.dossier-card:not([style*="display: none"])').length;
-        card.style.display = visibles > 0 ? '' : 'none';
-    });
-}
-
+// ═══════════════════════════════════════════════════════════
+// FILTRAGE CÔTÉ SERVEUR (respecte la pagination)
+// ═══════════════════════════════════════════════════════════
 let debounceTimer;
-document.getElementById('search-input')?.addEventListener('input', () => {
+document.getElementById('search-input')?.addEventListener('input', function() {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(filtrerDossiers, 150);
+    debounceTimer = setTimeout(() => {
+        // ✅ Soumettre le formulaire GET → recharge la page avec le paramètre `q`
+        document.getElementById('form-filtres').submit();
+    }, 400); // 400ms de délai pour ne pas spammer
 });
-document.getElementById('search-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { e.target.value = ''; filtrerDossiers(); }
+
+// Escape vide le champ et soumet pour réinitialiser
+document.getElementById('search-input')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        this.value = '';
+        document.getElementById('form-filtres').submit();
+    }
 });
 
 // ═══════════════════════════════════════════════════════════
