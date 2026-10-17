@@ -81,7 +81,6 @@
     }
     .progress-bar-mini > div { height: 100%; border-radius: 3px; }
 
-    /* ═══ Ligne bénéficiaire ═══ */
     .benef-nom {
         font-weight: 800;
         color: #6d28d9;
@@ -101,7 +100,6 @@
         font-weight: 500;
     }
 
-    /* ═══ Site / TF badges ═══ */
     .site-badge {
         display: inline-block;
         background: #ecfdf5; color: #15803d;
@@ -284,7 +282,7 @@
     </a>
 </div>
 
-{{-- TABLEAU — Liste des bénéficiaires uniquement --}}
+{{-- TABLEAU — Liste des bénéficiaires --}}
 <div class="rapport-table-wrap">
 <table class="rapport-table">
     <thead>
@@ -310,26 +308,15 @@
         @php
             $payeLogi  = $d->paiementsLogistiques->sum('montant');
             $prixLogi  = $d->prix_logistique ?? 0;
-            $resteLogi = max(0, $prixLogi - $payeLogi);
-            $pct       = $prixLogi > 0 ? min(100, round(($payeLogi / $prixLogi) * 100)) : 0;
-
-            if ($payeLogi >= $prixLogi && $prixLogi > 0) {
-                $statut = 'paye';     $label = '✅ Payé';      $couleur = '#16a34a';
-            } elseif ($payeLogi > 0) {
-                $statut = 'partiel';  $label = '⏳ Partiel';   $couleur = '#f59e0b';
-            } else {
-                $statut = 'nonpaye';  $label = '❌ Non payé';  $couleur = '#dc2626';
-            }
 
             $benefs = $d->beneficiaires ?? collect();
             $nbBenefs = max(1, $benefs->count());
 
-            // ✅ Récupérer Site & TF depuis la première affectation du dossier
+            // ✅ Site & TF
             $premiereAffectation = $d->affectations->first();
             $siteNom = $premiereAffectation?->site?->name;
             $tfNom   = $premiereAffectation?->tf?->title;
 
-            // ✅ Fallback : si le dossier n'a pas d'affectation directe, essayer via le bénéficiaire
             if (!$siteNom || !$tfNom) {
                 $premiereAffBenef = \App\Models\Affectation::where('dossier_client_id', $d->id)
                     ->with(['site', 'tf'])
@@ -343,11 +330,16 @@
             @php
                 $row++;
 
-                // ✅ Paiements logistiques de ce bénéficiaire
+                // ✅ Paiement SPÉCIFIQUE à ce bénéficiaire
                 $payeBenef = \App\Models\BeneficiairePaiement::where('dossier_client_id', $d->id)
                     ->where('beneficiaire_id', $b->id)
                     ->where('paiement_type', 'logistique')
                     ->sum('montant');
+
+                // ✅ FALLBACK : si 0, répartir le total du dossier
+                if ($payeBenef == 0 && $payeLogi > 0) {
+                    $payeBenef = $payeLogi / $nbBenefs;
+                }
 
                 $prixBenef  = $prixLogi / $nbBenefs;
                 $resteBenef = max(0, $prixBenef - $payeBenef);
@@ -380,7 +372,6 @@
                     </span>
                 </td>
 
-                {{-- ✅ Colonne SITE --}}
                 <td>
                     @if($siteNom)
                         <span class="site-badge">🗺️ {{ $siteNom }}</span>
@@ -389,7 +380,6 @@
                     @endif
                 </td>
 
-                {{-- ✅ Colonne TF --}}
                 <td>
                     @if($tfNom)
                         <span class="tf-badge">📄 {{ $tfNom }}</span>

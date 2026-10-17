@@ -14,7 +14,6 @@ body { font-family:DejaVu Sans, sans-serif; font-size:8px; color:#1e293b; }
 .header h1 { font-size:17px; font-weight:bold; margin-bottom:3px; }
 .header p  { font-size:8.5px; opacity:0.85; }
 
-/* ═══ KPI ═══ */
 .kpi-grid {
     width:100%; margin-bottom:14px;
     border-collapse:separate; border-spacing:6px 0;
@@ -33,7 +32,6 @@ body { font-family:DejaVu Sans, sans-serif; font-size:8px; color:#1e293b; }
     font-weight:700; letter-spacing:0.3px; margin-top:2px;
 }
 
-/* ═══ RÉCAP ═══ */
 .recap-grid {
     width:100%; margin-bottom:12px;
     border-collapse:separate; border-spacing:6px 0;
@@ -51,7 +49,6 @@ body { font-family:DejaVu Sans, sans-serif; font-size:8px; color:#1e293b; }
 .recap-row .lbl { color:#64748b; }
 .recap-row .val { font-weight:bold; }
 
-/* ═══ TABLE ═══ */
 table.data { width:100%; border-collapse:collapse; }
 thead tr { background:#7c3aed; color:white; }
 thead th {
@@ -68,7 +65,6 @@ tfoot td {
     padding:7px 5px; font-size:8px;
 }
 
-/* ═══ BADGES ═══ */
 .statut {
     padding:2px 6px; border-radius:8px;
     font-size:6.5pt; font-weight:bold;
@@ -117,7 +113,6 @@ tfoot td {
     font-weight:500;
 }
 
-/* ═══ PROGRESSION ═══ */
 .progress-wrap {
     width:40px; height:5px; background:#e2e8f0;
     border-radius:3px; display:inline-block;
@@ -125,7 +120,6 @@ tfoot td {
 }
 .progress-bar { height:100%; border-radius:3px; }
 
-/* ═══ VALEURS ═══ */
 .val-violet { color:#7c3aed; font-weight:bold; }
 .val-vert   { color:#16a34a; font-weight:bold; }
 .val-rouge  { color:#dc2626; font-weight:bold; }
@@ -295,21 +289,27 @@ tfoot td {
             @php
                 $row++;
 
+                // ✅ Paiement SPÉCIFIQUE
                 $payeBenef = \App\Models\BeneficiairePaiement::where('dossier_client_id', $d->id)
                     ->where('beneficiaire_id', $b->id)
                     ->where('paiement_type', 'logistique')
                     ->sum('montant');
+
+                // ✅ FALLBACK : si 0, répartir le total du dossier
+                if ($payeBenef == 0 && $payeLogi > 0) {
+                    $payeBenef = $payeLogi / $nbBenefs;
+                }
 
                 $prixBenef  = $prixLogi / $nbBenefs;
                 $resteBenef = max(0, $prixBenef - $payeBenef);
                 $pctBenef   = $prixBenef > 0 ? min(100, round(($payeBenef / $prixBenef) * 100)) : 0;
 
                 if ($payeBenef >= $prixBenef && $prixBenef > 0) {
-                    $statutB = 'paye';     $labelB = 'Payé';      $couleurB = '#16a34a';
+                    $statutB = 'paye';     $labelB = '✅ Payé';      $couleurB = '#16a34a';
                 } elseif ($payeBenef > 0) {
-                    $statutB = 'partiel';  $labelB = 'Partiel';   $couleurB = '#f59e0b';
+                    $statutB = 'partiel';  $labelB = '⏳ Partiel';   $couleurB = '#f59e0b';
                 } else {
-                    $statutB = 'nonpaye';  $labelB = 'Non payé';  $couleurB = '#dc2626';
+                    $statutB = 'nonpaye';  $labelB = '❌ Non payé';  $couleurB = '#dc2626';
                 }
             @endphp
             <tr>
@@ -329,7 +329,7 @@ tfoot td {
 
                 <td>
                     @if($siteNom)
-                        <span class="site-badge">{{ $siteNom }}</span>
+                        <span class="site-badge">🗺️ {{ $siteNom }}</span>
                     @else
                         <span class="val-gris">—</span>
                     @endif
@@ -337,7 +337,7 @@ tfoot td {
 
                 <td>
                     @if($tfNom)
-                        <span class="tf-badge">{{ $tfNom }}</span>
+                        <span class="tf-badge">📄 {{ $tfNom }}</span>
                     @else
                         <span class="val-gris">—</span>
                     @endif
@@ -346,7 +346,7 @@ tfoot td {
                 <td>
                     @if($b->implantation_prevue)
                         <span class="date-badge">
-                            {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
+                            📅 {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
                         </span>
                     @else
                         <span class="date-badge vide">— non planifiée —</span>

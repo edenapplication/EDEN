@@ -2038,7 +2038,7 @@ public function annulerRefusEnAttente(Request $request)
     }
 }
 
- public function updateImplantationGroupe(Request $request)
+public function updateImplantationGroupe(Request $request)
 {
     $request->validate([
         'affectation_ids'   => 'required|array|min:1',
@@ -2064,7 +2064,7 @@ public function annulerRefusEnAttente(Request $request)
 
         $premier = $affs->first();
 
-        // ✅ Détecter le changement de date AVANT le contrôle d'état
+        // Détecter le changement de date
         $ancienneDate = $premier->date_implantation?->format('Y-m-d H:i');
         $nouvelleDate = $request->date_implantation
             ? \Carbon\Carbon::parse($request->date_implantation)->format('Y-m-d H:i')
@@ -2072,9 +2072,7 @@ public function annulerRefusEnAttente(Request $request)
 
         $dateChangee = ($ancienneDate !== $nouvelleDate);
 
-        // ⚠️ Autorisé si :
-        //   - Toutes en attente (cas normal)
-        //   - OU la date change (reset)
+        // Contrôle d'état
         $nonEnAttente = $affs->where('statut_acceptation', '!=', 'en_attente');
 
         if ($nonEnAttente->isNotEmpty() && !$dateChangee) {
@@ -2099,13 +2097,12 @@ public function annulerRefusEnAttente(Request $request)
         ];
 
         // ═══════════════════════════════════════════════════════════
-        // ✅ SI LA DATE CHANGE → RÉINITIALISER LA PROGRAMMATION
+        // SI LA DATE CHANGE (ou est retirée) → RÉINITIALISER
         // ═══════════════════════════════════════════════════════════
         if ($dateChangee) {
             Affectation::whereIn('id', $ids)->update([
                 'date_implantation'     => $request->date_implantation,
-                'statut'                => 'actif',  
-                // ✅ Reset complet
+                'statut'                => 'actif',
                 'geometre_id'           => null,
                 'heure_implantation'    => null,
                 'statut_presence'       => 'en_attente',
@@ -2123,8 +2120,19 @@ public function annulerRefusEnAttente(Request $request)
                 'date_refus_prevue'     => null,
                 'motif_refus_prevu'     => null,
             ]);
+
+            // ✅ AJOUT : Effacer implantation_prevue et remettre étape_actuelle = 'nouvelle'
+            $beneficiaireIds = $affs->pluck('beneficiaire_id')->filter()->unique()->toArray();
+
+            if (!empty($beneficiaireIds)) {
+                Beneficiaire::whereIn('id', $beneficiaireIds)->update([
+                    'implantation_prevue' => null,
+                    'etape_actuelle'      => 'nouvelle',
+                ]);
+            }
+
         } else {
-            // ✅ Mise à jour normale
+            // Mise à jour normale (date inchangée)
             Affectation::whereIn('id', $ids)->update([
                 'date_implantation' => $request->date_implantation,
                 'geometre_id'       => $request->geometre_id,
@@ -2152,7 +2160,7 @@ public function annulerRefusEnAttente(Request $request)
                     . ($avant['date_implantation'] ?? '—')
                     . " → " . ($apres['date_implantation'] ?? '—');
                 if ($dateChangee) {
-                    $changements[] = "⚠️ Programmation réinitialisée (géomètre + heure effacés)";
+                    $changements[] = "⚠️ Programmation réinitialisée (géomètre + heure effacés, implantation_prevue effacée)";
                 }
             }
             if ($avant['geometre_id'] !== $apres['geometre_id']) {
@@ -2177,7 +2185,7 @@ public function annulerRefusEnAttente(Request $request)
         DB::commit();
 
         $message = $dateChangee
-            ? '✅ Date modifiée — Programmation réinitialisée (géomètre + heure effacés).'
+            ? '✅ Date modifiée — Programmation réinitialisée. Bénéficiaire remis à l\'étape « nouvelle ».'
             : '✅ Implantation mise à jour sur ' . count($ids) . ' affectation(s).';
 
         return response()->json([
@@ -2367,7 +2375,6 @@ public function annulerRefusEnAttente(Request $request)
 
             $idsModifiables = $enAttente->pluck('id')->toArray();
 
-            // ✅ Détecter si la date a changé (par rapport à la première affectation)
             $premier = $enAttente->first();
             $ancienneDate = $premier->date_implantation?->format('Y-m-d H:i');
             $nouvelleDate = \Carbon\Carbon::parse($dateImplantation)->format('Y-m-d H:i');
@@ -2385,7 +2392,6 @@ public function annulerRefusEnAttente(Request $request)
             ];
 
             if ($dateChangee) {
-                // ✅ Reset complet
                 Affectation::whereIn('id', $idsModifiables)->update([
                     'date_implantation'     => $dateImplantation,
                     'statut'                => 'actif',
@@ -2406,6 +2412,17 @@ public function annulerRefusEnAttente(Request $request)
                     'date_refus_prevue'     => null,
                     'motif_refus_prevu'     => null,
                 ]);
+
+                // ✅ AJOUT : Effacer implantation_prevue + étape_actuelle = 'nouvelle'
+                $beneficiaireIds = $enAttente->pluck('beneficiaire_id')->filter()->unique()->toArray();
+
+                if (!empty($beneficiaireIds)) {
+                    Beneficiaire::whereIn('id', $beneficiaireIds)->update([
+                        'implantation_prevue' => null,
+                        'etape_actuelle'      => 'nouvelle',
+                    ]);
+                }
+
                 $totalReset += count($idsModifiables);
             } else {
                 Affectation::whereIn('id', $idsModifiables)->update([
@@ -2426,7 +2443,7 @@ public function annulerRefusEnAttente(Request $request)
                     "🔧 Implantation multiple (" . count($idsModifiables) . " lot(s)) — Date : "
                         . ($ancienneDate ?? '—')
                         . " → " . $nouvelleDate
-                        . ($dateChangee ? " ⚠️ Programmation réinitialisée" : '')
+                        . ($dateChangee ? " ⚠️ Programmation réinitialisée + implantation_prevue effacée" : '')
                         . ($premier->beneficiaire ? " — Bénéficiaire : « {$premier->beneficiaire->nom} »" : ''),
                     'affectation',
                     $premier->id,
@@ -2444,7 +2461,7 @@ public function annulerRefusEnAttente(Request $request)
 
         $msg = "✅ Implantation mise à jour sur {$totalMisAJour} affectation(s).";
         if ($totalReset > 0) {
-            $msg .= " — ⚠️ {$totalReset} réinitialisée(s) (géomètre + heure effacés).";
+            $msg .= " — ⚠️ {$totalReset} réinitialisée(s) (géomètre + heure effacés, bénéficiaire remis à 'nouvelle').";
         }
         if ($totalBloques > 0) {
             $msg .= " — {$totalBloques} ignorée(s) (déjà acceptée/refusée).";
@@ -2471,81 +2488,97 @@ public function annulerRefusEnAttente(Request $request)
     // ============================================================
     // ✅ PROGRAMMATION MULTIPLE
     // ============================================================
-    public function updateProgrammationMultiple(Request $request)
-    {
-        $request->validate([
-            'lignes'             => 'required|array|min:1',
-            'lignes.*.ids'       => 'required|array|min:1',
-            'lignes.*.ids.*'     => 'integer|exists:affectations,id',
-            'date_implantation'  => 'nullable|date',
-            'heure_implantation' => 'nullable|date_format:H:i',
-            'geometre_id'        => 'nullable|exists:users,id',
-            'statut_presence'    => 'nullable|in:en_attente,present,retard,absent',
-            'stagiaire' => 'nullable|string|max:150',
-        ]);
+   public function updateProgrammationMultiple(Request $request)
+{
+    $request->validate([
+        'lignes'             => 'required|array|min:1',
+        'lignes.*.ids'       => 'required|array|min:1',
+        'lignes.*.ids.*'     => 'integer|exists:affectations,id',
+        'date_implantation'  => 'nullable|date',
+        'heure_implantation' => 'nullable|date_format:H:i',
+        'geometre_id'        => 'nullable|exists:users,id',
+        'statut_presence'    => 'nullable|in:en_attente,present,retard,absent',
+        'stagiaire'          => 'nullable|string|max:150',
+    ]);
 
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            $updateData = [];
-            if ($request->filled('date_implantation'))  $updateData['date_implantation']  = $request->date_implantation;
-            if ($request->filled('heure_implantation')) $updateData['heure_implantation'] = $request->heure_implantation;
-            if ($request->filled('geometre_id'))        $updateData['geometre_id']        = $request->geometre_id;
-            if ($request->filled('statut_presence'))    $updateData['statut_presence']    = $request->statut_presence;
+        $updateData = [];
+        if ($request->filled('date_implantation'))  $updateData['date_implantation']  = $request->date_implantation;
+        if ($request->filled('heure_implantation')) $updateData['heure_implantation'] = $request->heure_implantation;
+        if ($request->filled('geometre_id'))        $updateData['geometre_id']        = $request->geometre_id;
+        if ($request->filled('statut_presence'))    $updateData['statut_presence']    = $request->statut_presence;
 
-            if ($request->has('stagiaire')) {
-    $updateData['stagiaire'] = $request->stagiaire ?: null;   // ✅
-}
+        if ($request->has('stagiaire')) {
+            $updateData['stagiaire'] = $request->stagiaire ?: null;
+        }
 
-            if (empty($updateData)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '⚠️ Aucune donnée à mettre à jour.',
-                ], 422);
-            }
-
-            $totalMisAJour = 0;
-            $totalBloques  = 0;
-
-            foreach ($request->lignes as $ligne) {
-                $affs = Affectation::whereIn('id', $ligne['ids'])->get();
-                $enAttente = $affs->where('statut_acceptation', 'en_attente');
-
-                if ($enAttente->isEmpty()) {
-                    $totalBloques += $affs->count();
-                    continue;
-                }
-
-                $idsModifiables = $enAttente->pluck('id')->toArray();
-                Affectation::whereIn('id', $idsModifiables)->update($updateData);
-
-                $totalMisAJour += count($idsModifiables);
-                $totalBloques  += ($affs->count() - count($idsModifiables));
-            }
-
-            DB::commit();
-
-            $msg = "✅ Programmation mise à jour sur {$totalMisAJour} affectation(s).";
-            if ($totalBloques > 0) {
-                $msg .= " — {$totalBloques} ignorée(s).";
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $msg,
-                'updated' => $totalMisAJour,
-                'ignored' => $totalBloques,
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur updateProgrammationMultiple : ' . $e->getMessage());
+        if (empty($updateData)) {
             return response()->json([
                 'success' => false,
-                'message' => '❌ Erreur : ' . $e->getMessage(),
-            ], 500);
+                'message' => '⚠️ Aucune donnée à mettre à jour.',
+            ], 422);
         }
+
+        $totalMisAJour = 0;
+        $totalBloques  = 0;
+        $dateModifiee  = $request->filled('date_implantation');
+
+        foreach ($request->lignes as $ligne) {
+            $affs = Affectation::whereIn('id', $ligne['ids'])->get();
+            $enAttente = $affs->where('statut_acceptation', 'en_attente');
+
+            if ($enAttente->isEmpty()) {
+                $totalBloques += $affs->count();
+                continue;
+            }
+
+            $idsModifiables = $enAttente->pluck('id')->toArray();
+            Affectation::whereIn('id', $idsModifiables)->update($updateData);
+
+            // ✅ AJOUT : Si la date d'implantation est modifiée → effacer implantation_prevue
+            if ($dateModifiee) {
+                $beneficiaireIds = $enAttente->pluck('beneficiaire_id')->filter()->unique()->toArray();
+
+                if (!empty($beneficiaireIds)) {
+                    Beneficiaire::whereIn('id', $beneficiaireIds)->update([
+                        'implantation_prevue' => null,
+                        'etape_actuelle'      => 'nouvelle',
+                    ]);
+                }
+            }
+
+            $totalMisAJour += count($idsModifiables);
+            $totalBloques  += ($affs->count() - count($idsModifiables));
+        }
+
+        DB::commit();
+
+        $msg = "✅ Programmation mise à jour sur {$totalMisAJour} affectation(s).";
+        if ($dateModifiee) {
+            $msg .= " — 📅 Bénéficiaire(s) remis à l'étape 'nouvelle' (implantation_prevue effacée).";
+        }
+        if ($totalBloques > 0) {
+            $msg .= " — {$totalBloques} ignorée(s).";
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $msg,
+            'updated' => $totalMisAJour,
+            'ignored' => $totalBloques,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur updateProgrammationMultiple : ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Erreur : ' . $e->getMessage(),
+        ], 500);
     }
+}
 
     // ============================================================
     // ✅ ACCEPTER PROGRAMMATION MULTIPLE
