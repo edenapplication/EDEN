@@ -109,7 +109,6 @@
     }
     .btn-prix:hover { background: #6d28d9; transform: scale(1.03); }
 
-    /* MODAL */
     .modal-overlay {
         display: none; position: fixed; inset: 0;
         background: rgba(15,23,42,0.6); z-index: 9998;
@@ -132,6 +131,12 @@
     .empty-state {
         text-align: center; padding: 60px 20px; color: #94a3b8;
         background: white; border-radius: 12px;
+    }
+
+    .result-count {
+        font-size: 12px; color: #64748b; font-weight: 600;
+        padding: 8px 14px; background: #f1f5f9; border-radius: 8px;
+        display: inline-block; margin-bottom: 12px;
     }
 </style>
 @endsection
@@ -187,7 +192,7 @@
             <div class="col-md-5">
                 <label style="font-size:11px;font-weight:700;color:#64748b;">🔍 Recherche</label>
                 <input type="text" name="q" id="search-input" class="search-input"
-                       placeholder="Nom client, téléphone, dossier..."
+                       placeholder="Nom client, bénéficiaire, téléphone, dossier..."
                        value="{{ request('q') }}" autocomplete="off">
             </div>
             <div class="col-md-2">
@@ -219,6 +224,14 @@
             </div>
         </div>
     </form>
+</div>
+
+{{-- COMPTEUR RÉSULTATS --}}
+<div class="result-count">
+    📊 <strong>{{ $dossiers->count() }}</strong> dossier(s) trouvé(s)
+    @if(request('q') || request('statut') || request('grand_site_id'))
+        <span style="color:#7c3aed;">avec filtres actifs</span>
+    @endif
 </div>
 
 {{-- ALERTE SANS PRIX --}}
@@ -261,7 +274,7 @@
         <div class="client-body">
             @foreach($dossiersDuClient as $dossier)
                 @php
-                    $totalLogi = \App\Models\PaiementLogistique::where('dossier_client_id', $dossier->id)->sum('montant');
+                    $totalLogi = $dossier->paiementsLogistiques->sum('montant');
                     $prixLogi = $dossier->prix_logistique ?? 0;
 
                     $statutLogi = $prixLogi > 0 
@@ -402,10 +415,6 @@
     </div>
 @endforelse
 
-<div class="mt-3 d-flex justify-content-center">
-    {{ $dossiers->links() }}
-</div>
-
 {{-- ═══════════════════════════════════════════════════════════ --}}
 {{-- MODAL PAIEMENT LOGISTIQUE --}}
 {{-- ═══════════════════════════════════════════════════════════ --}}
@@ -487,21 +496,16 @@
 const CSRF_TOKEN = '{{ csrf_token() }}';
 
 // ═══════════════════════════════════════════════════════════
-// FILTRAGE DYNAMIQUE
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-// FILTRAGE CÔTÉ SERVEUR (respecte la pagination)
+// FILTRAGE CÔTÉ SERVEUR (respecte toutes les données)
 // ═══════════════════════════════════════════════════════════
 let debounceTimer;
 document.getElementById('search-input')?.addEventListener('input', function() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-        // ✅ Soumettre le formulaire GET → recharge la page avec le paramètre `q`
         document.getElementById('form-filtres').submit();
-    }, 400); // 400ms de délai pour ne pas spammer
+    }, 500); // 500ms de délai
 });
 
-// Escape vide le champ et soumet pour réinitialiser
 document.getElementById('search-input')?.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         this.value = '';
@@ -663,8 +667,7 @@ function soumettreMulti() {
             afficherMessageMulti('✅ ' + data.message, 'success');
             setTimeout(() => {
                 fermerModalMulti();
-                if (typeof showToastGlobal === 'function') showToastGlobal('✅ ' + data.message, 'success');
-                setTimeout(() => location.reload(), 800);
+                location.reload();
             }, 1500);
         } else {
             afficherMessageMulti('❌ ' + data.message, 'error');

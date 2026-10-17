@@ -107,61 +107,65 @@ class ComptableController extends Controller
     // ═══════════════════════════════════════════════════════════════
 
     public function index(Request $request)
-    {
-        $query = DossierClient::with([
-                'client',
-                'grandSite',
-                'beneficiaires',
-                'paiementsLogistiques',
-            ])
-            ->whereRaw('COALESCE(prix_logistique, 0) > 0')
-            ->orderByDesc('created_at');
+{
+    $query = DossierClient::with([
+            'client',
+            'grandSite',
+            'beneficiaires',
+            'paiementsLogistiques',
+        ])
+        ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+        ->orderByDesc('created_at');
 
-        // Recherche
-        if ($request->filled('q')) {
-            $q = trim($request->q);
-            $query->where(function ($qry) use ($q) {
-                $qry->whereHas('client', fn($cq) =>
-                    $cq->where('name', 'LIKE', "%{$q}%")
-                       ->orWhere('phone', 'LIKE', "%{$q}%"))
-                    ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-            });
-        }
-
-        // Filtre statut
-        if ($request->filled('statut')) {
-            if ($request->statut === 'paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
-            } elseif ($request->statut === 'non_paye') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) = 0');
-            } elseif ($request->statut === 'partiel') {
-                $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) > 0')
-                      ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                                  WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
-            }
-        }
-
-        if ($request->filled('grand_site_id')) {
-            $query->where('grand_site_id', $request->grand_site_id);
-        }
-
-        $dossiers = $query->paginate(50)->withQueryString();
-        $dossiersGroupes = $dossiers->getCollection()->groupBy(fn($d) => $d->client_id ?? 0);
-
-        $grandSites = GrandSite::orderBy('nom')->get();
-        $stats = $this->calculerStatsLogistique($request);
-
-        $dossiersSansPrix = DossierClient::where(function ($q) {
-            $q->whereNull('prix_logistique')->orWhere('prix_logistique', 0);
-        })->count();
-
-        return view('admin.comptable.index', compact(
-            'dossiers', 'dossiersGroupes', 'grandSites', 'stats', 'dossiersSansPrix'
-        ));
+    // Recherche
+    if ($request->filled('q')) {
+        $q = trim($request->q);
+        $query->where(function ($qry) use ($q) {
+            $qry->whereHas('client', fn($cq) =>
+                $cq->where('name', 'LIKE', "%{$q}%")
+                   ->orWhere('phone', 'LIKE', "%{$q}%"))
+                ->orWhere('nom_dossier', 'LIKE', "%{$q}%")
+                ->orWhereHas('beneficiaires', fn($bq) =>    // ✅ AJOUT
+                    $bq->where('nom', 'LIKE', "%{$q}%")
+                       ->orWhere('telephone', 'LIKE', "%{$q}%"));
+        });
     }
+
+    // Filtre statut
+    if ($request->filled('statut')) {
+        if ($request->statut === 'paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+        } elseif ($request->statut === 'non_paye') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) = 0');
+        } elseif ($request->statut === 'partiel') {
+            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+        }
+    }
+
+    if ($request->filled('grand_site_id')) {
+        $query->where('grand_site_id', $request->grand_site_id);
+    }
+
+    // ✅ TOUS les dossiers (pas de paginate)
+    $dossiers = $query->get();
+    $dossiersGroupes = $dossiers->groupBy(fn($d) => $d->client_id ?? 0);
+
+    $grandSites = GrandSite::orderBy('nom')->get();
+    $stats = $this->calculerStatsLogistique($request);
+
+    $dossiersSansPrix = DossierClient::where(function ($q) {
+        $q->whereNull('prix_logistique')->orWhere('prix_logistique', 0);
+    })->count();
+
+    return view('admin.comptable.index', compact(
+        'dossiers', 'dossiersGroupes', 'grandSites', 'stats', 'dossiersSansPrix'
+    ));
+}
 
     // ═══════════════════════════════════════════════════════════════
     // 👥 BÉNÉFICIAIRES D'UN DOSSIER
