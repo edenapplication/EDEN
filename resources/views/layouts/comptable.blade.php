@@ -236,6 +236,13 @@
             <span>Rapport Logistique</span>
         </a>
 
+        {{-- ✅ NOUVEAU : Rapports sauvegardés --}}
+        <a href="{{ route('comptable.rapports.sauvegardes') }}"
+           class="comptable-nav-link {{ request()->routeIs('comptable.rapports.sauvegardes*') ? 'active' : '' }}">
+            <i class="bi bi-file-earmark-text-fill"></i>
+            <span>Rapports sauvegardés</span>
+        </a>
+
         <a href="{{ route('comptable.historique-global') }}"
            class="comptable-nav-link {{ request()->routeIs('comptable.historique-global') ? 'active' : '' }}">
             <i class="bi bi-clock-history"></i>

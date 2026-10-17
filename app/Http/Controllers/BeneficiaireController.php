@@ -40,16 +40,15 @@ public function store(Request $request, DossierClient $dossier)
             ], 422);
         }
 
-        // ✅ Récupérer les lots (peut être vide)
+        // ✅ Récupérer les lots AVEC LES RELATIONS (grandSite, site, tf, bloc)
         $lotIds = $request->lot_ids ?? [];
         $lots = !empty($lotIds)
-            ? LotAffectation::with('bloc')->whereIn('id', $lotIds)->get()
+            ? LotAffectation::with(['grandSite', 'site', 'tf', 'bloc'])->whereIn('id', $lotIds)->get()
             : collect();
 
         // ✅ On ne bloque PLUS sur la superficie — on autorise le dépassement
         $superficieTotale = 0;
         if ($lots->isNotEmpty()) {
-            // Vérifier que tous les lots sont disponibles
             $lotsIndisponibles = $lots->where('disponible', false);
             if ($lotsIndisponibles->isNotEmpty()) {
                 $noms = $lotsIndisponibles->pluck('numero')->implode(', ');
@@ -60,9 +59,6 @@ public function store(Request $request, DossierClient $dossier)
             }
 
             $superficieTotale = $lots->sum('superficie');
-
-            // ✅ RETIRÉ : Plus de blocage sur superficie_restante
-            // On autorise la superficie des lots à dépasser la superficie voulue.
         }
 
         // ✅ Upload CNI — DÉSORMAIS OPTIONNELLE
@@ -72,15 +68,12 @@ public function store(Request $request, DossierClient $dossier)
                 $cniPath = $request->file('cni')->store('beneficiaires/cni', 'public');
                 Log::info('✅ CNI uploadée', ['path' => $cniPath]);
             } catch (\Exception $e) {
-                // ✅ En cas d'échec, on continue sans CNI (pas d'erreur bloquante)
                 Log::warning('⚠️ Échec upload CNI (ignoré)', ['error' => $e->getMessage()]);
                 $cniPath = null;
             }
         }
 
-        // ✅ RETIRÉ : Plus d'erreur si pas de CNI
-
-        // ✅ Créer le bénéficiaire (superficie peut être 0, CNI peut être null)
+        // ✅ Créer le bénéficiaire
         $beneficiaire = Beneficiaire::create([
             'dossier_client_id'    => $dossier->id,
             'client_id'            => $clientId,
@@ -92,7 +85,7 @@ public function store(Request $request, DossierClient $dossier)
             'notes'                => $request->notes,
         ]);
 
-        // ✅ Créer les affectations (seulement si des lots ont été sélectionnés)
+        // ✅ Créer les affectations
         $dateAffectation = $request->date_affectation ?? now()->format('Y-m-d');
         $lotsAffectes = [];
 
@@ -113,26 +106,25 @@ public function store(Request $request, DossierClient $dossier)
 
             $lot->update(['disponible' => false]);
 
+            // ✅ ENRICHIR avec grand_site, site, tf
             $lotsAffectes[] = [
                 'lot_id'     => $lot->id,
                 'numero'     => $lot->numero,
                 'bloc'       => $lot->bloc?->code,
+                'grand_site' => $lot->grandSite?->nom,
+                'site'       => $lot->site?->name,
+                'tf'         => $lot->tf?->title,
                 'superficie' => $lot->superficie,
             ];
         }
 
-        // ✅ HISTORIQUE (message adapté selon qu'il y a des lots ou non)
-        if (!empty($lotsAffectes)) {
-            $resumeLots = collect($lotsAffectes)
-                ->map(fn($l) => "Lot {$l['numero']}" . ($l['bloc'] ? " (Bloc {$l['bloc']})" : ''))
-                ->implode(', ');
-
-            $resume = "Ajout du bénéficiaire « {$beneficiaire->nom} » "
-                    . "avec " . count($lotsAffectes) . " lot(s) — {$resumeLots} "
-                    . "— Superficie totale : " . number_format($superficieTotale, 0, ',', ' ') . " m²";
-        } else {
-            $resume = "Ajout du bénéficiaire « {$beneficiaire->nom} » (sans lot affecté)";
-        }
+        // ✅ HISTORIQUE — NOUVEAU MESSAGE NATUREL
+        $resume = $this->buildHistoriqueMessage(
+            $beneficiaire,
+            $lotsAffectes,
+            $superficieTotale,
+            $request->notes
+        );
 
         HistoriqueService::log(
             $dossier->id,
@@ -182,127 +174,310 @@ public function store(Request $request, DossierClient $dossier)
     }
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🎯 Construire le message d'historique (nouveau format)
+ * ═══════════════════════════════════════════════════════════════
+ */
+private function buildHistoriqueMessage(
+    Beneficiaire $beneficiaire,
+    array $lotsAffectes,
+    float $superficieTotale,
+    ?string $notes
+): string {
+    // Pas de lots
+    if (empty($lotsAffectes)) {
+        return "Ajout du bénéficiaire « {$beneficiaire->nom} » sans aucun lot affecté";
+    }
+
+    $premierLot = $lotsAffectes[0];
+
+    $grandSite = $premierLot['grand_site'] ?? null;
+    $site      = $premierLot['site']       ?? null;
+    $tf        = $premierLot['tf']         ?? null;
+    $bloc      = $premierLot['bloc']       ?? null;
+
+    $nbLots    = count($lotsAffectes);
+    $nbLotsTxt = HistoriqueService::formatNbLots($nbLots);
+    $lieuTxt   = HistoriqueService::formatLieu($grandSite, $site, $tf, $bloc);
+    $lotsTxt   = HistoriqueService::formatLots($lotsAffectes);
+    $supTxt    = HistoriqueService::formatSuperficie($superficieTotale);
+    $noteTxt   = HistoriqueService::formatNote($notes);
+
+    $resume = "Ajout du bénéficiaire « {$beneficiaire->nom} » avec {$nbLotsTxt}, "
+            . "{$lieuTxt}, {$lotsTxt}, pour une superficie "
+            . ($nbLots > 1 ? 'totale ' : '')
+            . "de {$supTxt}";
+
+    if ($noteTxt) {
+        $resume .= ", {$noteTxt}";
+    }
+
+    return $resume;
+}
+
     // ════════════════════════════════════════════════════════════
-    // UPDATE — Modifier un bénéficiaire
-    // ════════════════════════════════════════════════════════════
-    public function update(Request $request, Beneficiaire $beneficiaire)
-    {
-        try {
-            $request->validate([
-                'nom'                  => 'required|string|max:255',
-                'telephone'            => 'nullable|string|max:50',
-                'cni'                  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-                'notes'                => 'nullable|string|max:1000',
-            ]);
+// UPDATE — Modifier un bénéficiaire
+// ════════════════════════════════════════════════════════════
+public function update(Request $request, Beneficiaire $beneficiaire)
+{
+    try {
+        $request->validate([
+            'nom'                  => 'required|string|max:255',
+            'telephone'            => 'nullable|string|max:50',
+            'cni'                  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'notes'                => 'nullable|string|max:1000',
+        ]);
 
-            $dossier = $beneficiaire->dossier;
-            $avant = $beneficiaire->toArray();
+        $dossier = $beneficiaire->dossier;
+        $avant   = $beneficiaire->toArray();
 
-            $data = [
-                'nom'        => $request->nom,
-                'telephone'  => $request->telephone,
-                'notes'      => $request->notes,
-            ];
+        $data = [
+            'nom'        => $request->nom,
+            'telephone'  => $request->telephone,
+            'notes'      => $request->notes,
+        ];
 
-            // CNI (optionnel)
-            if ($request->hasFile('cni') && $request->file('cni')->isValid()) {
-                if ($beneficiaire->cni_path) {
-                    Storage::disk('public')->delete($beneficiaire->cni_path);
-                }
-                $data['cni_path'] = $request->file('cni')->store('beneficiaires/cni', 'public');
+        $cniAjoutee = false;
+
+        // CNI (optionnel)
+        if ($request->hasFile('cni') && $request->file('cni')->isValid()) {
+            if ($beneficiaire->cni_path) {
+                Storage::disk('public')->delete($beneficiaire->cni_path);
             }
+            $data['cni_path'] = $request->file('cni')->store('beneficiaires/cni', 'public');
+            $cniAjoutee = true;
+        }
 
-            $beneficiaire->update($data);
-            $beneficiaire->refresh();
+        $beneficiaire->update($data);
+        $beneficiaire->refresh();
 
-            // ✅ Historique
-            $diff = $this->construireResumeModification($avant, $beneficiaire->toArray());
+        // ✅ NOUVEAU MESSAGE NATUREL
+        $resume = $this->buildModificationBenefMessage(
+            $avant,
+            $beneficiaire->toArray(),
+            $cniAjoutee
+        );
 
+        // Ne logger que s'il y a des changements
+        if ($resume !== null) {
             HistoriqueService::log(
                 $dossier->id,
                 'modification_beneficiaire',
-                "Modification de « {$beneficiaire->nom} » — {$diff}",
+                $resume,
                 'beneficiaire',
                 $beneficiaire->id,
                 $avant,
                 $beneficiaire->toArray(),
                 $beneficiaire->id
             );
-
-            return response()->json([
-                'success'      => true,
-                'message'      => '✅ Bénéficiaire mis à jour.',
-                'beneficiaire' => $this->formatBeneficiaire($beneficiaire),
-                'superficie_dossier'   => $dossier->superficie_dossier,
-                'superficie_attribuee' => $dossier->superficie_attribuee,
-                'superficie_restante'  => $dossier->superficie_restante,
-                'pourcentage'          => $dossier->pourcentage_attribue,
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors'  => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('Erreur update beneficiaire: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
         }
+
+        return response()->json([
+            'success'      => true,
+            'message'      => '✅ Bénéficiaire mis à jour.',
+            'beneficiaire' => $this->formatBeneficiaire($beneficiaire),
+            'superficie_dossier'   => $dossier->superficie_dossier,
+            'superficie_attribuee' => $dossier->superficie_attribuee,
+            'superficie_restante'  => $dossier->superficie_restante,
+            'pourcentage'          => $dossier->pourcentage_attribue,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation',
+            'errors'  => $e->errors(),
+        ], 422);
+    } catch (\Exception $e) {
+        Log::error('Erreur update beneficiaire: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
 
     // ════════════════════════════════════════════════════════════
-    // DESTROY
-    // ════════════════════════════════════════════════════════════
-    public function destroy(Beneficiaire $beneficiaire)
-    {
-        try {
-            $dossier = $beneficiaire->dossier;
-            $avant   = $beneficiaire->toArray();
-            $nom     = $beneficiaire->nom;
-            $benefId = $beneficiaire->id;
+// DESTROY
+// ════════════════════════════════════════════════════════════
+public function destroy(Beneficiaire $beneficiaire)
+{
+    try {
+        $dossier = $beneficiaire->dossier;
+        $avant   = $beneficiaire->toArray();
+        $nom     = $beneficiaire->nom;
+        $benefId = $beneficiaire->id;
 
-            // ✅ Libérer les lots affectés
-            foreach ($beneficiaire->affectations as $aff) {
-                $aff->lot?->update(['disponible' => true]);
-                $aff->delete();
-            }
+        // ✅ Compter les lots AVANT suppression
+        $nbLotsLiberes = $beneficiaire->affectations->count();
+        $superficieLiberee = $beneficiaire->affectations->sum(fn($a) => $a->lot?->superficie ?? 0);
 
-            if ($beneficiaire->cni_path) {
-                Storage::disk('public')->delete($beneficiaire->cni_path);
-            }
-
-            $beneficiaire->delete();
-
-            if ($dossier) {
-                HistoriqueService::log(
-                    $dossier->id,
-                    'suppression_beneficiaire',
-                    "Suppression du bénéficiaire « {$nom} »",
-                    'beneficiaire',
-                    $benefId,
-                    $avant,
-                    null,
-                    $benefId
-                );
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => '🗑️ Bénéficiaire supprimé.',
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur destroy beneficiaire: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
+        // ✅ Libérer les lots affectés
+        foreach ($beneficiaire->affectations as $aff) {
+            $aff->lot?->update(['disponible' => true]);
+            $aff->delete();
         }
+
+        if ($beneficiaire->cni_path) {
+            Storage::disk('public')->delete($beneficiaire->cni_path);
+        }
+
+        $beneficiaire->delete();
+
+        if ($dossier) {
+            // ✅ NOUVEAU MESSAGE NATUREL
+            $resume = $this->buildSuppressionBenefMessage(
+                $nom,
+                $nbLotsLiberes,
+                $superficieLiberee
+            );
+
+            HistoriqueService::log(
+                $dossier->id,
+                'suppression_beneficiaire',
+                $resume,
+                'beneficiaire',
+                $benefId,
+                $avant,
+                null,
+                $benefId
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => '🗑️ Bénéficiaire supprimé.',
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Erreur destroy beneficiaire: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🎯 Construire le message de modification d'un bénéficiaire
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * @return string|null  null si aucun changement significatif
+ */
+private function buildModificationBenefMessage(
+    array $avant,
+    array $apres,
+    bool $cniAjoutee
+): ?string {
+    $changements = [];
+    $nomAffiche  = $apres['nom'] ?? $avant['nom'] ?? '—';
+
+    // Changement de nom
+    if (($avant['nom'] ?? null) !== ($apres['nom'] ?? null)) {
+        $changements[] = "le nom est passé de « " . ($avant['nom'] ?? '(vide)') . " » à « " . ($apres['nom'] ?? '(vide)') . " »";
+    }
+
+    // Changement de téléphone
+    if (($avant['telephone'] ?? null) !== ($apres['telephone'] ?? null)) {
+        $changements[] = "le téléphone est passé de « " . ($avant['telephone'] ?? '(vide)') . " » à « " . ($apres['telephone'] ?? '(vide)') . " »";
+    }
+
+    // Changement de notes
+    if (($avant['notes'] ?? null) !== ($apres['notes'] ?? null)) {
+        $changements[] = "les notes ont été modifiées";
+    }
+
+    // CNI ajoutée
+    if ($cniAjoutee) {
+        $changements[] = "la CNI a été ajoutée";
+    }
+
+    // Aucun changement
+    if (empty($changements)) {
+        return null;
+    }
+
+    $resume = "Modification du bénéficiaire « {$nomAffiche} » : " . implode(', ', $changements);
+
+    return $resume;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🎯 Construire le message de suppression d'un bénéficiaire
+ * ═══════════════════════════════════════════════════════════════
+ */
+private function buildSuppressionBenefMessage(
+    string $nom,
+    int $nbLotsLiberes,
+    float $superficieLiberee
+): string {
+    $resume = "Suppression définitive du bénéficiaire « {$nom} »";
+
+    if ($nbLotsLiberes > 0) {
+        $nbLotsTxt = HistoriqueService::formatNbLots($nbLotsLiberes);
+        $supTxt    = HistoriqueService::formatSuperficie($superficieLiberee);
+
+        $resume .= ", {$nbLotsTxt} libéré(s)";
+
+        if ($supTxt) {
+            $resume .= ", superficie libérée : {$supTxt}";
+        }
+    } else {
+        $resume .= " (aucun lot affecté)";
+    }
+
+    return $resume;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🎯 Construire le message de changement d'étape
+ * ═══════════════════════════════════════════════════════════════
+ */
+private function buildEtapeMessage(
+    string $beneficiaireNom,
+    string $etape,
+    ?string $date,
+    ?string $ancienneEtape,
+    ?string $nouvelleEtape
+): string {
+    $etapeLabel = HistoriqueService::formatEtape($etape);
+    $dateTxt    = $date ? HistoriqueService::formatDate($date) : null;
+
+    // Définition / mise à jour de l'étape
+    if ($date && $nouvelleEtape === $etape) {
+        if ($ancienneEtape === $etape) {
+            // Mise à jour de la date seulement
+            return "Mise à jour de la date pour l'étape « {$etapeLabel} » du bénéficiaire « {$beneficiaireNom} » : {$dateTxt}";
+        }
+
+        // Première définition ou transition vers une étape supérieure
+        $ancienLabel = $ancienneEtape ? HistoriqueService::formatEtape($ancienneEtape) : null;
+
+        if ($ancienLabel && $ancienLabel !== $etapeLabel) {
+            return "Changement d'étape pour le bénéficiaire « {$beneficiaireNom} » : passage de « {$ancienLabel} » à « {$etapeLabel} », le {$dateTxt}";
+        }
+
+        return "Définition de l'étape « {$etapeLabel} » pour le bénéficiaire « {$beneficiaireNom} », le {$dateTxt}";
+    }
+
+    // Suppression de l'étape
+    if ($ancienneEtape === $etape && $nouvelleEtape !== $etape) {
+        $nouveauLabel = $nouvelleEtape ? HistoriqueService::formatEtape($nouvelleEtape) : null;
+
+        if ($nouveauLabel) {
+            return "Suppression de l'étape « {$etapeLabel} » pour le bénéficiaire « {$beneficiaireNom} » (retour à « {$nouveauLabel} »)";
+        }
+
+        return "Suppression de l'étape « {$etapeLabel} » pour le bénéficiaire « {$beneficiaireNom} »";
+    }
+
+    // Fallback
+    return "Mise à jour de l'étape « {$etapeLabel} » pour le bénéficiaire « {$beneficiaireNom} »";
+}
 
     // ════════════════════════════════════════════════════════════
     // ✅ WHATSAPP BÉNÉFICIAIRE
@@ -345,64 +520,97 @@ public function store(Request $request, DossierClient $dossier)
     }
 
     // ════════════════════════════════════════════════════════════
-    // MAJ ÉTAPE
-    // ════════════════════════════════════════════════════════════
-    public function majEtape(Request $request, Beneficiaire $beneficiaire)
-    {
-        try {
-            $etape  = $request->input('etape');
-            $date   = $request->input('date');
-            $active = $request->input('active');
+// MAJ ÉTAPE
+// ════════════════════════════════════════════════════════════
+public function majEtape(Request $request, Beneficiaire $beneficiaire)
+{
+    try {
+        $etape  = $request->input('etape');
+        $date   = $request->input('date');
+        $active = $request->input('active');
 
-            if (!$etape || !in_array($etape, ['implantation_prevue', 'deja_implante', 'dossier_technique', 'morcellement'])) {
-                return response()->json(['success' => false, 'message' => 'Étape invalide'], 400);
-            }
-
-            $etapesConfig = Beneficiaire::etapesConfig();
-            $champDate    = $etapesConfig[$etape]['champ'];
-
-            if ($active && !$date) {
-                return response()->json(['success' => false, 'message' => 'Une date est requise'], 400);
-            }
-
-            if ($active && $date) $beneficiaire->$champDate = $date;
-            else $beneficiaire->$champDate = null;
-
-            $etapesOrdre = Beneficiaire::etapesOrdre();
-            $ordreEtape  = $etapesOrdre[$etape];
-
-            if ($active && $date) {
-                $beneficiaire->etape_actuelle = $etape;
-            } else {
-                $nouvelleEtape = null;
-                foreach ($etapesOrdre as $cle => $ordre) {
-                    if ($ordre < $ordreEtape) {
-                        $champ = $etapesConfig[$cle]['champ'];
-                        if ($beneficiaire->$champ) $nouvelleEtape = $cle;
-                    }
-                }
-                $beneficiaire->etape_actuelle = $nouvelleEtape;
-            }
-
-            $beneficiaire->save();
-
-            $dates = [];
-            foreach ($etapesConfig as $cle => $cfg) {
-                $champ = $cfg['champ'];
-                $dates[$cle] = $beneficiaire->$champ ? $beneficiaire->$champ->format('d/m/Y') : null;
-            }
-
-            return response()->json([
-                'success'        => true,
-                'etape_actuelle' => $beneficiaire->etape_actuelle,
-                'dates'          => $dates,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur majEtape beneficiaire: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        if (!$etape || !in_array($etape, ['implantation_prevue', 'deja_implante', 'dossier_technique', 'morcellement'])) {
+            return response()->json(['success' => false, 'message' => 'Étape invalide'], 400);
         }
+
+        $etapesConfig = Beneficiaire::etapesConfig();
+        $champDate    = $etapesConfig[$etape]['champ'];
+
+        if ($active && !$date) {
+            return response()->json(['success' => false, 'message' => 'Une date est requise'], 400);
+        }
+
+        // ✅ Capturer l'ancienne étape AVANT modification
+        $ancienneEtape = $beneficiaire->etape_actuelle;
+        $ancienneDate  = $beneficiaire->$champDate;
+
+        if ($active && $date) $beneficiaire->$champDate = $date;
+        else $beneficiaire->$champDate = null;
+
+        $etapesOrdre = Beneficiaire::etapesOrdre();
+        $ordreEtape  = $etapesOrdre[$etape];
+
+        if ($active && $date) {
+            $beneficiaire->etape_actuelle = $etape;
+        } else {
+            $nouvelleEtape = null;
+            foreach ($etapesOrdre as $cle => $ordre) {
+                if ($ordre < $ordreEtape) {
+                    $champ = $etapesConfig[$cle]['champ'];
+                    if ($beneficiaire->$champ) $nouvelleEtape = $cle;
+                }
+            }
+            $beneficiaire->etape_actuelle = $nouvelleEtape;
+        }
+
+        $beneficiaire->save();
+
+        // ✅ NOUVEAU : Historique du changement d'étape
+        $dossier = $beneficiaire->dossier;
+        if ($dossier && ($ancienneEtape !== $beneficiaire->etape_actuelle || $ancienneDate != $beneficiaire->$champDate)) {
+            $resume = $this->buildEtapeMessage(
+                $beneficiaire->nom,
+                $etape,
+                $active ? $date : null,
+                $ancienneEtape,
+                $beneficiaire->etape_actuelle
+            );
+
+            HistoriqueService::log(
+                $dossier->id,
+                'etape_beneficiaire',
+                $resume,
+                'beneficiaire',
+                $beneficiaire->id,
+                [
+                    'etape_avant' => $ancienneEtape,
+                    'date_avant'  => $ancienneDate?->format('Y-m-d'),
+                ],
+                [
+                    'etape_apres' => $beneficiaire->etape_actuelle,
+                    'date_apres'  => $beneficiaire->$champDate?->format('Y-m-d'),
+                ],
+                $beneficiaire->id
+            );
+        }
+
+        $dates = [];
+        foreach ($etapesConfig as $cle => $cfg) {
+            $champ = $cfg['champ'];
+            $dates[$cle] = $beneficiaire->$champ ? $beneficiaire->$champ->format('d/m/Y') : null;
+        }
+
+        return response()->json([
+            'success'        => true,
+            'etape_actuelle' => $beneficiaire->etape_actuelle,
+            'dates'          => $dates,
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Erreur majEtape beneficiaire: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
+}
 
     // ════════════════════════════════════════════════════════════
     // HELPERS

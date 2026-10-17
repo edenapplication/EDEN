@@ -14,6 +14,15 @@ body { font-family:DejaVu Sans, sans-serif; font-size:8px; color:#1e293b; }
 .header h1 { font-size:17px; font-weight:bold; margin-bottom:3px; }
 .header p  { font-size:8.5px; opacity:0.85; }
 
+.note-box {
+    background:#fffbeb; border-left:5px solid #f59e0b;
+    border-radius:8px; padding:12px 16px; margin-bottom:14px;
+    font-size:9px; color:#92400e; line-height:1.5;
+}
+.note-box .title {
+    font-size:10px; font-weight:bold; color:#78350f; margin-bottom:4px;
+}
+
 .kpi-grid {
     width:100%; margin-bottom:14px;
     border-collapse:separate; border-spacing:6px 0;
@@ -24,9 +33,7 @@ body { font-family:DejaVu Sans, sans-serif; font-size:8px; color:#1e293b; }
     text-align:center; vertical-align:middle;
     border-top:3px solid #7c3aed;
 }
-.kpi-grid .kpi-val {
-    font-size:16px; font-weight:900; color:#1e3a5f;
-}
+.kpi-grid .kpi-val { font-size:16px; font-weight:900; color:#1e3a5f; }
 .kpi-grid .kpi-lbl {
     font-size:7.5px; color:#64748b; text-transform:uppercase;
     font-weight:700; letter-spacing:0.3px; margin-top:2px;
@@ -64,16 +71,6 @@ tfoot td {
     background:#1e3a5f; color:white; font-weight:bold;
     padding:7px 5px; font-size:8px;
 }
-
-.statut {
-    padding:2px 6px; border-radius:8px;
-    font-size:6.5pt; font-weight:bold;
-    display:inline-block;
-    white-space:nowrap;
-}
-.statut-paye     { background:#dcfce7; color:#15803d; }
-.statut-partiel  { background:#fef3c7; color:#b45309; }
-.statut-nonpaye  { background:#fee2e2; color:#b91c1c; }
 
 .benef-nom {
     font-weight:bold;
@@ -113,13 +110,6 @@ tfoot td {
     font-weight:500;
 }
 
-.progress-wrap {
-    width:40px; height:5px; background:#e2e8f0;
-    border-radius:3px; display:inline-block;
-    vertical-align:middle; overflow:hidden;
-}
-.progress-bar { height:100%; border-radius:3px; }
-
 .val-violet { color:#7c3aed; font-weight:bold; }
 .val-vert   { color:#16a34a; font-weight:bold; }
 .val-rouge  { color:#dc2626; font-weight:bold; }
@@ -133,63 +123,71 @@ tfoot td {
 </head>
 <body>
 
-{{-- EN-TÊTE --}}
+{{-- EN-TETE (sans emoji) --}}
 <div class="header">
-    <h1>📊 Rapport Logistique — Paiements</h1>
+    <h1>Rapport de la Logistique des implanations</h1>
     <p>
-        Suivi des encaissements logistiques par bénéficiaire —
-        Généré le {{ now()->format('d/m/Y à H:i') }} —
+        Suivi des encaissements logistiques par beneficiaire -
+        Genere le {{ now()->format('d/m/Y a H:i') }} -
         {{ $stats['total_dossiers'] }} dossier(s)
     </p>
 </div>
 
-{{-- KPI --}}
+{{-- NOTE DU COMPTABLE --}}
+@if(!empty($noteRapport))
+<div class="note-box">
+    <div class="title">NOTE DU COMPTABLE</div>
+    <div>{!! nl2br(e($noteRapport)) !!}</div>
+</div>
+@endif
+
+{{-- KPI (sans emojis) --}}
 <table class="kpi-grid">
     <tr>
         <td>
             <div class="kpi-val">{{ $stats['nb_payes'] }}</div>
-            <div class="kpi-lbl">✅ Payés</div>
+            <div class="kpi-lbl">Payes</div>
         </td>
         <td>
             <div class="kpi-val">{{ $stats['nb_partiels'] }}</div>
-            <div class="kpi-lbl">⏳ Partiels</div>
+            <div class="kpi-lbl">Partiels</div>
         </td>
         <td>
             <div class="kpi-val">{{ $stats['nb_non_payes'] }}</div>
-            <div class="kpi-lbl">❌ Non payés</div>
+            <div class="kpi-lbl">Non payes</div>
         </td>
         <td>
             <div class="kpi-val" style="color:#7c3aed;">
                 {{ number_format($stats['prix_logistique_total'], 0, ',', ' ') }}
             </div>
-            <div class="kpi-lbl">📊 Réf. FCFA</div>
+            <div class="kpi-lbl">Ref. FCFA</div>
         </td>
         <td>
             <div class="kpi-val" style="color:#16a34a;">
                 {{ number_format($stats['paye_logistique_total'], 0, ',', ' ') }}
             </div>
-            <div class="kpi-lbl">💵 Encaissé FCFA</div>
+            <div class="kpi-lbl">Encaisse FCFA</div>
         </td>
         <td>
             <div class="kpi-val" style="color:#dc2626;">
                 {{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }}
             </div>
-            <div class="kpi-lbl">🔻 Reste FCFA</div>
+            <div class="kpi-lbl">Reste FCFA</div>
         </td>
     </tr>
 </table>
 
-{{-- RÉCAP --}}
+{{-- RECAP --}}
 <table class="recap-grid">
     <tr>
         <td class="recap-card-paye">
-            <h6 style="color:#16a34a;">✅ Dossiers soldés</h6>
+            <h6 style="color:#16a34a;">Dossiers soldes</h6>
             <div class="recap-row">
                 <span class="lbl">Nombre</span>
                 <span class="val" style="color:#16a34a;">{{ $stats['nb_payes'] }}</span>
             </div>
             <div class="recap-row">
-                <span class="lbl">Encaissé</span>
+                <span class="lbl">Encaisse</span>
                 <span class="val" style="color:#16a34a;">
                     {{ number_format($stats['paye_logistique_total'], 0, ',', ' ') }} FCFA
                 </span>
@@ -202,13 +200,13 @@ tfoot td {
             </div>
         </td>
         <td class="recap-card-partiel">
-            <h6 style="color:#b45309;">⏳ En cours</h6>
+            <h6 style="color:#b45309;">En cours</h6>
             <div class="recap-row">
                 <span class="lbl">Nombre</span>
                 <span class="val" style="color:#b45309;">{{ $stats['nb_partiels'] }}</span>
             </div>
             <div class="recap-row">
-                <span class="lbl">Encaissé</span>
+                <span class="lbl">Encaisse</span>
                 <span class="val" style="color:#16a34a;">
                     {{ number_format($stats['paye_partiels'] ?? 0, 0, ',', ' ') }} FCFA
                 </span>
@@ -221,7 +219,7 @@ tfoot td {
             </div>
         </td>
         <td class="recap-card-nonpaye">
-            <h6 style="color:#b91c1c;">❌ Non payés</h6>
+            <h6 style="color:#b91c1c;">Non payes</h6>
             <div class="recap-row">
                 <span class="lbl">Nombre</span>
                 <span class="val" style="color:#b91c1c;">{{ $stats['nb_non_payes'] }}</span>
@@ -242,22 +240,20 @@ tfoot td {
     </tr>
 </table>
 
-{{-- TABLEAU — une ligne par bénéficiaire --}}
+{{-- TABLEAU (sans statut, sans emojis) --}}
 <table class="data">
     <thead>
         <tr>
             <th style="width:20px;">#</th>
-            <th>Bénéficiaire</th>
-            <th>Téléphone</th>
+            <th>Beneficiaire</th>
+            <th>Telephone</th>
             <th>Grand Site</th>
             <th>Site</th>
             <th>TF</th>
-            <th>Implant. prévue</th>
-            <th style="text-align:right;">Réf.</th>
-            <th style="text-align:right;">Payé</th>
+            <th>Implant. prevue</th>
+            <th style="text-align:right;">Ref.</th>
+            <th style="text-align:right;">Paye</th>
             <th style="text-align:right;">Reste</th>
-            <th style="text-align:center;">Prog.</th>
-            <th style="text-align:center;">Statut</th>
         </tr>
     </thead>
     <tbody>
@@ -271,7 +267,6 @@ tfoot td {
             $benefs   = $d->beneficiaires ?? collect();
             $nbBenefs = max(1, $benefs->count());
 
-            // ✅ Site & TF
             $premiereAffectation = $d->affectations->first();
             $siteNom = $premiereAffectation?->site?->name;
             $tfNom   = $premiereAffectation?->tf?->title;
@@ -289,70 +284,52 @@ tfoot td {
             @php
                 $row++;
 
-                // ✅ Paiement SPÉCIFIQUE
                 $payeBenef = \App\Models\BeneficiairePaiement::where('dossier_client_id', $d->id)
                     ->where('beneficiaire_id', $b->id)
                     ->where('paiement_type', 'logistique')
                     ->sum('montant');
 
-                // ✅ FALLBACK : si 0, répartir le total du dossier
                 if ($payeBenef == 0 && $payeLogi > 0) {
                     $payeBenef = $payeLogi / $nbBenefs;
                 }
 
                 $prixBenef  = $prixLogi / $nbBenefs;
                 $resteBenef = max(0, $prixBenef - $payeBenef);
-                $pctBenef   = $prixBenef > 0 ? min(100, round(($payeBenef / $prixBenef) * 100)) : 0;
-
-                if ($payeBenef >= $prixBenef && $prixBenef > 0) {
-                    $statutB = 'paye';     $labelB = '✅ Payé';      $couleurB = '#16a34a';
-                } elseif ($payeBenef > 0) {
-                    $statutB = 'partiel';  $labelB = '⏳ Partiel';   $couleurB = '#f59e0b';
-                } else {
-                    $statutB = 'nonpaye';  $labelB = '❌ Non payé';  $couleurB = '#dc2626';
-                }
             @endphp
             <tr>
                 <td>{{ $row }}</td>
-
                 <td>
-                    <span class="benef-nom">👤 {{ $b->nom }}</span>
+                    <span class="benef-nom">{{ $b->nom }}</span>
                 </td>
-
                 <td>
-                    {{ $b->telephone ?? '—' }}
+                    {{ $b->telephone ?? '-' }}
                 </td>
-
                 <td>
-                    {{ $d->grandSite?->nom ?? '—' }}
+                    {{ $d->grandSite?->nom ?? '-' }}
                 </td>
-
                 <td>
                     @if($siteNom)
-                        <span class="site-badge">🗺️ {{ $siteNom }}</span>
+                        <span class="site-badge">{{ $siteNom }}</span>
                     @else
-                        <span class="val-gris">—</span>
+                        <span class="val-gris">-</span>
                     @endif
                 </td>
-
                 <td>
                     @if($tfNom)
-                        <span class="tf-badge">📄 {{ $tfNom }}</span>
+                        <span class="tf-badge">{{ $tfNom }}</span>
                     @else
-                        <span class="val-gris">—</span>
+                        <span class="val-gris">-</span>
                     @endif
                 </td>
-
                 <td>
                     @if($b->implantation_prevue)
                         <span class="date-badge">
-                            📅 {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
+                            {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
                         </span>
                     @else
-                        <span class="date-badge vide">— non planifiée —</span>
+                        <span class="date-badge vide">non planifiee</span>
                     @endif
                 </td>
-
                 <td style="text-align:right;" class="val-violet">
                     {{ number_format($prixBenef, 0, ',', ' ') }}
                 </td>
@@ -362,22 +339,11 @@ tfoot td {
                 <td style="text-align:right;" class="val-rouge">
                     {{ number_format($resteBenef, 0, ',', ' ') }}
                 </td>
-                <td style="text-align:center;">
-                    <span class="progress-wrap">
-                        <span class="progress-bar" style="width:{{ $pctBenef }}%;background:{{ $couleurB }};"></span>
-                    </span>
-                    <span style="font-size:6.5pt;color:{{ $couleurB }};font-weight:bold;margin-left:3px;">
-                        {{ $pctBenef }}%
-                    </span>
-                </td>
-                <td style="text-align:center;">
-                    <span class="statut statut-{{ $statutB }}">{{ $labelB }}</span>
-                </td>
             </tr>
         @empty
             <tr>
-                <td colspan="12" style="text-align:center;color:#94a3b8;padding:10px;">
-                    Aucun bénéficiaire pour ce dossier
+                <td colspan="10" style="text-align:center;color:#94a3b8;padding:10px;">
+                    Aucun beneficiaire pour ce dossier
                 </td>
             </tr>
         @endforelse
@@ -395,15 +361,12 @@ tfoot td {
             <td style="text-align:right;color:#fca5a5;">
                 {{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }}
             </td>
-            <td colspan="2" style="text-align:center;">
-                {{ $stats['progression_moyenne'] }}% moy.
-            </td>
         </tr>
     </tfoot>
 </table>
 
 <div class="footer">
-    EDEN GROUP — Rapport logistique généré automatiquement — {{ now()->format('d/m/Y à H:i') }}
+    EDEN GROUP - Rapport logistique genere automatiquement - {{ now()->format('d/m/Y a H:i') }}
 </div>
 
 </body>

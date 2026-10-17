@@ -506,10 +506,6 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
             'affectations.tf',
         ])
         ->whereHas('beneficiaires')
-        ->where(function ($q) {
-            $q->whereRaw('COALESCE(prix_logistique, 0) > 0')
-              ->orWhereHas('beneficiaires');
-        })
         ->orderByDesc('created_at');
 
     // ─── Recherche ───
@@ -519,7 +515,10 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
             $qry->whereHas('client', fn($cq) =>
                 $cq->where('name', 'LIKE', "%{$q}%")
                    ->orWhere('phone', 'LIKE', "%{$q}%"))
-                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
+                ->orWhere('nom_dossier', 'LIKE', "%{$q}%")
+                ->orWhereHas('beneficiaires', fn($bq) =>
+                    $bq->where('nom', 'LIKE', "%{$q}%")
+                       ->orWhere('telephone', 'LIKE', "%{$q}%"));
         });
     }
 
@@ -531,20 +530,27 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
     // ─── Filtre statut ───
     if ($request->filled('statut')) {
         if ($request->statut === 'paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
         } elseif ($request->statut === 'non_paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) = 0');
         } elseif ($request->statut === 'partiel') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) > 0')
                   ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+        } elseif ($request->statut === 'sans_prix') {
+            $query->where(function ($q) {
+                $q->whereNull('prix_logistique')->orWhere('prix_logistique', 0);
+            });
         }
     }
 
-    // ─── ✅ Filtre date d'implantation prévue (bénéficiaires) ───
+    // ─── Filtre date implantation prévue ───
     if ($request->filled('date_implantation_prevue')) {
         $query->whereHas('beneficiaires', function ($q) use ($request) {
             $q->whereDate('implantation_prevue', $request->date_implantation_prevue);
@@ -555,11 +561,31 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
     $grandSites = GrandSite::orderBy('nom')->get();
     $stats      = $this->calculerStatsLogistique($request);
 
-    return view('admin.comptable.rapport-logistique', compact('dossiers', 'grandSites', 'stats'));
+    // ✅ Total encaissé global (tous utilisateurs confondus)
+    $totalEncaisseGlobal = \App\Models\PaiementLogistique::query()
+        ->sum('montant');
+
+    // ✅ Encaissements par utilisateur
+    $encaissementsParUser = \App\Models\PaiementLogistique::query()
+        ->select('user_reference', \DB::raw('SUM(montant) as total'), \DB::raw('COUNT(*) as nb'))
+        ->groupBy('user_reference')
+        ->orderByDesc('total')
+        ->get();
+
+    return view('admin.comptable.rapport-logistique', compact(
+        'dossiers', 'grandSites', 'stats', 'totalEncaisseGlobal', 'encaissementsParUser'
+    ));
 }
 
 public function rapportExport(Request $request)
 {
+    $noteRapport = $request->input('note', null);
+    if ($noteRapport !== null) {
+        $noteRapport = trim($noteRapport);
+        if (empty($noteRapport)) $noteRapport = null;
+    }
+
+    // Construction de la requête (identique à votre code)
     $query = DossierClient::with([
             'client',
             'grandSite',
@@ -569,63 +595,57 @@ public function rapportExport(Request $request)
             'affectations.tf',
         ])
         ->whereHas('beneficiaires')
-        ->where(function ($q) {
-            $q->whereRaw('COALESCE(prix_logistique, 0) > 0')
-              ->orWhereHas('beneficiaires');
-        })
         ->orderByDesc('created_at');
 
-    // ─── Recherche ───
-    if ($request->filled('q')) {
-        $q = trim($request->q);
-        $query->where(function ($qry) use ($q) {
-            $qry->whereHas('client', fn($cq) =>
-                $cq->where('name', 'LIKE', "%{$q}%")
-                   ->orWhere('phone', 'LIKE', "%{$q}%"))
-                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-        });
-    }
-
-    // ─── Filtre grand site ───
-    if ($request->filled('grand_site_id')) {
-        $query->where('grand_site_id', $request->grand_site_id);
-    }
-
-    // ─── Filtre statut ───
-    if ($request->filled('statut')) {
-        if ($request->statut === 'paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
-        } elseif ($request->statut === 'non_paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) = 0');
-        } elseif ($request->statut === 'partiel') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) > 0')
-                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
-        }
-    }
-
-    // ─── ✅ Filtre date d'implantation prévue (bénéficiaires) ───
-    if ($request->filled('date_implantation_prevue')) {
-        $query->whereHas('beneficiaires', function ($q) use ($request) {
-            $q->whereDate('implantation_prevue', $request->date_implantation_prevue);
-        });
-    }
+    // ... vos filtres q, grand_site_id, statut, date_implantation_prevue ...
 
     $dossiers = $query->get();
     $stats    = $this->calculerStatsLogistique($request);
+
+    // Calcul des totaux globaux
+    $totalGlobalEncaisse = \App\Models\PaiementLogistique::sum('montant');
+
+    // Nombre de bénéficiaires
+    $nbBeneficiaires = $dossiers->sum(fn($d) => $d->beneficiaires->count());
 
     // ═══════════════════════════════════════════════════════════
     // 📄 EXPORT PDF
     // ═══════════════════════════════════════════════════════════
     if ($request->type === 'pdf') {
-        $pdf = Pdf::loadView('admin.comptable.rapport-logistique-pdf', compact('dossiers', 'stats'))
+        $pdf = Pdf::loadView('admin.comptable.rapport-logistique-pdf', compact(
+                'dossiers',
+                'stats',
+                'noteRapport'
+            ))
             ->setPaper('a4', 'landscape')
             ->setOptions(['defaultFont' => 'sans-serif']);
 
-        return $pdf->download('rapport_logistique_' . now()->format('Y-m-d') . '.pdf');
+        // ✅ Nom unique du fichier
+        $nomFichier    = 'rapport_logistique_' . now()->format('Y-m-d_His') . '.pdf';
+        $cheminRelatif = 'rapports_logistiques/' . $nomFichier;
+
+        // ✅ Sauvegarder sur le disque
+        \Storage::disk('public')->put($cheminRelatif, $pdf->output());
+
+        // ✅ Sauvegarder en base
+        \App\Models\RapportLogistique::create([
+            'titre'                 => 'Rapport logistique du ' . now()->format('d/m/Y H:i'),
+            'note'                  => $noteRapport,
+            'type'                  => 'pdf',
+            'chemin_fichier'        => $cheminRelatif,
+            'nom_fichier'           => $nomFichier,
+            'nb_dossiers'           => $dossiers->count(),
+            'nb_beneficiaires'      => $nbBeneficiaires,
+            'total_prix'            => $stats['prix_logistique_total'] ?? 0,
+            'total_paye'            => $stats['paye_logistique_total'] ?? 0,
+            'total_reste'           => $stats['reste_logistique_total'] ?? 0,
+            'total_global_encaisse' => $totalGlobalEncaisse,
+            'filtres'               => $request->only(['q', 'grand_site_id', 'statut', 'date_implantation_prevue']),
+            'user_id'               => auth()->id(),
+        ]);
+
+        // ✅ Retourner le PDF au navigateur
+        return response()->download(storage_path('app/public/' . $cheminRelatif), $nomFichier);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -638,25 +658,39 @@ public function rapportExport(Request $request)
         'Content-Disposition' => "attachment; filename=\"{$filename}\"",
     ];
 
-    $callback = function () use ($dossiers) {
+    $callback = function () use ($dossiers, $noteRapport, $totalEncaisseGlobal, $encaissementsParUser) {
         $file = fopen('php://output', 'w');
         fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
+        // ✅ Note en haut du CSV
+        if (!empty($noteRapport)) {
+            fputcsv($file, ['📝 NOTE DU COMPTABLE'], ';');
+            fputcsv($file, [$noteRapport], ';');
+            fputcsv($file, [], ';');
+        }
+
+        // ✅ Total global + répartition par utilisateur
+        fputcsv($file, ['💰 TOTAL GLOBAL ENCAISSÉ', number_format($totalEncaisseGlobal, 0, ',', ' ') . ' FCFA'], ';');
+        fputcsv($file, [], ';');
+
+        if ($encaissementsParUser->count() > 0) {
+            fputcsv($file, ['👥 RÉPARTITION PAR UTILISATEUR'], ';');
+            fputcsv($file, ['Utilisateur', 'Nb paiements', 'Total encaissé (FCFA)'], ';');
+            foreach ($encaissementsParUser as $user) {
+                fputcsv($file, [
+                    $user->user_reference ?? 'Non renseigné',
+                    $user->nb,
+                    $user->total,
+                ], ';');
+            }
+            fputcsv($file, [], ';');
+        }
+
+        // Tableau principal
         fputcsv($file, [
-            '#',
-            'Client',
-            'Téléphone',
-            'Dossier',
-            'Grand Site',
-            'Site',
-            'TF',
-            'Bénéficiaire(s)',
-            'Réf. Logistique',
-            'Payé',
-            'Reste',
-            'Progression %',
-            'Statut',
-            'Dernier paiement',
+            '#', 'Client', 'Téléphone', 'Dossier', 'Grand Site', 'Site', 'TF',
+            'Bénéficiaire(s)', 'Réf. Logistique', 'Payé', 'Reste', 'Progression %',
+            'Statut', 'Dernier paiement',
         ], ';');
 
         foreach ($dossiers as $i => $d) {
@@ -664,40 +698,40 @@ public function rapportExport(Request $request)
             $prix  = $d->prix_logistique ?? 0;
             $reste = max(0, $prix - $paye);
             $pct   = $prix > 0 ? min(100, round(($paye / $prix) * 100)) : 0;
-            $statut = $paye >= $prix && $prix > 0 ? 'Payé' : ($paye > 0 ? 'Partiel' : 'Non payé');
+
+            if ($prix == 0 && $paye == 0) {
+                $statut = 'Aucun frais';
+            } elseif ($paye >= $prix && $prix > 0) {
+                $statut = 'Payé';
+            } elseif ($paye > 0) {
+                $statut = 'Partiel';
+            } else {
+                $statut = 'Non payé';
+            }
 
             $dernier = $d->paiementsLogistiques->sortByDesc('date_paiement')->first();
 
-            // ✅ Site & TF (depuis la 1ère affectation)
             $premiereAffectation = $d->affectations->first();
             $siteNom = $premiereAffectation?->site?->name ?? '-';
             $tfNom   = $premiereAffectation?->tf?->title ?? '-';
 
-            // ═══════════════════════════════════════════════════════
-            // ✅ BÉNÉFICIAIRES AVEC FALLBACK
-            // ═══════════════════════════════════════════════════════
             $beneficiairesDossier = $d->beneficiaires ?? collect();
             $nbBenefs = max(1, $beneficiairesDossier->count());
 
-            // Paiements spécifiques par bénéficiaire (traçabilité)
             $benefsPaiement = \App\Models\BeneficiairePaiement::with('beneficiaire')
                 ->where('dossier_client_id', $d->id)
                 ->where('paiement_type', 'logistique')
                 ->get()
                 ->groupBy('beneficiaire_id');
 
-            // Total payé sur le dossier (pour fallback)
             $totalPayeDossier = $d->paiementsLogistiques->sum('montant');
 
             $benefsListe = [];
-
             foreach ($beneficiairesDossier as $b) {
-                // Paiement spécifique à ce bénéficiaire
                 $montantSpecifique = isset($benefsPaiement[$b->id])
                     ? $benefsPaiement[$b->id]->sum('montant')
                     : 0;
 
-                // ✅ Fallback : si 0, répartir le total du dossier
                 $montantAffiche = $montantSpecifique;
                 if ($montantSpecifique == 0 && $totalPayeDossier > 0) {
                     $montantAffiche = $totalPayeDossier / $nbBenefs;
@@ -714,22 +748,146 @@ public function rapportExport(Request $request)
                 $d->client?->phone ?? '-',
                 $d->nom_dossier ?? '-',
                 $d->grandSite?->nom ?? '-',
-                $siteNom,
-                $tfNom,
-                $benefsTexte,
-                $prix,
-                $paye,
-                $reste,
-                $pct,
-                $statut,
+                $siteNom, $tfNom, $benefsTexte,
+                $prix, $paye, $reste, $pct, $statut,
                 $dernier ? \Carbon\Carbon::parse($dernier->date_paiement)->format('d/m/Y') : '-',
             ], ';');
         }
-
         fclose($file);
     };
 
     return response()->stream($callback, 200, $headers);
+}
+
+public function rapportsSauvegardes(Request $request)
+{
+    $query = \App\Models\RapportLogistique::with('user')
+        ->orderByDesc('created_at');
+
+    // Filtre par titre / nom de fichier
+    if ($request->filled('q')) {
+        $q = trim($request->q);
+        $query->where(function ($qry) use ($q) {
+            $qry->where('titre', 'LIKE', "%{$q}%")
+                ->orWhere('nom_fichier', 'LIKE', "%{$q}%");
+        });
+    }
+
+    // Filtre par période
+    if ($request->filled('date_debut')) {
+        $query->whereDate('created_at', '>=', $request->date_debut);
+    }
+    if ($request->filled('date_fin')) {
+        $query->whereDate('created_at', '<=', $request->date_fin);
+    }
+
+    $rapports = $query->paginate(30)->withQueryString();
+
+    return view('admin.comptable.rapports-sauvegardes', compact('rapports'));
+}
+
+public function destroyRapportSauvegarde(\App\Models\RapportLogistique $rapport)
+{
+    try {
+        if ($rapport->chemin_fichier && \Storage::disk('public')->exists($rapport->chemin_fichier)) {
+            \Storage::disk('public')->delete($rapport->chemin_fichier);
+        }
+        $rapport->delete();
+
+        return back()->with('success', 'Rapport supprimé avec succès.');
+    } catch (\Exception $e) {
+        \Log::error('Erreur destroyRapportSauvegarde : ' . $e->getMessage());
+        return back()->with('error', 'Erreur lors de la suppression.');
+    }
+}
+
+
+private function calculerStatsLogistique(Request $request): array
+{
+    $query = DossierClient::with(['paiementsLogistiques', 'beneficiaires'])
+        ->whereHas('beneficiaires');
+
+    if ($request->filled('q')) {
+        $q = trim($request->q);
+        $query->where(function ($qry) use ($q) {
+            $qry->whereHas('client', fn($cq) =>
+                $cq->where('name', 'LIKE', "%{$q}%")
+                   ->orWhere('phone', 'LIKE', "%{$q}%"))
+                ->orWhere('nom_dossier', 'LIKE', "%{$q}%")
+                ->orWhereHas('beneficiaires', fn($bq) =>
+                    $bq->where('nom', 'LIKE', "%{$q}%")
+                       ->orWhere('telephone', 'LIKE', "%{$q}%"));
+        });
+    }
+
+    if ($request->filled('grand_site_id')) {
+        $query->where('grand_site_id', $request->grand_site_id);
+    }
+
+    if ($request->filled('date_implantation_prevue')) {
+        $query->whereHas('beneficiaires', function ($q) use ($request) {
+            $q->whereDate('implantation_prevue', $request->date_implantation_prevue);
+        });
+    }
+
+    if ($request->filled('statut')) {
+        if ($request->statut === 'paye') {
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
+        } elseif ($request->statut === 'non_paye') {
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) = 0');
+        } elseif ($request->statut === 'partiel') {
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+                              WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
+        } elseif ($request->statut === 'sans_prix') {
+            $query->where(function ($q) {
+                $q->whereNull('prix_logistique')->orWhere('prix_logistique', 0);
+            });
+        }
+    }
+
+    $tous = $query->get();
+
+    $nbPayes = 0; $nbPartiels = 0; $nbNonPayes = 0; $nbAucunFrais = 0;
+    $prixTotal = 0; $payeTotal = 0; $progSum = 0;
+
+    foreach ($tous as $d) {
+        $paye = $d->paiementsLogistiques->sum('montant');
+        $prix = $d->prix_logistique ?? 0;
+        $pct  = $prix > 0 ? min(100, ($paye / $prix) * 100) : 0;
+
+        $prixTotal += $prix;
+        $payeTotal += $paye;
+        $progSum += $pct;
+
+        if ($prix == 0 && $paye == 0) {
+            $nbAucunFrais++;
+        } elseif ($paye >= $prix && $prix > 0) {
+            $nbPayes++;
+        } elseif ($paye > 0) {
+            $nbPartiels++;
+        } else {
+            $nbNonPayes++;
+        }
+    }
+
+    return [
+        'total_dossiers'         => $tous->count(),
+        'nb_payes'               => $nbPayes,
+        'nb_partiels'            => $nbPartiels,
+        'nb_non_payes'           => $nbNonPayes,
+        'nb_aucun_frais'         => $nbAucunFrais,
+        'prix_logistique_total'  => $prixTotal,
+        'paye_logistique_total'  => $payeTotal,
+        'reste_logistique_total' => max(0, $prixTotal - $payeTotal),
+        'progression_moyenne'    => $tous->count() > 0 ? round($progSum / $tous->count()) : 0,
+    ];
 }
 
     // ═══════════════════════════════════════════════════════════════
@@ -777,87 +935,7 @@ public function rapportExport(Request $request)
     // 🛠️ MÉTHODES PRIVÉES
     // ═══════════════════════════════════════════════════════════════
 
-    private function calculerStatsLogistique(Request $request): array
-{
-    $query = DossierClient::with(['paiementsLogistiques', 'beneficiaires'])
-        ->whereHas('beneficiaires')
-        ->where(function ($q) {
-            $q->whereRaw('COALESCE(prix_logistique, 0) > 0')
-              ->orWhereHas('beneficiaires');
-        });
-
-    // ─── Mêmes filtres que rapport() ───
-    if ($request->filled('q')) {
-        $q = trim($request->q);
-        $query->where(function ($qry) use ($q) {
-            $qry->whereHas('client', fn($cq) =>
-                $cq->where('name', 'LIKE', "%{$q}%")
-                   ->orWhere('phone', 'LIKE', "%{$q}%"))
-                ->orWhere('nom_dossier', 'LIKE', "%{$q}%");
-        });
-    }
-
-    if ($request->filled('grand_site_id')) {
-        $query->where('grand_site_id', $request->grand_site_id);
-    }
-
-    // ✅ AJOUT : filtre date_implantation_prevue
-    if ($request->filled('date_implantation_prevue')) {
-        $query->whereHas('beneficiaires', function ($q) use ($request) {
-            $q->whereDate('implantation_prevue', $request->date_implantation_prevue);
-        });
-    }
-
-    // ✅ AJOUT : filtre statut
-    if ($request->filled('statut')) {
-        if ($request->statut === 'paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
-        } elseif ($request->statut === 'non_paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) = 0');
-        } elseif ($request->statut === 'partiel') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) > 0')
-                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
-                              WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
-        }
-    }
-
-    $tous = $query->get();
-
-    $nbPayes = 0; $nbPartiels = 0; $nbNonPayes = 0;
-    $prixTotal = 0; $payeTotal = 0; $progSum = 0;
-
-    foreach ($tous as $d) {
-        $paye = $d->paiementsLogistiques->sum('montant');
-        $prix = $d->prix_logistique ?? 0;
-        $pct  = $prix > 0 ? min(100, ($paye / $prix) * 100) : 0;
-
-        $prixTotal += $prix;
-        $payeTotal += $paye;
-        $progSum += $pct;
-
-        if ($paye >= $prix && $prix > 0) {
-            $nbPayes++;
-        } elseif ($paye > 0) {
-            $nbPartiels++;
-        } else {
-            $nbNonPayes++;
-        }
-    }
-
-    return [
-        'total_dossiers'         => $tous->count(),
-        'nb_payes'               => $nbPayes,
-        'nb_partiels'            => $nbPartiels,
-        'nb_non_payes'           => $nbNonPayes,
-        'prix_logistique_total'  => $prixTotal,
-        'paye_logistique_total'  => $payeTotal,
-        'reste_logistique_total' => max(0, $prixTotal - $payeTotal),
-        'progression_moyenne'    => $tous->count() > 0 ? round($progSum / $tous->count()) : 0,
-    ];
-}
+    
 
     private function creerVisiteDepuisBon(BonPaiement $bon, DossierClient $dossier, $user)
     {

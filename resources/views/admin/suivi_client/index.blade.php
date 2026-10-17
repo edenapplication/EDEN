@@ -1,6 +1,8 @@
 @extends('admin.layout')
 @section('content')
-
+@php
+    $role = auth()->user()?->role;
+@endphp
 <style>
 .client-card {
     background:white; border-radius:12px; padding:16px; margin-bottom:10px;
@@ -573,6 +575,7 @@
                              id="nom-{{ $client->id }}" class="client-nom">
                             <span>{{ $client->name }}</span>
 
+                            @if($role === 'admin')
                             {{-- ✅ Point rouge antidate --}}
                             <span class="antidate-dot"
                                   id="antidate-dot-{{ $client->id }}"
@@ -587,6 +590,7 @@
                                     title="Retirer la marque ANTIDATÉ">
                                 ✅ Retirer
                             </button>
+                            @endif
                         </div>
 
                         @if($client->is_new)

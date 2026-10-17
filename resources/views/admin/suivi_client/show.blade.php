@@ -2235,21 +2235,41 @@ function validerBenefAffectation(benefId) {
 
 function annulerGroupeBenefAffectation(ids, btn) {
     if (!confirm('Supprimer toutes ces affectations ?')) return;
-    const idArray = ids.split(',');
-    const promises = idArray.map(id =>
-        fetch(`/admin/affectations/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type':'application/json' },
-        }).then(r => r.json())
-    );
-    Promise.all(promises)
-        .then(results => {
-            if (results.every(r => r.success)) {
-                showToast('✅ Affectations annulées');
-                setTimeout(() => location.reload(), 800);
-            } else alert('Erreur');
-        })
-        .catch(e => alert('Erreur réseau : ' + e.message));
+
+    const idArray = ids.split(',').map(id => parseInt(id.trim()));
+
+    if (idArray.length === 0) {
+        alert('⚠️ Aucun lot à supprimer.');
+        return;
+    }
+
+    if (window.EdenLoader) window.EdenLoader.show();
+
+    // ✅ UN SEUL appel pour toute l'action
+    fetch('{{ route("affectations.destroy-groupe") }}', {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': CSRF,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ affectation_ids: idArray }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+
+        if (data.success) {
+            showToast('✅ ' + data.message);
+            setTimeout(() => location.reload(), 800);
+        } else {
+            alert('❌ ' + (data.message || 'Erreur'));
+        }
+    })
+    .catch(e => {
+        if (window.EdenLoader) window.EdenLoader.hide();
+        alert('Erreur réseau : ' + e.message);
+    });
 }
 
 // ════════════════════════════════════════════════════════════════

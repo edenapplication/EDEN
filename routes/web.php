@@ -116,6 +116,13 @@ Route::middleware(['auth', 'comptable'])
 
         // Mes paiements
         Route::get('/mes-paiements', [ComptableController::class, 'mesPaiements'])->name('mes-paiements');
+
+        // ✅ Rapports sauvegardés
+Route::get('/rapports-sauvegardes', [ComptableController::class, 'rapportsSauvegardes'])
+    ->name('rapports.sauvegardes');
+
+Route::delete('/rapports-sauvegardes/{rapport}', [ComptableController::class, 'destroyRapportSauvegarde'])
+    ->name('rapports.sauvegardes.destroy');
     });
 // ── PAGE D'ACCUEIL ──────────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home')->middleware('auth');
@@ -344,6 +351,7 @@ Route::get('/api/grand-sites/{grandSite}/sites',
         Route::get   ('beneficiaires/{beneficiaire}/historique',    [AffectationController::class, 'historiqueBeneficiaire'])->name('beneficiaires.historique');
         Route::get   ('beneficiaires/{beneficiaire}/whatsapp',      [BeneficiaireController::class, 'whatsappBeneficiaire'])->name('beneficiaires.whatsapp');
 
+        Route::delete('affectations/groupe', [AffectationController::class, 'destroyGroupe'])->name('affectations.destroy-groupe');
         Route::delete('affectations/{affectation}',                 [AffectationController::class, 'destroy'])->name('affectations.destroy');
         Route::put   ('affectations/{affectation}',                 [AffectationController::class, 'update'])->name('affectations.update');
         Route::get   ('dossiers/{dossier}/historique',              [AffectationController::class, 'historique'])->name('dossiers.historique');

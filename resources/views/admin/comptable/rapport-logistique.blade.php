@@ -73,19 +73,9 @@
     .badge-statut.paye     { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
     .badge-statut.partiel  { background: #fef3c7; color: #b45309; border: 1.5px solid #fcd34d; }
     .badge-statut.nonpaye  { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fecaca; }
+    .badge-statut.aucun    { background: #f1f5f9; color: #64748b; border: 1.5px solid #cbd5e1; }
 
-    .progress-bar-mini {
-        width: 60px; height: 6px; background: #e2e8f0;
-        border-radius: 3px; overflow: hidden; display: inline-block;
-        vertical-align: middle;
-    }
-    .progress-bar-mini > div { height: 100%; border-radius: 3px; }
-
-    .benef-nom {
-        font-weight: 800;
-        color: #6d28d9;
-        font-size: 12px;
-    }
+    .benef-nom { font-weight: 800; color: #6d28d9; font-size: 12px; }
     .benef-date {
         display: inline-block;
         background: #eff6ff; color: #1e3a5f;
@@ -173,6 +163,7 @@
                 <option value="paye"     {{ request('statut') == 'paye' ? 'selected' : '' }}>✅ Payés</option>
                 <option value="partiel"  {{ request('statut') == 'partiel' ? 'selected' : '' }}>⏳ Partiels</option>
                 <option value="non_paye" {{ request('statut') == 'non_paye' ? 'selected' : '' }}>❌ Non payés</option>
+                <option value="sans_prix" {{ request('statut') == 'sans_prix' ? 'selected' : '' }}>⚪ Sans prix</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -216,6 +207,12 @@
         <div class="val" style="color:#dc2626;">{{ $stats['nb_non_payes'] }}</div>
         <div class="lbl">❌ Non payés</div>
     </div>
+    @if(($stats['nb_aucun_frais'] ?? 0) > 0)
+        <div class="kpi-box" style="border-top-color:#94a3b8;">
+            <div class="val" style="color:#64748b;">{{ $stats['nb_aucun_frais'] }}</div>
+            <div class="lbl">⚪ Aucun frais</div>
+        </div>
+    @endif
     <div class="kpi-box" style="border-top-color:#7c3aed;">
         <div class="val" style="font-size:18px;">{{ number_format($stats['prix_logistique_total'], 0, ',', ' ') }}</div>
         <div class="lbl">Réf. FCFA</div>
@@ -227,10 +224,6 @@
     <div class="kpi-box" style="border-top-color:#dc2626;">
         <div class="val" style="font-size:18px;color:#dc2626;">{{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }}</div>
         <div class="lbl">Reste FCFA</div>
-    </div>
-    <div class="kpi-box" style="border-top-color:#7c3aed;">
-        <div class="val" style="color:#7c3aed;">{{ $stats['progression_moyenne'] }}%</div>
-        <div class="lbl">Progression</div>
     </div>
 </div>
 
@@ -263,26 +256,27 @@
         <div>{{ number_format($stats['paye_logistique_total'], 0, ',', ' ') }} FCFA / {{ number_format($stats['prix_logistique_total'], 0, ',', ' ') }} FCFA</div>
         <div style="font-size:14px;margin-top:6px;">
             Reste à encaisser : {{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }} FCFA
-            <span style="margin-left:12px;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;">
-                {{ $stats['progression_moyenne'] }}%
-            </span>
         </div>
     </div>
 </div>
 
 {{-- EXPORTS --}}
-<div class="d-flex gap-2 mb-3">
-    <a href="{{ route('comptable.rapport.export', array_merge(request()->all(), ['type' => 'pdf'])) }}"
-       class="btn btn-danger btn-sm" style="font-weight:700;">
+<div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+    <button type="button" class="btn btn-danger btn-sm" style="font-weight:700;"
+            onclick="ouvrirModalExport('pdf')">
         📄 Export PDF
-    </a>
-    <a href="{{ route('comptable.rapport.export', array_merge(request()->all(), ['type' => 'excel'])) }}"
-       class="btn btn-success btn-sm" style="font-weight:700;">
+    </button>
+    <button type="button" class="btn btn-success btn-sm" style="font-weight:700;"
+            onclick="ouvrirModalExport('excel')">
         📊 Export Excel
-    </a>
+    </button>
+    <a href="{{ route('comptable.rapports.sauvegardes') }}"
+   class="btn btn-secondary btn-sm" style="font-weight:700;">
+    📚 Rapports sauvegardés
+</a>
 </div>
 
-{{-- TABLEAU — Liste des bénéficiaires --}}
+{{-- TABLEAU --}}
 <div class="rapport-table-wrap">
 <table class="rapport-table">
     <thead>
@@ -297,7 +291,6 @@
             <th style="text-align:right;">Réf. Logistique</th>
             <th style="text-align:right;">Payé</th>
             <th style="text-align:right;">Reste</th>
-            <th>Progression</th>
             <th>Statut</th>
         </tr>
     </thead>
@@ -312,7 +305,6 @@
             $benefs = $d->beneficiaires ?? collect();
             $nbBenefs = max(1, $benefs->count());
 
-            // ✅ Site & TF
             $premiereAffectation = $d->affectations->first();
             $siteNom = $premiereAffectation?->site?->name;
             $tfNom   = $premiereAffectation?->tf?->title;
@@ -330,48 +322,43 @@
             @php
                 $row++;
 
-                // ✅ Paiement SPÉCIFIQUE à ce bénéficiaire
                 $payeBenef = \App\Models\BeneficiairePaiement::where('dossier_client_id', $d->id)
                     ->where('beneficiaire_id', $b->id)
                     ->where('paiement_type', 'logistique')
                     ->sum('montant');
 
-                // ✅ FALLBACK : si 0, répartir le total du dossier
                 if ($payeBenef == 0 && $payeLogi > 0) {
                     $payeBenef = $payeLogi / $nbBenefs;
                 }
 
                 $prixBenef  = $prixLogi / $nbBenefs;
                 $resteBenef = max(0, $prixBenef - $payeBenef);
-                $pctBenef   = $prixBenef > 0 ? min(100, round(($payeBenef / $prixBenef) * 100)) : 0;
 
-                if ($payeBenef >= $prixBenef && $prixBenef > 0) {
-                    $statutB = 'paye';     $labelB = '✅ Payé';      $couleurB = '#16a34a';
+                if ($prixBenef == 0 && $payeBenef == 0) {
+                    $statutB = 'aucun';    $labelB = '⚪ Aucun frais';
+                } elseif ($prixBenef == 0 && $payeBenef > 0) {
+                    $statutB = 'partiel';  $labelB = '⚠️ Payé sans prix';
+                } elseif ($payeBenef >= $prixBenef && $prixBenef > 0) {
+                    $statutB = 'paye';     $labelB = '✅ Payé';
                 } elseif ($payeBenef > 0) {
-                    $statutB = 'partiel';  $labelB = '⏳ Partiel';   $couleurB = '#f59e0b';
+                    $statutB = 'partiel';  $labelB = '⏳ Partiel';
                 } else {
-                    $statutB = 'nonpaye';  $labelB = '❌ Non payé';  $couleurB = '#dc2626';
+                    $statutB = 'nonpaye';  $labelB = '❌ Non payé';
                 }
             @endphp
             <tr>
                 <td>{{ $row }}</td>
-
-                <td>
-                    <span class="benef-nom">👤 {{ $b->nom }}</span>
-                </td>
-
+                <td><span class="benef-nom">👤 {{ $b->nom }}</span></td>
                 <td>
                     <span style="font-size:11px;color:#1e40af;font-weight:600;">
                         📞 {{ $b->telephone ?? '—' }}
                     </span>
                 </td>
-
                 <td>
                     <span style="font-size:11px;color:#64748b;">
                         {{ $d->grandSite?->nom ?? '—' }}
                     </span>
                 </td>
-
                 <td>
                     @if($siteNom)
                         <span class="site-badge">🗺️ {{ $siteNom }}</span>
@@ -379,7 +366,6 @@
                         <span style="color:#94a3b8;font-size:11px;">—</span>
                     @endif
                 </td>
-
                 <td>
                     @if($tfNom)
                         <span class="tf-badge">📄 {{ $tfNom }}</span>
@@ -387,49 +373,31 @@
                         <span style="color:#94a3b8;font-size:11px;">—</span>
                     @endif
                 </td>
-
                 <td>
                     @if($b->implantation_prevue)
                         <span class="benef-date">
                             📅 {{ \Carbon\Carbon::parse($b->implantation_prevue)->format('d/m/Y') }}
                         </span>
                     @else
-                        <span class="benef-date vide">
-                            — non planifiée —
-                        </span>
+                        <span class="benef-date vide">— non planifiée —</span>
                     @endif
                 </td>
-
                 <td style="text-align:right;color:#7c3aed;font-weight:700;">
                     {{ number_format($prixBenef, 0, ',', ' ') }}
                 </td>
-
                 <td style="text-align:right;color:#16a34a;font-weight:700;">
                     {{ number_format($payeBenef, 0, ',', ' ') }}
                 </td>
-
                 <td style="text-align:right;color:#dc2626;font-weight:700;">
                     {{ number_format($resteBenef, 0, ',', ' ') }}
                 </td>
-
-                <td>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <div class="progress-bar-mini">
-                            <div style="width:{{ $pctBenef }}%;background:{{ $couleurB }};"></div>
-                        </div>
-                        <span style="font-size:11px;font-weight:700;color:{{ $couleurB }};">
-                            {{ $pctBenef }}%
-                        </span>
-                    </div>
-                </td>
-
                 <td>
                     <span class="badge-statut {{ $statutB }}">{{ $labelB }}</span>
                 </td>
             </tr>
         @empty
             <tr>
-                <td colspan="12" style="text-align:center;color:#94a3b8;padding:20px;">
+                <td colspan="11" style="text-align:center;color:#94a3b8;padding:20px;">
                     Aucun bénéficiaire pour ce dossier
                 </td>
             </tr>
@@ -442,7 +410,7 @@
             <td style="text-align:right;">{{ number_format($stats['prix_logistique_total'], 0, ',', ' ') }}</td>
             <td style="text-align:right;color:#4ade80;">{{ number_format($stats['paye_logistique_total'], 0, ',', ' ') }}</td>
             <td style="text-align:right;color:#fca5a5;">{{ number_format($stats['reste_logistique_total'], 0, ',', ' ') }}</td>
-            <td colspan="2" style="text-align:center;">{{ $stats['progression_moyenne'] }}% moy.</td>
+            <td></td>
         </tr>
     </tfoot>
 </table>
@@ -457,12 +425,90 @@
         <div style="font-size:48px;">📭</div>
         <h4 style="color:#1e3a5f;font-weight:800;margin-top:12px;">Aucun bénéficiaire trouvé</h4>
         <p style="color:#64748b;font-size:13px;margin:0;">Aucun bénéficiaire logistique ne correspond à vos critères.</p>
-        @if(request('date_implantation_prevue'))
-            <a href="{{ route('comptable.rapport') }}" class="btn btn-outline-primary btn-sm" style="margin-top:12px;">
-                ✖ Effacer le filtre
-            </a>
-        @endif
     </div>
 @endif
 
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- MODALE DE SAISIE DE NOTE POUR EXPORT                     --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+<div id="exportNoteOverlay" onclick="fermerModalExport()"
+     style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);
+            z-index:9998;backdrop-filter:blur(2px);"></div>
+
+<div id="exportNoteModal"
+     style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:white;padding:24px;border-radius:16px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);z-index:9999;
+            width:520px;max-width:95%;">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 style="color:#1e3a5f;font-weight:800;margin:0;">📝 Ajouter une note au rapport</h5>
+        <button type="button" onclick="fermerModalExport()"
+                style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+
+    <div style="background:#eff6ff;border-radius:8px;padding:10px 14px;margin-bottom:14px;
+                font-size:12px;color:#1e40af;border-left:3px solid #1d4ed8;">
+        ℹ️ Cette note sera affichée dans le rapport exporté. Elle est <strong>optionnelle</strong>.
+    </div>
+
+    <label style="font-size:12px;font-weight:700;color:#64748b;">
+        📝 Note pour le rapport
+    </label>
+    <textarea id="export_note" class="form-control" rows="4"
+              placeholder="Ex : Rapport établi à la demande du responsable financier..."
+              maxlength="1000" style="margin-top:6px;font-size:13px;"></textarea>
+    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+        <span id="export_note_counter">0</span> / 1000 caractères
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+        <button type="button" onclick="fermerModalExport()" class="btn btn-light">Annuler</button>
+        <button type="button" onclick="confirmerExport()" id="btnConfirmExport"
+                class="btn px-4" style="background:#7c3aed;color:white;font-weight:700;">
+            ✅ Générer le rapport
+        </button>
+    </div>
+</div>
+
+@endsection
+
+@section('scripts')
+<script>
+let exportTypeEnCours = null;
+
+function ouvrirModalExport(type) {
+    exportTypeEnCours = type;
+    document.getElementById('export_note').value = '';
+    document.getElementById('export_note_counter').textContent = '0';
+    document.getElementById('exportNoteOverlay').style.display = 'block';
+    document.getElementById('exportNoteModal').style.display = 'block';
+    setTimeout(() => document.getElementById('export_note').focus(), 100);
+}
+
+function fermerModalExport() {
+    document.getElementById('exportNoteOverlay').style.display = 'none';
+    document.getElementById('exportNoteModal').style.display = 'none';
+    exportTypeEnCours = null;
+}
+
+document.getElementById('export_note')?.addEventListener('input', function() {
+    document.getElementById('export_note_counter').textContent = this.value.length;
+});
+
+function confirmerExport() {
+    if (!exportTypeEnCours) return;
+
+    const note = document.getElementById('export_note').value.trim();
+
+    const params = new URLSearchParams(window.location.search);
+    params.set('type', exportTypeEnCours);
+    if (note) params.set('note', note);
+
+    const url = '{{ route("comptable.rapport.export") }}?' + params.toString();
+
+    fermerModalExport();
+    window.location.href = url;
+}
+</script>
 @endsection
