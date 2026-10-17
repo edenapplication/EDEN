@@ -24,6 +24,7 @@
     .stat-card.paye     { border-left-color: #16a34a; }
     .stat-card.non_paye { border-left-color: #dc2626; }
     .stat-card.partiel  { border-left-color: #f59e0b; }
+    .stat-card.aucun    { border-left-color: #94a3b8; }
     .stat-card .label {
         font-size: 11px; color: #64748b; text-transform: uppercase;
         font-weight: 700; letter-spacing: 0.5px;
@@ -32,6 +33,7 @@
     .stat-card.paye .value     { color: #16a34a; }
     .stat-card.non_paye .value { color: #dc2626; }
     .stat-card.partiel .value  { color: #f59e0b; }
+    .stat-card.aucun .value    { color: #94a3b8; }
 
     .filtre-box {
         background: white; border-radius: 12px; padding: 16px;
@@ -99,15 +101,6 @@
         transition: all 0.2s; white-space: nowrap;
     }
     .btn-multi:hover { background: linear-gradient(135deg, #6d28d9, #9333ea); transform: scale(1.03); }
-
-    .btn-prix {
-        background: #7c3aed; color: white; border: none;
-        padding: 8px 20px; border-radius: 8px; font-weight: 700;
-        font-size: 13px; cursor: pointer;
-        display: inline-flex; align-items: center; gap: 6px;
-        transition: all 0.2s; white-space: nowrap;
-    }
-    .btn-prix:hover { background: #6d28d9; transform: scale(1.03); }
 
     .modal-overlay {
         display: none; position: fixed; inset: 0;
@@ -177,6 +170,12 @@
         <div class="label">⏳ Partiels</div>
         <div class="value">{{ $stats['nb_partiels'] }}</div>
     </div>
+    @if(($stats['nb_aucun_frais'] ?? 0) > 0)
+        <div class="stat-card aucun">
+            <div class="label">⚪ Aucun frais</div>
+            <div class="value">{{ $stats['nb_aucun_frais'] }}</div>
+        </div>
+    @endif
     <div class="stat-card paye">
         <div class="label">💵 Encaissé</div>
         <div class="value" style="font-size:18px;">
@@ -190,7 +189,9 @@
     <form method="GET" action="{{ route('comptable.index') }}" id="form-filtres">
         <div class="row g-2 align-items-end">
             <div class="col-md-5">
-                <label style="font-size:11px;font-weight:700;color:#64748b;">🔍 Recherche</label>
+                <label style="font-size:11px;font-weight:700;color:#64748b;">
+                    🔍 Recherche <small style="color:#94a3b8;font-weight:400;">(Entrée pour valider)</small>
+                </label>
                 <input type="text" name="q" id="search-input" class="search-input"
                        placeholder="Nom client, bénéficiaire, téléphone, dossier..."
                        value="{{ request('q') }}" autocomplete="off">
@@ -203,6 +204,7 @@
                     <option value="paye"      {{ request('statut') == 'paye' ? 'selected' : '' }}>✅ Payés</option>
                     <option value="partiel"   {{ request('statut') == 'partiel' ? 'selected' : '' }}>⏳ Partiels</option>
                     <option value="non_paye"  {{ request('statut') == 'non_paye' ? 'selected' : '' }}>❌ Non payés</option>
+                    <option value="sans_prix" {{ request('statut') == 'sans_prix' ? 'selected' : '' }}>⚪ Sans prix</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -243,10 +245,10 @@
         <div style="font-size:14px;color:#92400e;">
             <strong>⚠️ {{ $dossiersSansPrix }} dossier(s) sans prix logistique</strong>
             <br>
-            Ces dossiers ne sont pas payables tant que leur prix n'est pas défini.
+            Vous pouvez quand même enregistrer des paiements, mais le prix reste à définir.
         </div>
         <a href="{{ route('comptable.index', ['statut' => 'sans_prix']) }}" class="btn-multi">
-            ⚙️ Voir et définir
+            ⚙️ Voir ces dossiers
         </a>
     </div>
 @endif
@@ -277,9 +279,15 @@
                     $totalLogi = $dossier->paiementsLogistiques->sum('montant');
                     $prixLogi = $dossier->prix_logistique ?? 0;
 
-                    $statutLogi = $prixLogi > 0 
-                        ? ($totalLogi >= $prixLogi ? 'paye' : ($totalLogi > 0 ? 'partiel' : 'non_paye'))
-                        : 'sans_prix';
+                    if ($prixLogi == 0 && $totalLogi == 0) {
+                        $statutLogi = 'sans_prix';
+                    } elseif ($prixLogi > 0 && $totalLogi >= $prixLogi) {
+                        $statutLogi = 'paye';
+                    } elseif ($totalLogi > 0) {
+                        $statutLogi = 'partiel';
+                    } else {
+                        $statutLogi = 'non_paye';
+                    }
 
                     $hasBeneficiaires = $dossier->beneficiaires->count() > 0;
                 @endphp
@@ -338,6 +346,11 @@
                             <div style="font-size:13px;color:#94a3b8;font-weight:700;">
                                 ⚪ Prix non défini
                             </div>
+                            @if($totalLogi > 0)
+                                <div style="font-size:14px;color:#f59e0b;font-weight:900;margin-top:4px;">
+                                    💵 {{ number_format($totalLogi, 0, ',', ' ') }} FCFA versés
+                                </div>
+                            @endif
                         @endif
                     </div>
 
@@ -379,24 +392,28 @@
 
                     {{-- Actions --}}
                     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-                        @if($hasBeneficiaires && $prixLogi > 0)
+                        @if($hasBeneficiaires)
+                            {{-- ✅ Paiement TOUJOURS possible --}}
                             <button type="button" class="btn-multi"
                                     onclick="ouvrirModalMulti({{ $dossier->id }}, '{{ addslashes($client?->name) }}', '{{ addslashes($dossier->nom_dossier) }}')">
                                 💳 Paiement logistique
                             </button>
-                        @elseif(!$hasBeneficiaires)
+
+                            @if($prixLogi <= 0)
+                                <span style="background:#f3e8ff;color:#7c3aed;
+                                             padding:8px 14px;border-radius:8px;
+                                             font-size:12px;font-weight:600;">
+                                    ⚙️ Prix non défini
+                                </span>
+                            @endif
+                        @else
                             <span style="background:#fef3c7;color:#92400e;
                                          padding:8px 14px;border-radius:8px;
                                          font-size:12px;font-weight:600;">
                                 ⚠️ Aucun bénéficiaire
                             </span>
-                        @elseif($prixLogi <= 0)
-                            <span style="background:#f3e8ff;color:#7c3aed;
-                                         padding:8px 14px;border-radius:8px;
-                                         font-size:12px;font-weight:600;">
-                                ⚙️ Prix non défini
-                            </span>
                         @endif
+
                         <a href="{{ route('comptable.historique', $dossier->id) }}"
                            class="btn btn-outline-secondary btn-sm"
                            style="padding:8px 14px;font-weight:600;">
@@ -496,22 +513,29 @@
 const CSRF_TOKEN = '{{ csrf_token() }}';
 
 // ═══════════════════════════════════════════════════════════
-// FILTRAGE CÔTÉ SERVEUR (respecte toutes les données)
+// RECHERCHE — soumettre uniquement sur Entrée (pas de rechargement à chaque frappe)
 // ═══════════════════════════════════════════════════════════
-let debounceTimer;
-document.getElementById('search-input')?.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        document.getElementById('form-filtres').submit();
-    }, 500); // 500ms de délai
-});
+const searchInput = document.getElementById('search-input');
+if (searchInput) {
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('form-filtres').submit();
+        }
+        if (e.key === 'Escape') {
+            this.value = '';
+            document.getElementById('form-filtres').submit();
+        }
+    });
 
-document.getElementById('search-input')?.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        this.value = '';
-        document.getElementById('form-filtres').submit();
+    // ✅ Restaurer le focus si un filtre est actif (après rechargement)
+    if (searchInput.value) {
+        setTimeout(() => {
+            searchInput.focus();
+            searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }, 100);
     }
-});
+}
 
 // ═══════════════════════════════════════════════════════════
 // MODAL PAIEMENT LOGISTIQUE
@@ -539,9 +563,14 @@ function ouvrirModalMulti(dossierId, clientNom, dossierNom) {
         if (data.success) {
             multiBeneficiaires = data.beneficiaires;
             multiDossierInfo = data.dossier;
-            document.getElementById('multiRecapLogi').textContent =
-                data.dossier.total_logi.toLocaleString('fr-FR') + ' / ' +
-                data.dossier.prix_logistique.toLocaleString('fr-FR') + ' FCFA';
+
+            // ✅ Message adapté si prix non défini
+            const recapLogi = data.dossier.prix_logistique > 0
+                ? data.dossier.total_logi.toLocaleString('fr-FR') + ' / ' +
+                  data.dossier.prix_logistique.toLocaleString('fr-FR') + ' FCFA'
+                : data.dossier.total_logi.toLocaleString('fr-FR') + ' FCFA versés (prix non défini)';
+
+            document.getElementById('multiRecapLogi').textContent = recapLogi;
             ajouterVersement();
         } else {
             alert('❌ Erreur : ' + data.message);
