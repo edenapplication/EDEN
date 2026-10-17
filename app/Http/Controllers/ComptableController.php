@@ -106,7 +106,7 @@ class ComptableController extends Controller
     // 💰 LISTE DES PAIEMENTS LOGISTIQUES
     // ═══════════════════════════════════════════════════════════════
 
-    public function index(Request $request)
+   public function index(Request $request)
 {
     $query = DossierClient::with([
             'client',
@@ -114,7 +114,8 @@ class ComptableController extends Controller
             'beneficiaires',
             'paiementsLogistiques',
         ])
-        ->whereRaw('COALESCE(prix_logistique, 0) > 0')
+        // ✅ Plus de filtre sur prix_logistique
+        ->whereHas('beneficiaires')       // Uniquement les dossiers avec bénéficiaires
         ->orderByDesc('created_at');
 
     // Recherche
@@ -125,7 +126,7 @@ class ComptableController extends Controller
                 $cq->where('name', 'LIKE', "%{$q}%")
                    ->orWhere('phone', 'LIKE', "%{$q}%"))
                 ->orWhere('nom_dossier', 'LIKE', "%{$q}%")
-                ->orWhereHas('beneficiaires', fn($bq) =>    // ✅ AJOUT
+                ->orWhereHas('beneficiaires', fn($bq) =>        // ✅ Recherche bénéficiaire
                     $bq->where('nom', 'LIKE', "%{$q}%")
                        ->orWhere('telephone', 'LIKE', "%{$q}%"));
         });
@@ -134,13 +135,16 @@ class ComptableController extends Controller
     // Filtre statut
     if ($request->filled('statut')) {
         if ($request->statut === 'paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) >= prix_logistique');
         } elseif ($request->statut === 'non_paye') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) = 0');
         } elseif ($request->statut === 'partiel') {
-            $query->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
+            $query->whereRaw('COALESCE(prix_logistique, 0) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) > 0')
                   ->whereRaw('(SELECT COALESCE(SUM(montant), 0) FROM paiements_logistiques 
                               WHERE dossier_client_id = dossiers_clients.id) < prix_logistique');
@@ -151,7 +155,6 @@ class ComptableController extends Controller
         $query->where('grand_site_id', $request->grand_site_id);
     }
 
-    // ✅ TOUS les dossiers (pas de paginate)
     $dossiers = $query->get();
     $dossiersGroupes = $dossiers->groupBy(fn($d) => $d->client_id ?? 0);
 
