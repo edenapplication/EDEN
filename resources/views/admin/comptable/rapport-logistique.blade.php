@@ -140,10 +140,10 @@
 <div class="filter-section">
     <h6>🔍 Filtres</h6>
     <div class="row g-3">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">🔍 Recherche</label>
             <input type="text" name="q" class="form-control form-control-sm"
-                   placeholder="Nom bénéficiaire, téléphone..." value="{{ request('q') }}">
+                   placeholder="Nom bénéficiaire..." value="{{ request('q') }}">
         </div>
         <div class="col-md-2">
             <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">🏢 Grand Site</label>
@@ -167,21 +167,42 @@
             </select>
         </div>
         <div class="col-md-2">
-            <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📅 Implantation prévue</label>
-            <input type="date" name="date_implantation_prevue" class="form-control form-control-sm"
-                   value="{{ request('date_implantation_prevue') }}">
+            <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📅 Implantation prevue le </label>
+            <input type="date" name="date_implantation" class="form-control form-control-sm"
+                   value="{{ request('date_implantation') }}">
         </div>
-        <div class="col-md-3 d-flex align-items-end gap-2">
-            <button type="submit" class="btn-payer btn-sm">🔍 Générer</button>
+        
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn-payer btn-sm">🔍 Filtrer</button>
             <a href="{{ route('comptable.rapport') }}" class="btn btn-outline-secondary btn-sm">✖ Reset</a>
+        </div>
+
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📅 Période des implantation du</label>
+            <input type="date" name="date_implantation_debut" class="form-control form-control-sm"
+                   value="{{ request('date_implantation_debut') }}">
+        </div>
+        <div class="col-md-2">
+            <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📅 Au</label>
+            <input type="date" name="date_implantation_fin" class="form-control form-control-sm"
+                   value="{{ request('date_implantation_fin') }}">
         </div>
     </div>
 
-    @if(request('date_implantation_prevue'))
+    @if(request('date_implantation') || request('date_implantation_debut') || request('date_implantation_fin'))
         <div style="margin-top:12px;padding:8px 14px;background:#eff6ff;border-radius:8px;
                     font-size:12px;color:#1e40af;border-left:3px solid #1d4ed8;">
-            📅 Filtre actif :
-            <strong>Implantation prévue = {{ \Carbon\Carbon::parse(request('date_implantation_prevue'))->format('d/m/Y') }}</strong>
+            📅 Filtre actif : <strong>Implantation prévue</strong>
+            @if(request('date_implantation'))
+                = {{ \Carbon\Carbon::parse(request('date_implantation'))->format('d/m/Y') }}
+            @else
+                @if(request('date_implantation_debut'))
+                    du {{ \Carbon\Carbon::parse(request('date_implantation_debut'))->format('d/m/Y') }}
+                @endif
+                @if(request('date_implantation_fin'))
+                    au {{ \Carbon\Carbon::parse(request('date_implantation_fin'))->format('d/m/Y') }}
+                @endif
+            @endif
         </div>
     @endif
 </div>
@@ -260,6 +281,52 @@
     </div>
 </div>
 
+{{-- 💼 ACTIVITÉ MONÉTAIRE --}}
+@if(isset($activite) && $activite['total_global'] > 0)
+<div class="recap-section">
+    <h5 style="font-weight:800;color:#1e3a5f;margin-bottom:16px;">💼 Logistique</h5>
+
+    <div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);
+                border-left:4px solid #16a34a;border-radius:10px;
+                padding:16px 20px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div>
+                <div style="font-size:11px;color:#15803d;font-weight:700;text-transform:uppercase;">
+                    💼 Encaissé par l'assistante comptable
+                </div>
+            </div>
+            <div style="font-size:22px;font-weight:900;color:#15803d;">
+                {{ number_format($activite['total_comptable'], 0, ',', ' ') }} FCFA
+            </div>
+        </div>
+    </div>
+
+    <div style="background:#f8fafc;border-left:4px solid #94a3b8;border-radius:10px;
+                padding:16px 20px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div>
+                <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;">
+                    👥 Encaissé par les commerciaux
+                </div>
+            </div>
+            <div style="font-size:22px;font-weight:900;color:#475569;">
+                {{ number_format($activite['total_autres'], 0, ',', ' ') }} FCFA
+            </div>
+        </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;
+                border-radius:10px;padding:14px 20px;text-align:center;">
+        <div style="font-size:11px;opacity:0.9;text-transform:uppercase;font-weight:700;">
+            Total général encaissé
+        </div>
+        <div style="font-size:24px;font-weight:900;margin-top:4px;">
+            {{ number_format($activite['total_global'], 0, ',', ' ') }} FCFA
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- EXPORTS --}}
 <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
     <button type="button" class="btn btn-danger btn-sm" style="font-weight:700;"
@@ -271,9 +338,9 @@
         📊 Export Excel
     </button>
     <a href="{{ route('comptable.rapports.sauvegardes') }}"
-   class="btn btn-secondary btn-sm" style="font-weight:700;">
-    📚 Rapports sauvegardés
-</a>
+       class="btn btn-secondary btn-sm" style="font-weight:700;">
+        📚 Rapports sauvegardés
+    </a>
 </div>
 
 {{-- TABLEAU --}}
@@ -295,7 +362,13 @@
         </tr>
     </thead>
     <tbody>
-    @php $row = 0; @endphp
+    @php
+        $row = 0;
+        $dateUnique      = request('date_implantation');
+        $dateDebutFiltre = request('date_implantation_debut');
+        $dateFinFiltre   = request('date_implantation_fin');
+        $filtreDateActif = $dateUnique || $dateDebutFiltre || $dateFinFiltre;
+    @endphp
 
     @foreach($dossiers as $d)
         @php
@@ -303,6 +376,23 @@
             $prixLogi  = $d->prix_logistique ?? 0;
 
             $benefs = $d->beneficiaires ?? collect();
+
+            // ✅ Filtrer les bénéficiaires
+            if ($filtreDateActif) {
+                $benefs = $benefs->filter(function ($b) use ($dateUnique, $dateDebutFiltre, $dateFinFiltre) {
+                    if (!$b->implantation_prevue) return false;
+                    $dateBenef = \Carbon\Carbon::parse($b->implantation_prevue)->format('Y-m-d');
+
+                    if ($dateUnique) return $dateBenef === $dateUnique;
+
+                    if ($dateDebutFiltre && $dateBenef < $dateDebutFiltre) return false;
+                    if ($dateFinFiltre && $dateBenef > $dateFinFiltre) return false;
+                    return true;
+                })->values();
+            }
+
+            if ($benefs->count() === 0) continue;
+
             $nbBenefs = max(1, $benefs->count());
 
             $premiereAffectation = $d->affectations->first();
@@ -318,7 +408,7 @@
             }
         @endphp
 
-        @forelse($benefs as $b)
+        @foreach($benefs as $b)
             @php
                 $row++;
 
@@ -395,14 +485,16 @@
                     <span class="badge-statut {{ $statutB }}">{{ $labelB }}</span>
                 </td>
             </tr>
-        @empty
-            <tr>
-                <td colspan="11" style="text-align:center;color:#94a3b8;padding:20px;">
-                    Aucun bénéficiaire pour ce dossier
-                </td>
-            </tr>
-        @endforelse
+        @endforeach
     @endforeach
+
+    @if($row === 0)
+        <tr>
+            <td colspan="11" style="text-align:center;color:#94a3b8;padding:20px;">
+                Aucun bénéficiaire ne correspond aux critères
+            </td>
+        </tr>
+    @endif
     </tbody>
     <tfoot>
         <tr>
@@ -428,9 +520,7 @@
     </div>
 @endif
 
-{{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- MODALE DE SAISIE DE NOTE POUR EXPORT                     --}}
-{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- MODALE EXPORT --}}
 <div id="exportNoteOverlay" onclick="fermerModalExport()"
      style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);
             z-index:9998;backdrop-filter:blur(2px);"></div>
@@ -439,28 +529,58 @@
      style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
             background:white;padding:24px;border-radius:16px;
             box-shadow:0 20px 60px rgba(0,0,0,0.3);z-index:9999;
-            width:520px;max-width:95%;">
+            width:600px;max-width:95%;max-height:90vh;overflow-y:auto;">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 style="color:#1e3a5f;font-weight:800;margin:0;">📝 Ajouter une note au rapport</h5>
+        <h5 style="color:#1e3a5f;font-weight:800;margin:0;">📝 Paramètres du rapport</h5>
         <button type="button" onclick="fermerModalExport()"
                 style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
 
-    <div style="background:#eff6ff;border-radius:8px;padding:10px 14px;margin-bottom:14px;
-                font-size:12px;color:#1e40af;border-left:3px solid #1d4ed8;">
-        ℹ️ Cette note sera affichée dans le rapport exporté. Elle est <strong>optionnelle</strong>.
+    {{-- Note --}}
+    <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:700;color:#64748b;">
+            📝 Note pour le rapport (optionnel)
+        </label>
+        <textarea id="export_note" class="form-control" rows="3"
+                  placeholder="Ex : Rapport établi à la demande du responsable financier..."
+                  maxlength="1000" style="margin-top:6px;font-size:13px;"></textarea>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+            <span id="export_note_counter">0</span> / 1000 caractères
+        </div>
     </div>
 
-    <label style="font-size:12px;font-weight:700;color:#64748b;">
-        📝 Note pour le rapport
-    </label>
-    <textarea id="export_note" class="form-control" rows="4"
-              placeholder="Ex : Rapport établi à la demande du responsable financier..."
-              maxlength="1000" style="margin-top:6px;font-size:13px;"></textarea>
-    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
-        <span id="export_note_counter">0</span> / 1000 caractères
+    {{-- Activité comptable + frais --}}
+    @if(isset($activite))
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;
+                border-radius:10px;padding:14px 18px;margin-bottom:16px;">
+        <div style="font-size:11px;color:#15803d;font-weight:700;text-transform:uppercase;margin-bottom:4px;">
+            💼 Encaissé par les comptables
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#15803d;">
+            {{ number_format($activite['total_comptable'], 0, ',', ' ') }} FCFA
+        </div>
+
+        <div style="margin-top:12px;">
+            <label style="font-size:12px;font-weight:700;color:#92400e;">
+                🚗 Frais de transport à retenir
+            </label>
+            <input type="number" id="export_frais_transport" class="form-control"
+                   min="0" step="500" placeholder="Ex: 5000"
+                   value="0" style="margin-top:4px;font-size:16px;font-weight:700;">
+        </div>
+
+        <div style="margin-top:12px;padding-top:12px;border-top:2px dashed #86efac;
+                    display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;font-weight:700;color:#15803d;">
+                📤 Reste à reverser :
+            </span>
+            <span id="export_reste_a_reverser" style="font-size:20px;font-weight:900;color:#15803d;">
+                {{ number_format($activite['total_comptable'], 0, ',', ' ') }} FCFA
+            </span>
+        </div>
     </div>
+    @endif
 
     <div class="d-flex justify-content-end gap-2 mt-4">
         <button type="button" onclick="fermerModalExport()" class="btn btn-light">Annuler</button>
@@ -476,11 +596,16 @@
 @section('scripts')
 <script>
 let exportTypeEnCours = null;
+let totalEncaisseComptable = {{ $activite['total_comptable'] ?? 0 }};
 
 function ouvrirModalExport(type) {
     exportTypeEnCours = type;
     document.getElementById('export_note').value = '';
     document.getElementById('export_note_counter').textContent = '0';
+    const inputFrais = document.getElementById('export_frais_transport');
+    if (inputFrais) inputFrais.value = '0';
+    mettreAJourResteReverser();
+
     document.getElementById('exportNoteOverlay').style.display = 'block';
     document.getElementById('exportNoteModal').style.display = 'block';
     setTimeout(() => document.getElementById('export_note').focus(), 100);
@@ -496,14 +621,27 @@ document.getElementById('export_note')?.addEventListener('input', function() {
     document.getElementById('export_note_counter').textContent = this.value.length;
 });
 
+document.getElementById('export_frais_transport')?.addEventListener('input', function() {
+    mettreAJourResteReverser();
+});
+
+function mettreAJourResteReverser() {
+    const frais = parseFloat(document.getElementById('export_frais_transport')?.value || 0) || 0;
+    const reste = Math.max(0, totalEncaisseComptable - frais);
+    const el = document.getElementById('export_reste_a_reverser');
+    if (el) el.textContent = reste.toLocaleString('fr-FR') + ' FCFA';
+}
+
 function confirmerExport() {
     if (!exportTypeEnCours) return;
 
-    const note = document.getElementById('export_note').value.trim();
+    const note  = document.getElementById('export_note').value.trim();
+    const frais = parseFloat(document.getElementById('export_frais_transport')?.value || 0) || 0;
 
     const params = new URLSearchParams(window.location.search);
     params.set('type', exportTypeEnCours);
     if (note) params.set('note', note);
+    if (frais > 0) params.set('frais_transport', frais);
 
     const url = '{{ route("comptable.rapport.export") }}?' + params.toString();
 

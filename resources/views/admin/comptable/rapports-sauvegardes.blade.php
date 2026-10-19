@@ -37,7 +37,7 @@
         font-size: 12px; color: #92400e; font-style: italic;
     }
     .rapport-stats {
-        display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px;
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
     }
     .rapport-stat {
         background: #f8fafc; border-radius: 6px; padding: 6px 12px;
@@ -115,6 +115,10 @@
 
 {{-- LISTE DES RAPPORTS --}}
 @forelse($rapports as $rapport)
+    @php
+        $activite = $rapport->calculerActiviteComptable();
+    @endphp
+
     <div class="rapport-card">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div style="flex:1;">
@@ -150,9 +154,33 @@
                     <div class="rapport-stat">
                         💵 Encaissé <strong style="color:#16a34a;">{{ number_format($rapport->total_paye, 0, ',', ' ') }}</strong> FCFA
                     </div>
-                    <div class="rapport-stat">
-                        🔻 Reste <strong style="color:#dc2626;">{{ number_format($rapport->total_reste, 0, ',', ' ') }}</strong> FCFA
-                    </div>
+
+                    {{-- ✅ Activité recalculée --}}
+                    @if($activite['total_comptable'] > 0)
+                        <div class="rapport-stat" style="background:#f0fdf4;">
+                            💼 Comptables <strong style="color:#15803d;">{{ number_format($activite['total_comptable'], 0, ',', ' ') }}</strong> FCFA
+                            <small style="color:#64748b;">({{ $activite['nb_comptable'] }})</small>
+                        </div>
+                    @endif
+
+                    @if($activite['total_autres'] > 0)
+                        <div class="rapport-stat" style="background:#f8fafc;">
+                            👥 Autres <strong style="color:#475569;">{{ number_format($activite['total_autres'], 0, ',', ' ') }}</strong> FCFA
+                            <small style="color:#64748b;">({{ $activite['nb_autres'] }})</small>
+                        </div>
+                    @endif
+
+                    @if($rapport->frais_transport > 0)
+                        <div class="rapport-stat" style="background:#fef3c7;">
+                            🚗 Frais transport <strong style="color:#92400e;">{{ number_format($rapport->frais_transport, 0, ',', ' ') }}</strong> FCFA
+                        </div>
+                    @endif
+
+                    @if($rapport->reste_a_reverser > 0)
+                        <div class="rapport-stat" style="background:#dcfce7;">
+                            📤 À reverser <strong style="color:#15803d;">{{ number_format($rapport->reste_a_reverser, 0, ',', ' ') }}</strong> FCFA
+                        </div>
+                    @endif
                 </div>
             </div>
 

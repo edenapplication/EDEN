@@ -242,61 +242,109 @@
         </div>
 
         {{-- VISITES --}}
-        <div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
-                    border-left:4px solid #0d6efd;">
-            <div style="display:flex;justify-content:space-between;align-items:center;
-                        margin-bottom:10px;">
-                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
-                    🚶 Historique des visites ({{ $client->visites->count() }})
-                </div>
-                <a href="{{ route('visites.index', ['nom' => $client->name]) }}"
-                   style="font-size:10px;color:#0d6efd;font-weight:600;text-decoration:none;">
-                    Voir tout →
-                </a>
-            </div>
+<div style="background:white;border-radius:12px;padding:16px;margin-top:14px;
+            border-left:4px solid #0d6efd;">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">
+            🚶 Historique des visites ({{ $client->visites->count() }})
+        </div>
+        <a href="{{ route('visites.index', ['nom' => $client->name]) }}"
+           style="font-size:10px;color:#0d6efd;font-weight:600;text-decoration:none;">
+            Voir tout →
+        </a>
+    </div>
 
-            @php
-                $typeColors = ['client'=>'#1d4ed8','proprietaire'=>'#15803d','autre'=>'#475569'];
-                $typeLabels = ['client'=>'Client','proprietaire'=>'Propriétaire','autre'=>'Autre'];
-            @endphp
+    @php
+        $typeColors = ['client'=>'#1d4ed8','proprietaire'=>'#15803d','autre'=>'#475569'];
+        $typeLabels = ['client'=>'Client','proprietaire'=>'Propriétaire','autre'=>'Autre'];
+    @endphp
 
-            @if($client->visites->count() > 0)
-                <div class="visites-scroll">
-                    @foreach($client->visites->sortByDesc('date_visite') as $visite)
-                        @php $color = $typeColors[$visite->type_personne] ?? '#475569'; @endphp
-                        <div style="border-left:3px solid {{ $color }};
-                                    padding:8px 10px;margin-bottom:6px;
-                                    background:#f8fafc;border-radius:6px;font-size:11px;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;">
-                                <strong style="color:#1e3a5f;">
-                                    {{ $visite->visiteur?->nom ?? $visite->nom ?? 'Inconnu' }}
-                                </strong>
-                                <span style="background:{{ $color }}22;color:{{ $color }};
-                                             font-size:9px;padding:1px 6px;border-radius:4px;
-                                             font-weight:600;">
-                                    {{ $typeLabels[$visite->type_personne] ?? $visite->type_personne }}
+    @if($client->visites->count() > 0)
+        <div class="visites-scroll">
+            @foreach($client->visites->sortByDesc('date_visite') as $visite)
+                @php
+                    $estPaiement = $visite->paiement_lie;
+                    $color = $estPaiement
+                        ? '#7c3aed'
+                        : ($typeColors[$visite->type_personne] ?? '#475569');
+                @endphp
+
+                <div style="border-left:3px solid {{ $color }};
+                            padding:10px 12px;margin-bottom:8px;
+                            background:{{ $estPaiement ? '#faf5ff' : '#f8fafc' }};
+                            border-radius:6px;font-size:11px;">
+
+                    {{-- En-tête : Nom + badges --}}
+                    <div style="display:flex;justify-content:space-between;align-items:center;
+                                flex-wrap:wrap;gap:6px;">
+                        <strong style="color:#1e3a5f;font-size:12px;">
+                            {{ $visite->visiteur?->nom ?? $visite->nom ?? 'Inconnu' }}
+                        </strong>
+
+                        <div style="display:flex;gap:4px;">
+                            {{-- Badge type personne --}}
+                            <span style="background:{{ $color }}22;color:{{ $color }};
+                                         font-size:9px;padding:2px 6px;border-radius:4px;
+                                         font-weight:600;">
+                                {{ $typeLabels[$visite->type_personne] ?? $visite->type_personne }}
+                            </span>
+
+                            {{-- Badge paiement si applicable --}}
+                            @if($estPaiement)
+                                <span style="background:#7c3aed;color:white;
+                                             font-size:9px;padding:2px 6px;border-radius:4px;
+                                             font-weight:700;">
+                                    💳 Paiement
                                 </span>
-                            </div>
-                            <div style="color:#64748b;margin-top:3px;">
-                                📅 {{ \Carbon\Carbon::parse($visite->date_visite)->format('d/m/Y') }}
-                                @if($visite->heure_arrivee)
-                                    · 🕐 {{ substr($visite->heure_arrivee, 0, 5) }}
-                                @endif
-                            </div>
-                            @if($visite->note)
-                                <div style="color:#475569;margin-top:3px;font-style:italic;">
-                                    📝 {{ $visite->note }}
-                                </div>
                             @endif
                         </div>
-                    @endforeach
+                    </div>
+
+                    {{-- Date + heure --}}
+                    <div style="color:#64748b;margin-top:4px;font-size:10.5px;">
+                        📅 {{ \Carbon\Carbon::parse($visite->date_visite)->format('d/m/Y') }}
+                        @if($visite->heure_arrivee)
+                            · 🕐 {{ substr($visite->heure_arrivee, 0, 5) }}
+                        @endif
+                        @if($visite->heure_depart)
+                            → {{ substr($visite->heure_depart, 0, 5) }}
+                        @endif
+                    </div>
+
+                    {{-- Note / motif : affichage naturel avec sauts de ligne --}}
+                    @if($visite->note)
+                        <div style="color:#334155;margin-top:6px;font-size:11.5px;
+                                    line-height:1.6;padding:8px 10px;
+                                    background:{{ $estPaiement ? '#ffffff' : '#ffffff' }};
+                                    border-radius:5px;
+                                    border-left:2px solid {{ $color }}33;">
+                            {!! nl2br(e($visite->note)) !!}
+                        </div>
+                    @endif
+
+                    {{-- Lien vers le bon si paiement --}}
+                    @if($estPaiement && $visite->bon_id && $visite->bon)
+                        <div style="margin-top:6px;">
+                            <a href="{{ route('bons.show', $visite->bon_id) }}"
+                               style="font-size:10px;color:#7c3aed;font-weight:700;
+                                      text-decoration:none;display:inline-flex;
+                                      align-items:center;gap:4px;
+                                      padding:3px 8px;background:#f3e8ff;
+                                      border-radius:5px;">
+                                🧾 Voir le bon {{ $visite->bon->numero_bon }}
+                            </a>
+                        </div>
+                    @endif
                 </div>
-            @else
-                <div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px;">
-                    Aucune visite enregistrée
-                </div>
-            @endif
+            @endforeach
         </div>
+    @else
+        <div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px;">
+            Aucune visite enregistrée
+        </div>
+    @endif
+</div>
 
         {{-- HISTORIQUE GÉNÉRAL DES BÉNÉFICIAIRES --}}
         @php

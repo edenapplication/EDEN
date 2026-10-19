@@ -102,6 +102,8 @@ Route::middleware(['auth', 'comptable'])
 
         // Paiement logistique
         Route::get('/paiements', [ComptableController::class, 'index'])->name('index');
+        Route::post('/dossier/{dossier}/definir-prix', [ComptableController::class, 'definirPrix'])
+    ->name('comptable.definir-prix');
         Route::post('/dossier/{dossier}/payer-multi', [ComptableController::class, 'payerMulti'])->name('payer-multi');
         Route::get('/dossier/{dossier}/historique', [ComptableController::class, 'historique'])->name('historique');
         Route::get('/dossier/{dossier}/beneficiaires', [ComptableController::class, 'beneficiairesDossier'])->name('beneficiaires');

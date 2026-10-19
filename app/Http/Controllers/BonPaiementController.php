@@ -277,75 +277,68 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
     /**
      * Créer une visite automatiquement à partir d'un bon de paiement
      */
-    private function creerVisiteDepuisBon(BonPaiement $bon, DossierClient $dossier, User $user)
+    private function creerVisiteDepuisBon(BonPaiement $bon, DossierClient $dossier, $user)
 {
     $client = $dossier->client;
-    
-    // 1. Créer ou récupérer le visiteur
+    if (!$client) return;
+
     $visiteur = Visiteur::firstOrCreate(
         ['nom' => $client->name],
-        [
-            'numero' => $client->phone,
-            'type' => 'client',
-        ]
+        ['numero' => $client->phone, 'type' => 'client']
     );
 
-    // ✅ 2. Vérifier si une visite existe déjà pour ce visiteur à cette date
     $dateVisite = $bon->date_bon ?? now();
+
+    // ✅ Chercher une visite existante du même client le même jour
     $visiteExistante = Visite::where('visiteur_id', $visiteur->id)
-                              ->whereDate('date_visite', $dateVisite)
-                              ->first();
+        ->whereDate('date_visite', $dateVisite)
+        ->first();
+
+    // ✅ Construire la phrase naturelle
+    $parties = [];
+    if ($bon->versement_dossier > 0) {
+        $parties[] = "la parcelle (" . number_format($bon->versement_dossier, 0, ',', ' ') . " FCFA)";
+    }
+    if ($bon->versement_technique > 0) {
+        $parties[] = "le dossier technique (" . number_format($bon->versement_technique, 0, ',', ' ') . " FCFA)";
+    }
+    if ($bon->versement_logistique > 0) {
+        $parties[] = "la logistique (" . number_format($bon->versement_logistique, 0, ',', ' ') . " FCFA)";
+    }
+    if ($bon->versement_morcellement > 0) {
+        $parties[] = "le morcellement (" . number_format($bon->versement_morcellement, 0, ',', ' ') . " FCFA)";
+    }
+
+    $totalBon = $bon->versement_dossier
+              + $bon->versement_technique
+            + $bon->versement_logistique
+            + $bon->versement_morcellement;
+
+    $detailsPaiement = implode(', ', $parties);
+    $dossierNom = $dossier->nom_dossier ?? 'N/A';
+
+    $nouvellePhrase = "Le client a effectué un paiement de "
+                    . number_format($totalBon, 0, ',', ' ') . " FCFA "
+                    . "pour {$detailsPaiement} "
+                    . "sur le dossier « {$dossierNom} » "
+                    . "(Bon n° {$bon->numero_bon}).";
 
     if ($visiteExistante) {
-        // ✅ Une visite existe déjà, on met à jour plutôt que de créer
-        $detailsPaiements = [];
-        if ($bon->versement_dossier > 0) {
-            $detailsPaiements[] = '📁 Parcelle: ' . number_format($bon->versement_dossier, 0, ',', ' ') . ' FCFA';
-        }
-        if ($bon->versement_technique > 0) {
-            $detailsPaiements[] = '🛠️ Technique: ' . number_format($bon->versement_technique, 0, ',', ' ') . ' FCFA';
-        }
-        if ($bon->versement_logistique > 0) {
-            $detailsPaiements[] = '🚗 Logistique: ' . number_format($bon->versement_logistique, 0, ',', ' ') . ' FCFA';
-        }
-        if ($bon->versement_morcellement > 0) {
-            $detailsPaiements[] = '✂️ Morcellement: ' . number_format($bon->versement_morcellement, 0, ',', ' ') . ' FCFA';
-        }
+        // ✅ FUSIONNER : ajouter la nouvelle phrase à la suite
+        $ancienneNote = $visiteExistante->note ?? '';
+        $nouvelleNote = $ancienneNote
+            ? $ancienneNote . "\n" . $nouvellePhrase
+            : $nouvellePhrase;
 
-        $nouvelleNote = '💳 Paiement effectué - Bon ' . $bon->numero_bon . "\n";
-        $nouvelleNote .= implode("\n", $detailsPaiements);
-        $nouvelleNote .= "\n📋 Dossier: " . ($dossier->nom_dossier ?? 'N/A');
-
-        // ✅ Mettre à jour la visite existante
         $visiteExistante->update([
-            'note' => $nouvelleNote,
-            'bon_id' => $bon->id,
+            'note'         => $nouvelleNote,
+            'bon_id'       => $bon->id,
             'paiement_lie' => true,
+            'heure_depart' => now()->format('H:i:s'),
         ]);
-
         return;
     }
 
-    // 3. Construire la note
-    $detailsPaiements = [];
-    if ($bon->versement_dossier > 0) {
-        $detailsPaiements[] = '📁 Parcelle: ' . number_format($bon->versement_dossier, 0, ',', ' ') . ' FCFA';
-    }
-    if ($bon->versement_technique > 0) {
-        $detailsPaiements[] = '🛠️ Technique: ' . number_format($bon->versement_technique, 0, ',', ' ') . ' FCFA';
-    }
-    if ($bon->versement_logistique > 0) {
-        $detailsPaiements[] = '🚗 Logistique: ' . number_format($bon->versement_logistique, 0, ',', ' ') . ' FCFA';
-    }
-    if ($bon->versement_morcellement > 0) {
-        $detailsPaiements[] = '✂️ Morcellement: ' . number_format($bon->versement_morcellement, 0, ',', ' ') . ' FCFA';
-    }
-
-    $note = '💳 Paiement effectué - Bon ' . $bon->numero_bon . "\n";
-    $note .= implode("\n", $detailsPaiements);
-    $note .= "\n📋 Dossier: " . ($dossier->nom_dossier ?? 'N/A');
-
-    // 4. Créer la visite
     Visite::create([
         'visiteur_id'       => $visiteur->id,
         'client_id'         => $client->id,
@@ -356,7 +349,7 @@ if ($dateDuBon !== $dateAujourdhui && $dossier->client) {
         'heure_arrivee'     => now()->format('H:i:s'),
         'heure_depart'      => null,
         'type_personne'     => 'client',
-        'note'              => $note,
+        'note'              => $nouvellePhrase,
         'paiement_lie'      => true,
         'bon_id'            => $bon->id,
     ]);
