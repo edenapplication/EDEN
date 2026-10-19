@@ -4555,6 +4555,7 @@ private function genererPdfAppreciations(
     'default_font_size' => 8,
     'autoScriptToLang'  => true,
     'autoLangToFont'    => true,
+     'tempDir'           => storage_path('app/mpdf-temp'), 
 ]);
 
         $mpdf->WriteHTML($html);
