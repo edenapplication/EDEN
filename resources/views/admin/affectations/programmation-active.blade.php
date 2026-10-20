@@ -876,69 +876,71 @@
         </div>
 
         <div class="wizard-step" data-step="4">
-            <div class="step-title">⚠️ Difficultés rencontrées</div>
-            <div class="step-desc">Listez les problèmes (optionnel).</div>
-            <textarea id="wz_difficultes" class="wizard-textarea" rows="5" placeholder="Ex: Le refus de la cliente X justifié par..."></textarea>
-        </div>
+    <div class="step-title">⚠️ Difficultés rencontrées</div>
+    <div class="step-desc">Listez les problèmes (optionnel).</div>
+    <textarea id="wz_difficultes" class="wizard-textarea" rows="5" placeholder="Ex: Le refus de la cliente X justifié par..."></textarea>
+</div>
 
-        <div class="wizard-step" data-step="5">
-            <div class="step-title">👮 Avis — Agents de sécurité</div>
-            <textarea id="wz_securite" class="wizard-textarea" rows="6" placeholder="À notre arrivée sur le site..."></textarea>
-        </div>
+{{-- ✅ NOUVELLE ÉTAPE : SUGGESTIONS --}}
+<div class="wizard-step" data-step="5">
+    <div class="step-title">💡 Suggestions</div>
+    <div class="step-desc">Proposez des améliorations pour les prochaines missions (optionnel).</div>
+    <textarea id="wz_suggestions" class="wizard-textarea" rows="5" placeholder="Ex: Prévoir un temps supplémentaire pour les sites éloignés..."></textarea>
+</div>
 
-        <div class="wizard-step" data-step="6">
-            <div class="step-title">🎓 Avis — Stagiaires</div>
-            <textarea id="wz_stagiaires_avis" class="wizard-textarea" rows="6" placeholder="Grâce à leur engagement..."></textarea>
-        </div>
+<div class="wizard-step" data-step="6">
+    <div class="step-title">👮 Avis — Agents de sécurité</div>
+    <textarea id="wz_securite" class="wizard-textarea" rows="6" placeholder="À notre arrivée sur le site..."></textarea>
+</div>
 
-        <div class="wizard-step" data-step="7">
-            <div class="step-title">👥 Stagiaires par ligne</div>
-            <div class="step-desc">Saisissez le nom du stagiaire pour chaque bénéficiaire.</div>
+<div class="wizard-step" data-step="7">
+    <div class="step-title">🎓 Avis — Stagiaires</div>
+    <textarea id="wz_stagiaires_avis" class="wizard-textarea" rows="6" placeholder="Grâce à leur engagement..."></textarea>
+</div>
 
-            <table class="stagiaire-table">
-                <thead>
-                    <tr>
-                        <th style="width: 60%;">Bénéficiaire</th>
-                        <th style="width: 40%;">Stagiaire</th>
-                    </tr>
-                </thead>
-                <tbody id="wz_stagiaires_container"></tbody>
-            </table>
-        </div>
+<div class="wizard-step" data-step="8">
+    <div class="step-title">👥 Stagiaires par ligne</div>
+    <div class="step-desc">Saisissez le nom du stagiaire pour chaque bénéficiaire.</div>
+    <table class="stagiaire-table">
+        <thead>
+            <tr>
+                <th style="width: 60%;">Bénéficiaire</th>
+                <th style="width: 40%;">Stagiaire</th>
+            </tr>
+        </thead>
+        <tbody id="wz_stagiaires_container"></tbody>
+    </table>
+</div>
 
-        <div class="wizard-step" data-step="8">
-            <div class="step-title">🚗 Chauffeurs et Autres</div>
-            <div class="step-desc">Ajoutez les personnes (chauffeurs, photographes, superviseurs...).</div>
+<div class="wizard-step" data-step="9">
+    <div class="step-title">🚗 Chauffeurs et Autres</div>
+    <div class="step-desc">Ajoutez les personnes (chauffeurs, photographes, superviseurs...).</div>
+    <div id="wz_autres_container"></div>
+    <button type="button" onclick="ajouterAutre()" class="wizard-btn-add">➕ Ajouter une personne</button>
+</div>
 
-            <div id="wz_autres_container"></div>
-            <button type="button" onclick="ajouterAutre()" class="wizard-btn-add">➕ Ajouter une personne</button>
-        </div>
+<div class="wizard-step" data-step="10">
+    <div class="step-title">🎯 Conclusion</div>
+    <div class="step-desc">Texte de clôture du rapport d'appréciations.</div>
+    <textarea id="wz_conclusion" class="wizard-textarea" rows="6"
+              placeholder="Au terme de cette mission, la brigade des implantations du groupe EDEN a mené avec succès l'ensemble des travaux topographiques prévus."></textarea>
+</div>
 
-        <div class="wizard-step" data-step="9">
-            <div class="step-title">🎯 Conclusion</div>
-            <div class="step-desc">Texte de clôture du rapport d'appréciations.</div>
-            <textarea id="wz_conclusion" class="wizard-textarea" rows="6"
-                      placeholder="Au terme de cette mission, la brigade des implantations du groupe EDEN a mené avec succès l'ensemble des travaux topographiques prévus."></textarea>
-        </div>
+<div class="wizard-step" data-step="11">
+    <div class="step-title">📎 Pièces jointes</div>
+    <div class="step-desc">Listez les documents joints à ce rapport.</div>
+    <div id="wz_pieces_jointes_container"></div>
+    <button type="button" onclick="ajouterPieceJointe()" class="wizard-btn-add">➕ Ajouter une pièce jointe</button>
+</div>
 
-        <div class="wizard-step" data-step="10">
-            <div class="step-title">📎 Pièces jointes</div>
-            <div class="step-desc">Listez les documents joints à ce rapport.</div>
-
-            <div id="wz_pieces_jointes_container"></div>
-            <button type="button" onclick="ajouterPieceJointe()" class="wizard-btn-add">➕ Ajouter une pièce jointe</button>
-        </div>
-
-        <div class="wizard-step" data-step="11">
-            <div class="step-title">✍️ Signataire</div>
-            <div class="step-desc">Nom et poste du signataire du rapport.</div>
-
-            <label class="wizard-label">Nom complet</label>
-            <input type="text" id="wz_signataire_nom" class="wizard-input" value="Josiane Morelle NGOLO AYISSI" maxlength="100">
-
-            <label class="wizard-label" style="margin-top: 12px;">Poste</label>
-            <input type="text" id="wz_signataire_poste" class="wizard-input" value="Chef de bureau des installations et du suivi des implantations" maxlength="150">
-        </div>
+<div class="wizard-step" data-step="12">
+    <div class="step-title">✍️ Signataire</div>
+    <div class="step-desc">Nom et poste du signataire du rapport.</div>
+    <label class="wizard-label">Nom complet</label>
+    <input type="text" id="wz_signataire_nom" class="wizard-input" value="Josiane Morelle NGOLO AYISSI" maxlength="100">
+    <label class="wizard-label" style="margin-top: 12px;">Poste</label>
+    <input type="text" id="wz_signataire_poste" class="wizard-input" value="Chef de bureau des installations et du suivi des implantations" maxlength="150">
+</div>
 
     </div>
 
@@ -964,7 +966,7 @@ let actionEnAttente = null;
 // 🎯 WIZARD (11 étapes)
 // ════════════════════════════════════════════════════════════════
 let wizardStep = 1;
-const WIZARD_TOTAL_STEPS = 11;
+const WIZARD_TOTAL_STEPS = 12;
 let wizardAffectationIds = [];
 
 // ════════════════════════════════════════════════════════════════
@@ -1157,19 +1159,20 @@ function wizardFinaliser() {
     const payload = {
         affectation_ids: wizardAffectationIds,
         titre_document:  titre,
-        narratif: {
-            introduction:      document.getElementById('wz_introduction').value.trim(),
-            recapitulatif:     document.getElementById('wz_recapitulatif').value.trim(),
-            difficultes:       document.getElementById('wz_difficultes').value.trim(),
-            securite:          document.getElementById('wz_securite').value.trim(),
-            stagiaires_avis:   document.getElementById('wz_stagiaires_avis').value.trim(),
-            stagiaires_lignes: stagiairesLignes,
-            autres:            autres,
-            conclusion:        document.getElementById('wz_conclusion').value.trim(),
-            pieces_jointes:    piecesJointes,
-            signataire_nom:    document.getElementById('wz_signataire_nom').value.trim(),
-            signataire_poste:  document.getElementById('wz_signataire_poste').value.trim(),
-        },
+       narratif: {
+    introduction:      document.getElementById('wz_introduction').value.trim(),
+    recapitulatif:     document.getElementById('wz_recapitulatif').value.trim(),
+    difficultes:       document.getElementById('wz_difficultes').value.trim(),
+    suggestions:       document.getElementById('wz_suggestions').value.trim(),  // ✅ NOUVEAU
+    securite:          document.getElementById('wz_securite').value.trim(),
+    stagiaires_avis:   document.getElementById('wz_stagiaires_avis').value.trim(),
+    stagiaires_lignes: stagiairesLignes,
+    autres:            autres,
+    conclusion:        document.getElementById('wz_conclusion').value.trim(),
+    pieces_jointes:    piecesJointes,
+    signataire_nom:    document.getElementById('wz_signataire_nom').value.trim(),
+    signataire_poste:  document.getElementById('wz_signataire_poste').value.trim(),
+},
     };
 
     const btn = document.getElementById('wzBtnFinish');

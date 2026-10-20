@@ -4546,7 +4546,7 @@ private function genererPdfAppreciations(
         $mpdf = new Mpdf([
     'mode'              => 'utf-8',
     'format'            => 'A4',
-    'orientation'       => 'P',
+    'orientation'       => 'L', 
     'margin_top'        => 15,
     'margin_bottom'     => 15,
     'margin_left'       => 14,

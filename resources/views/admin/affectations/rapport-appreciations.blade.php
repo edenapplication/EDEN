@@ -15,21 +15,22 @@
         /* ═══════════════════════════════════════════════════════ */
         /* EN-TÊTE IMAGE                                           */
         /* ═══════════════════════════════════════════════════════ */
-       .pdf-header {
-    width: 100%;
-    margin-bottom: 8px;
-    text-align: left;
-    border: none;
-    background: transparent;
-}
-.pdf-header img {
-    height: 55px;
-    width: auto;
-    border: none;
-    outline: none;
-}
+        .pdf-header {
+            width: 100%;
+            margin-bottom: 8px;
+            text-align: left;
+            border: none;
+            background: transparent;
+        }
+        .pdf-header img {
+            height: 55px;
+            width: auto;
+            border: none;
+            outline: none;
+        }
+
         /* ═══════════════════════════════════════════════════════ */
-        /* TITRE + SOUS-TITRE + DATE                               */
+        /* TITRES                                                  */
         /* ═══════════════════════════════════════════════════════ */
         .rapport-titre {
             text-align: center;
@@ -48,16 +49,45 @@
             text-transform: none;
         }
 
-        .rapport-date-impl {
+        .paysage-titre {
             text-align: center;
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: bold;
-            color: #1d4ed8;
+            color: #1e3a5f;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .paysage-sous-titre {
+            text-align: center;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #64748b;
             margin-bottom: 10px;
         }
 
         /* ═══════════════════════════════════════════════════════ */
-        /* BANDEAU STATISTIQUES (vrai tableau HTML)                */
+        /* SECTIONS                                                */
+        /* ═══════════════════════════════════════════════════════ */
+        .section {
+            margin-bottom: 8px;
+        }
+        .section-titre {
+            text-align: center;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1e3a5f;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .section-contenu {
+            font-size: 8pt;
+            text-align: justify;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        /* ═══════════════════════════════════════════════════════ */
+        /* BANDEAU STATISTIQUES                                    */
         /* ═══════════════════════════════════════════════════════ */
         table.stats-banner {
             width: 100%;
@@ -86,27 +116,6 @@
             color: #1e40af;
             text-transform: uppercase;
             font-weight: bold;
-        }
-
-        /* ═══════════════════════════════════════════════════════ */
-        /* SECTIONS                                                */
-        /* ═══════════════════════════════════════════════════════ */
-        .section {
-            margin-bottom: 8px;
-        }
-        .section-titre {
-            text-align: center;
-            font-size: 10pt;
-            font-weight: bold;
-            color: #1e3a5f;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-        .section-contenu {
-            font-size: 8pt;
-            text-align: justify;
-            line-height: 1.4;
-            margin-bottom: 4px;
         }
 
         /* ═══════════════════════════════════════════════════════ */
@@ -274,24 +283,6 @@
             margin-top: 20px;
         }
 
-        /* ═══════════════════════════════════════════════════════ */
-        /* PAGE 2 - TITRES                                         */
-        /* ═══════════════════════════════════════════════════════ */
-        .paysage-titre {
-            text-align: center;
-            font-size: 12pt;
-            font-weight: bold;
-            color: #1e3a5f;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .paysage-sous-titre {
-            text-align: center;
-            font-size: 9pt;
-            font-weight: bold;
-            color: #64748b;
-            margin-bottom: 10px;
-        }
         .paysage-recap {
             font-size: 8pt;
             text-align: justify;
@@ -312,7 +303,7 @@
     $lignesCollection = collect($lignes ?? []);
 
     // ═══════════════════════════════════════════════════════
-    // 🎯 DATE EXTRAITE DE LA PREMIÈRE LIGNE (date_implantation)
+    // 🎯 DATE EXTRAITE DE LA PREMIÈRE LIGNE
     // ═══════════════════════════════════════════════════════
     $dateAffichee = null;
     $premiereLigne = $lignesCollection->first();
@@ -321,12 +312,10 @@
         $dateAffichee = $premiereLigne['date_implantation'] ?? null;
     }
 
-    // Fallback : si pas de date dans la ligne, utiliser $dateSemaine
     if (empty($dateAffichee)) {
         $dateAffichee = $dateSemaine;
     }
 
-    // Formater
     try {
         $dateSemaineFmt = $dateAffichee instanceof \Carbon\Carbon
             ? $dateAffichee->format('d/m/Y')
@@ -335,7 +324,6 @@
         $dateSemaineFmt = '';
     }
 
-    // Titre
     $titreAffiche = $titreDocument ?? "Rapport des appréciations du {$dateSemaineFmt}";
 
     // Stats
@@ -351,40 +339,35 @@
     $narratif = $narratif ?? [];
 @endphp
 
+
 {{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- PAGE 1 : PORTRAIT                                           --}}
+{{-- ██████  PAGE 1 : PAYSAGE (LINTRODUCTION + TABLEAU)  ██████ --}}
 {{-- ═══════════════════════════════════════════════════════════ --}}
 
-    <div class="pdf-header">
-    <img src="{{ public_path('images/eden-bon.jpeg') }}"
-         alt="Logo EDEN Group"
-         border="0"
-         style="border:none;">
-</div>
+<div>
 
-    <div class="rapport-titre">
-        {{ $titreAffiche }}
-    </div><br>
+    
+    <br>
 
-
+    {{-- Bandeau statistiques --}}
     @if($lignesCollection->count() > 0)
     <table class="stats-banner" cellpadding="0" cellspacing="0">
         <tr>
             <td style="width:16.66%;">
                 <span class="stat-value" style="color:#1d4ed8;">{{ $nbAffectations }}</span>
-                <span class="stat-label">Affectations</span>
+                <span class="stat-label"> Implantations</span>
             </td>
             <td style="width:16.66%;">
                 <span class="stat-value" style="color:#7c3aed;">{{ $nbGeometres }}</span>
-                <span class="stat-label">Geometres</span>
+                <span class="stat-label"> Brigades</span>
             </td>
             <td style="width:16.66%;">
                 <span class="stat-value" style="color:#16a34a;">{{ $nbAcceptes }}</span>
-                <span class="stat-label">Acceptes</span>
+                <span class="stat-label"> Acceptes</span>
             </td>
             <td style="width:16.66%;">
                 <span class="stat-value" style="color:#dc2626;">{{ $nbRefuses }}</span>
-                <span class="stat-label">Refuses</span>
+                <span class="stat-label"> Refuses</span>
             </td>
             <td style="width:16.66%;">
                 <span class="stat-value" style="color:#991b1b;">{{ $nbAbsents }}</span>
@@ -398,6 +381,7 @@
     </table>
     @endif
 
+    {{-- INTRODUCTION --}}
     @if(!empty($narratif['introduction']))
     <div class="section">
         <div class="section-titre">Introduction</div>
@@ -405,98 +389,10 @@
     </div>
     @endif
 
-    @if(!empty($narratif['difficultes']))
-    <div class="section">
-        <div class="section-titre">Difficultes Rencontrees</div>
-        <div class="section-contenu">{!! nl2br(e($narratif['difficultes'])) !!}</div>
-    </div>
-    @endif
-
-    @if(!empty($narratif['securite']) || !empty($narratif['stagiaires_avis']))
-    <div class="section">
-        <div class="section-titre">
-            Avis sur les Agents de Securite, Stagiaires, Chauffeurs, Photographe et Autres
-        </div>
-
-        @if(!empty($narratif['securite']))
-        <div style="margin-bottom:4px;">
-            <strong style="color:#1e3a5f; font-size:8pt;">Agents de securite</strong>
-            <div class="section-contenu" style="margin-top:2px;">{!! nl2br(e($narratif['securite'])) !!}</div>
-        </div>
-        @endif
-
-        @if(!empty($narratif['stagiaires_avis']))
-        <div style="margin-bottom:4px;">
-            <strong style="color:#1e3a5f; font-size:8pt;">Stagiaires</strong>
-            <div class="section-contenu" style="margin-top:2px;">{!! nl2br(e($narratif['stagiaires_avis'])) !!}</div>
-        </div>
-        @endif
-    </div>
-    @endif
-
-    @if(!empty($narratif['autres']) && is_array($narratif['autres']))
-    <div class="section">
-        <div class="section-titre">Chauffeurs et Autres</div>
-
-        <table class="chauffeurs-table">
-            <thead>
-                <tr>
-                    <th style="width:60%;">NOMS</th>
-                    <th style="width:40%;">ROLE</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($narratif['autres'] as $agent)
-                <tr>
-                    <td style="font-weight:bold;">{{ $agent['nom'] ?? '—' }}</td>
-                    <td>{{ $agent['role'] ?? '—' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-    @endif
-
-    <div class="section">
-        <div class="section-titre">Conclusion</div>
-        <div class="section-contenu">
-            {!! nl2br(e($narratif['conclusion'] ?? 'Au terme de cette mission, la brigade des implantations du groupe EDEN a mene avec succes l\'ensemble des travaux topographiques prevus.')) !!}
-        </div>
-    </div>
-
-    @if(!empty($narratif['pieces_jointes']) && is_array($narratif['pieces_jointes']) && count($narratif['pieces_jointes']) > 0)
-    <div class="section">
-        <div class="section-titre">Pieces Jointes</div>
-        <ul class="totaux-liste">
-            @foreach($narratif['pieces_jointes'] as $pj)
-                <li>{{ $pj }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
-    <div class="signature">
-        <div class="nom">{{ $narratif['signataire_nom'] ?? 'Josiane Morelle NGOLO AYISSI' }}</div>
-        <div class="poste">{{ $narratif['signataire_poste'] ?? 'Chef de bureau des installations et du suivi des implantations' }}</div>
-    </div>
-
-    <div class="footer">
-        B.P 35531 - Yaounde - Cameroun · Tel.: 699 16 41 43 / 652 224 680 · NIU: M042217297350S<br>
-        Situe a Texaco Omnisport · Agrement N°: 0001/MINHDU/SG/DHSPI/SDPIAC du 07 Fevrier 2025
-    </div>
-
-
-{{-- ═══════════════════════════════════════════════════════════ --}}
-{{-- PAGE 2 : PAYSAGE                                            --}}
-{{-- ═══════════════════════════════════════════════════════════ --}}
-
-<pagebreak orientation="landscape" />
-
-<div>
-
-    <div class="paysage-titre">Tableau Recapitulatif</div>
+    {{-- TABLEAU RÉCAPITULATIF --}}
+    <div class="paysage-titre" style="margin-top:10px;">Tableau Recapitulatif</div>
     <div class="paysage-sous-titre">
-        Rapport des appreciations du {{ $dateSemaineFmt }} — {{ $lignesCollection->count() }} ligne(s)
+        Appreciations du {{ $dateSemaineFmt }} — {{ $lignesCollection->count() }} ligne(s)
     </div>
 
     @if(!empty($narratif['recapitulatif']))
@@ -618,6 +514,190 @@
         </div>
     </div>
     @endif
+
+    @php
+    // Filtrer uniquement les lignes acceptées
+    $lignesAcceptees = $lignesCollection->filter(function($l) {
+        return ($l['statut_acceptation'] ?? null) === 'accepte';
+    });
+
+    // Regrouper par géomètre
+    $parGeometre = $lignesAcceptees
+        ->groupBy(fn($l) => $l['geometre_nom'] ?? 'Non renseigné')
+        ->map(fn($groupe, $nom) => [
+            'nom'   => $nom,
+            'count' => $groupe->count(),
+        ])
+        ->sortByDesc('count');
+
+    // Conversion nombre → lettres français
+    $enLettres = function($n) use (&$enLettres) {
+        $unites = ['zéro','une','deux','trois','quatre','cinq','six','sept','huit','neuf','dix',
+                   'onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+        $dizaines = ['', '', 'vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+
+        if ($n < 20) return $unites[$n];
+        if ($n < 100) {
+            $d = intdiv($n, 10);
+            $u = $n % 10;
+            if ($d === 7 || $d === 9) {
+                $base = $d === 7 ? 'soixante' : 'quatre-vingt';
+                $reste = $n - ($d === 7 ? 60 : 80);
+                if ($reste === 0) return $base . ($d === 9 ? 's' : '');
+                return $base . '-' . $unites[$reste];
+            }
+            $base = $dizaines[$d];
+            if ($u === 0) return $base . ($d === 8 ? 's' : '');
+            if ($u === 1 && $d !== 8) return $base . '-et-un';
+            return $base . '-' . $unites[$u];
+        }
+        if ($n < 1000) {
+            $c = intdiv($n, 100);
+            $r = $n % 100;
+            $cent = ($c === 1 ? 'cent' : $unites[$c] . ' cent');
+            if ($r === 0) return $cent . ($c > 1 ? 's' : '');
+            return $cent . ' ' . $enLettres($r);
+        }
+        return (string)$n;
+    };
+
+    $capitaliser = function($mot) {
+        return mb_strtoupper(mb_substr($mot, 0, 1)) . mb_substr($mot, 1);
+    };
+@endphp
+
+@if($parGeometre->count() > 0)
+<div style="margin-top:10px;font-size:8.5pt;color:#1e3a5f;line-height:1.6;">
+    <div style="font-size:9pt;margin-bottom:6px;">
+        Totaux
+    </div>
+    @foreach($parGeometre as $geo)
+        <div>
+            {{ $geo['nom'] }} : {{ $capitaliser($enLettres($geo['count'])) }} implantation{{ $geo['count'] > 1 ? 's' : '' }}
+        </div>
+    @endforeach
+</div>
+@endif
+
+</div>
+
+
+{{-- ═══════════════════════════════════════════════════════════ --}}
+{{-- ██████  PAGE 2 : PORTRAIT (DIFFICULTES → PIECES JOINTES) █ --}}
+{{-- ═══════════════════════════════════════════════════════════ --}}
+
+<pagebreak orientation="portrait" />
+
+<div>
+
+    {{-- En-tête logo --}}
+    <div class="pdf-header">
+        <img src="{{ public_path('images/eden-bon.jpeg') }}"
+             alt="Logo EDEN Group"
+             border="0"
+             style="border:none;">
+    </div>
+
+    {{-- Titre rappel --}}
+    <div class="rapport-titre">
+        {{ $titreAffiche }}
+    </div>
+    <br>
+
+    {{-- DIFFICULTÉS RENCONTRÉES --}}
+    @if(!empty($narratif['difficultes']))
+    <div class="section">
+        <div class="section-titre">Difficultes Rencontrees</div>
+        <div class="section-contenu">{!! nl2br(e($narratif['difficultes'])) !!}</div>
+    </div>
+    @endif
+
+    {{-- SUGGESTIONS --}}
+@if(!empty($narratif['suggestions']))
+<div class="section">
+    <div class="section-titre">Suggestions</div>
+    <div class="section-contenu">{!! nl2br(e($narratif['suggestions'])) !!}</div>
+</div>
+@endif
+
+    {{-- AVIS SUR LES AGENTS DE SÉCURITÉ, STAGIAIRES, CHAUFFEURS, PHOTOGRAPHE ET AUTRES --}}
+    @if(!empty($narratif['securite']) || !empty($narratif['stagiaires_avis']))
+    <div class="section">
+        <div class="section-titre">
+            Avis sur les Agents de Securite, Stagiaires, Chauffeurs, Photographe et Autres
+        </div>
+
+        @if(!empty($narratif['securite']))
+        <div style="margin-bottom:4px;">
+            <strong style="color:#1e3a5f; font-size:8pt;">Agents de securite</strong>
+            <div class="section-contenu" style="margin-top:2px;">{!! nl2br(e($narratif['securite'])) !!}</div>
+        </div>
+        @endif
+
+        @if(!empty($narratif['stagiaires_avis']))
+        <div style="margin-bottom:4px;">
+            <strong style="color:#1e3a5f; font-size:8pt;">Stagiaires</strong>
+            <div class="section-contenu" style="margin-top:2px;">{!! nl2br(e($narratif['stagiaires_avis'])) !!}</div>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- CHAUFFEURS ET AUTRES --}}
+    @if(!empty($narratif['autres']) && is_array($narratif['autres']))
+    <div class="section">
+        <div class="section-titre">Chauffeurs et Autres</div>
+
+        <table class="chauffeurs-table">
+            <thead>
+                <tr>
+                    <th style="width:60%;">NOMS</th>
+                    <th style="width:40%;">ROLE</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($narratif['autres'] as $agent)
+                <tr>
+                    <td style="font-weight:bold;">{{ $agent['nom'] ?? '—' }}</td>
+                    <td>{{ $agent['role'] ?? '—' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    {{-- CONCLUSION --}}
+    <div class="section">
+        <div class="section-titre">Conclusion</div>
+        <div class="section-contenu">
+            {!! nl2br(e($narratif['conclusion'] ?? 'Au terme de cette mission, la brigade des implantations du groupe EDEN a mene avec succes l\'ensemble des travaux topographiques prevus.')) !!}
+        </div>
+    </div>
+
+    {{-- PIÈCES JOINTES --}}
+    @if(!empty($narratif['pieces_jointes']) && is_array($narratif['pieces_jointes']) && count($narratif['pieces_jointes']) > 0)
+    <div class="section">
+        <div class="section-titre">Pieces Jointes</div>
+        <ul class="totaux-liste">
+            @foreach($narratif['pieces_jointes'] as $pj)
+                <li>{{ $pj }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
+    {{-- SIGNATURE --}}
+    <div class="signature">
+        <div class="nom">{{ $narratif['signataire_nom'] ?? 'Josiane Morelle NGOLO AYISSI' }}</div>
+        <div class="poste">{{ $narratif['signataire_poste'] ?? 'Chef de bureau des installations et du suivi des implantations' }}</div>
+    </div>
+
+    {{-- PIED DE PAGE --}}
+    <div class="footer">
+        B.P 35531 - Yaounde - Cameroun · Tel.: 699 16 41 43 / 652 224 680 · NIU: M042217297350S<br>
+        Situe a Texaco Omnisport · Agrement N°: 0001/MINHDU/SG/DHSPI/SDPIAC du 07 Fevrier 2025
+    </div>
 
 </div>
 
