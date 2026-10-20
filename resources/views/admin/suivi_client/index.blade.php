@@ -732,12 +732,21 @@
                                 ];
 
                                 $totalPaye = $tD + $tT + $tL + $tM;
-                                $totalRef  = $rD + $rT + $rL + $rM;
-                                $tousSoldes = ($statutD === 'solde' || $tD == 0)
-                                           && ($statutT === 'solde' || $tT == 0)
-                                           && ($statutL === 'solde' || $tL == 0)
-                                           && ($statutM === 'solde' || $tM == 0);
-                                $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
+$totalRef  = $rD + $rT + $rL + $rM;
+
+
+$blocSolde = function($t, $r) {
+    if ($r == 0 && $t == 0) return true;    // rien à payer → neutre (OK)
+    if ($r == 0 && $t > 0)  return false;   // payé sans référence → incohérent
+    return $t >= $r;                        // prix configuré → doit être totalement payé
+};
+
+$tousSoldes = $blocSolde($tD, $rD)
+           && $blocSolde($tT, $rT)
+           && $blocSolde($tL, $rL)
+           && $blocSolde($tM, $rM);
+
+$pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                             @endphp
 
                             <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;">
