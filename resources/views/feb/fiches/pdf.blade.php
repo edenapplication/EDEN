@@ -82,12 +82,13 @@
             word-wrap: break-word;
             word-break: break-word;
             max-width: 100%;
+            hyphens: auto;
         }
 
         table.tab-data { 
             width:100%; 
             border-collapse:collapse;  
-            table-layout: fixed; 
+            table-layout: auto;
             font-size: 7.8pt;
             border: 1px solid #bfdbfe;
         }
@@ -101,16 +102,18 @@
             font-weight:700;
             color:#1d4ed8;
             border:1px solid #bfdbfe;
+            white-space: nowrap;
         }
-        /* ✅ Colonne N réduite de 3 (20px → 7px) */
+
+        /* ✅ Colonne N adaptée au contenu */
         table.tab-data thead th.num-th { 
-            width: 7px !important; 
-            min-width: 7px !important;
-            max-width: 7px !important;
-            text-align:center; 
-            color:#64748b; 
-            font-size:6pt;
-            padding:3px 2px;
+            width: 1%;
+            min-width: 22px;
+            white-space: nowrap;
+            text-align: center; 
+            color: #64748b; 
+            font-size: 6.5pt;
+            padding: 3px 4px;
         }
 
         table.tab-data tbody td {
@@ -121,23 +124,27 @@
             border:1px solid #e2e8f0;
             word-wrap:break-word;
             overflow-wrap:break-word;
-        }
-        table.tab-data tbody td {
-            text-align:center !important;
+            white-space: normal;
         }
         
-        table.tab-data tbody tr:nth-child(even) td { background:#f8fafc; }
+        /* ✅ Les cellules numériques ne se coupent pas */
+        table.tab-data tbody td.montant {
+            white-space: nowrap;
+            text-align:center;
+            font-family:monospace;
+        }
+
+        /* ✅ Colonne N en corps de tableau */
         table.tab-data .num-td { 
             text-align:center; 
             color:#94a3b8;
             font-weight:600;
-            font-size:6pt;
-            padding:3px 2px;
+            font-size:6.5pt;
+            padding:3px 4px;
+            white-space: nowrap;
         }
-        table.tab-data .montant {
-            text-align:center;
-            font-family:monospace;
-        }
+
+        table.tab-data tbody tr:nth-child(even) td { background:#f8fafc; }
 
         .section-title-row td {
             background-color:#eef2ff !important;
@@ -147,6 +154,7 @@
             font-size:9pt;
             color:#1e3a5f;
             text-align:left !important;
+            white-space: normal;
         }
 
         .total-section-row td {
@@ -156,6 +164,7 @@
             padding:6px 12px !important;
             text-align:right !important;
             font-weight:600;
+            white-space: nowrap;
         }
         .total-section-row .ts-val {
             font-weight:900;
@@ -172,6 +181,7 @@
             text-align:right !important;
             font-weight:700;
             font-size:10pt;
+            white-space: nowrap;
         }
         .total-global-row .tg-val {
             font-weight:900;
@@ -194,7 +204,6 @@
             color:#94a3b8;
         }
         
-        /* ✅ "Arrêté le présent devis" à gauche avec la même police */
         .total-lettres {
             font-size: 8.5pt;
             font-weight: 600;
@@ -202,12 +211,6 @@
             display: block;
             margin-top: 4px;
             text-align: left;
-        }
-        
-        .fiche-titre {
-            word-wrap: break-word;
-            word-break: break-word;
-            hyphens: auto;
         }
     </style>
 </head>
@@ -269,6 +272,34 @@
     @endphp
 
     <table class="tab-data">
+        <colgroup>
+            {{-- Colonne N : largeur minimale --}}
+            <col style="width: 1%;">
+            @foreach($colonnesGlobales as $col)
+                @php
+                    $lib = strtolower($col->libelle);
+                    // Détection intelligente de la largeur selon le type de colonne
+                    if (preg_match('/^n[°o]?$|^num|^#$|^n\s*$/u', $lib)) {
+                        $w = '1%';          // N°, Numéro, #
+                    } elseif (preg_match('/quantit|qté|qte|qty/u', $lib)) {
+                        $w = '8%';          // Quantité
+                    } elseif (preg_match('/prix.?unitaire|p\.?u\.?/u', $col->libelle)) {
+                        $w = '12%';         // Prix unitaire
+                    } elseif (preg_match('/prix.?total|montant.?total|total/u', $lib)) {
+                        $w = '14%';         // Prix total / Montant total
+                    } elseif (preg_match('/montant|prix/u', $lib)) {
+                        $w = '12%';         // Autres montants / prix
+                    } elseif (preg_match('/unit|unité|mesure|um/u', $lib)) {
+                        $w = '8%';          // Unité / Unité de mesure
+                    } elseif (preg_match('/désignation|designation|description|libellé|libelle|produit|article|objet|nature/u', $lib)) {
+                        $w = 'auto';        // Désignation : prend tout l'espace restant
+                    } else {
+                        $w = 'auto';        // Par défaut
+                    }
+                @endphp
+                <col style="width: {{ $w }};">
+            @endforeach
+        </colgroup>
         <thead>
             <tr>
                 <th class="num-th">N</th>

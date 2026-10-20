@@ -14,6 +14,39 @@
     background: #f0fdf4;
 }
 
+/* ✅ Empêche la coupure des noms de clients */
+.client-nom {
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: normal;
+    flex-wrap: wrap;
+}
+
+.client-nom > span:first-child {
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ✅ Empêche la coupure dans toute la carte */
+.client-card {
+    word-break: keep-all;
+    overflow-wrap: normal;
+}
+
+.client-card * {
+    word-break: keep-all;
+    overflow-wrap: normal;
+}
+
+/* ✅ Sauf la partie bénéficiaires qui peut casser */
+.benef-detail-badges,
+.benef-detail-badges * {
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
 .filtre-box { background:white; border-radius:12px; padding:14px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
 .dossier-pill {
     display:inline-flex; align-items:center; gap:6px;
@@ -1837,18 +1870,20 @@ function filtrerClients(terme) {
         card.style.display = match ? '' : 'none';
         if (match) { visible++; if (isNew) nouveaux++; }
 
-        if (match && t) {
-            const nomEl = card.querySelector('.client-nom');
-            if (nomEl) {
-                const texte = nomEl.dataset.original || nomEl.innerText;
-                nomEl.dataset.original = texte;
-                const regex = new RegExp(`(${t})`, 'gi');
-                nomEl.innerHTML = texte.replace(regex, '<span class="highlight">$1</span>');
+        // ✅ Cible UNIQUEMENT le span du nom (pas tout le conteneur)
+        const nomSpan = card.querySelector('.client-nom > span:first-child');
+        if (nomSpan) {
+            if (!nomSpan.dataset.original) {
+                nomSpan.dataset.original = nomSpan.textContent;
             }
-        } else {
-            const nomEl = card.querySelector('.client-nom');
-            if (nomEl && nomEl.dataset.original) {
-                nomEl.innerText = nomEl.dataset.original;
+            if (match && t) {
+                const regex = new RegExp(`(${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                nomSpan.innerHTML = nomSpan.dataset.original.replace(
+                    regex,
+                    '<span class="highlight">$1</span>'
+                );
+            } else {
+                nomSpan.textContent = nomSpan.dataset.original;
             }
         }
     });
@@ -1914,16 +1949,20 @@ function sauvegarderNom() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const el = document.getElementById('nom-' + clientIdCourant);
-            if (el) {
-                el.innerText = data.nom;
-                el.dataset.original = data.nom;
-                const card = el.closest('.client-card');
-                if (card) card.dataset.nom = data.nom.toLowerCase();
-            }
-            fermerEditNom();
-            showToast('✅ Nom mis à jour', 'success');
-        } else alert(data.message || 'Erreur');
+    const el = document.getElementById('nom-' + clientIdCourant);
+    if (el) {
+        // ✅ Cible le span du nom uniquement
+        const nomSpan = el.querySelector('span:first-child');
+        if (nomSpan) {
+            nomSpan.textContent = data.nom;
+            nomSpan.dataset.original = data.nom;
+        }
+        const card = el.closest('.client-card');
+        if (card) card.dataset.nom = data.nom.toLowerCase();
+    }
+    fermerEditNom();
+    showToast('✅ Nom mis à jour', 'success');
+}else alert(data.message || 'Erreur');
     });
 }
 
