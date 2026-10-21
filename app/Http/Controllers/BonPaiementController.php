@@ -71,8 +71,17 @@ class BonPaiementController extends Controller
         // ✅ 8. Totaux déjà versés
         $totaux = $this->calculerTotaux($dossier);
 
+         $beneficiairesJson = $dossier->beneficiaires->map(function($b) {
+        return [
+            'id'        => $b->id,
+            'nom'       => $b->nom,
+            'telephone' => $b->telephone,
+            'sexe'      => $b->sexe,
+        ];
+    })->values()->toArray();
+
         // ✅ 9. Passer l'utilisateur à la vue
-        return view('admin.bons.creer', compact('dossier','totaux', 'user'));
+        return view('admin.bons.creer', compact('dossier','beneficiairesJson','totaux', 'user'));
     }
 
 // ═══════════════════════════════════════════════════════════

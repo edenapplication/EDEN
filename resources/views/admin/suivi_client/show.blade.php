@@ -868,7 +868,7 @@
                                                                  margin-right:6px;">
                                                         {{ $bd['index'] }}
                                                     </span>
-                                                    👤 {{ $b->nom }}
+                                                    👤 {{ $b->nom_avec_civilite }}
                                                     @if($b->telephone)
                                                         <span style="font-weight:400;color:#64748b;font-size:11px;">
                                                             · 📞 {{ $b->telephone }}
@@ -1476,6 +1476,14 @@
                 <label style="font-size:11px;font-weight:700;color:#64748b;">Téléphone</label>
                 <input type="text" id="benefTelephone" class="form-control form-control-sm">
             </div>
+            <div>
+    <label style="font-size:11px;font-weight:700;color:#64748b;">Sexe</label>
+    <select name="sexe" id="benefSexe" class="form-select form-select-sm">
+        <option value="">— Non renseigné —</option>
+        <option value="masculin">👨 Masculin</option>
+        <option value="feminin">👩 Féminin</option>
+    </select>
+</div>
             <div>
                 <label style="font-size:11px;font-weight:700;color:#64748b;">
                     CNI <span style="color:#94a3b8;font-weight:400;">(optionnelle)</span>
@@ -2332,6 +2340,13 @@ function ouvrirModalBenef(dossierId, benef) {
     document.getElementById('benefNom').value        = benef?.nom ?? '';
     document.getElementById('benefTelephone').value  = benef?.telephone ?? '';
     document.getElementById('benefNotes').value      = benef?.notes ?? '';
+
+    // ✅ SEXE — Ajout
+    const sexeSelect = document.getElementById('benefSexe');
+    if (sexeSelect) {
+        sexeSelect.value = benef?.sexe ?? '';
+    }
+
     document.getElementById('benefTitre').textContent = benef ? '✏️ Modifier un bénéficiaire' : '👥 Ajouter un bénéficiaire';
 
     // ✅ CNI toujours optionnelle
@@ -2382,11 +2397,17 @@ function prefillBenefFromClient(select) {
     const opt = select.options[select.selectedIndex];
     if (!opt.value) {
         document.getElementById('benefClientInfo').textContent = '';
+        document.getElementById('benefSexe').value = '';   // ✅ reset
         return;
     }
     document.getElementById('benefNom').value = opt.dataset.nom || '';
     document.getElementById('benefTelephone').value = opt.dataset.phone || '';
-    const sexe = opt.dataset.sexe;
+    const sexe = opt.dataset.sexe || '';
+
+    // ✅ Pré-remplir le select avec le sexe du client
+    const sexeSelect = document.getElementById('benefSexe');
+    if (sexeSelect) sexeSelect.value = sexe;
+
     document.getElementById('benefClientInfo').textContent =
         sexe ? '👤 Sexe : ' + (sexe === 'masculin' ? 'Masculin' : 'Féminin') : '⚠️ Sexe non renseigné';
 }
@@ -2519,6 +2540,8 @@ function sauvegarderBenef() {
     formData.append('nom', nom);
     formData.append('telephone', document.getElementById('benefTelephone').value);
     formData.append('notes', document.getElementById('benefNotes').value);
+    formData.append('sexe', document.getElementById('benefSexe')?.value || '');
+    formData.append('notes', document.getElementById('benefNotes').value); 
     if (cniFile) formData.append('cni', cniFile);
     if (clientId) formData.append('client_id', clientId);
 

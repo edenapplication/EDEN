@@ -1778,6 +1778,7 @@ private function buildModificationLotsMessage(
                     'client_id'            => $client->id,
                     'nom'                  => $client->name,
                     'telephone'            => $client->phone,
+                    'sexe'                 => $client->sexe,
                     'cni_path'             => $cniPath,
                     'superficie_attribuee' => 0,
                     'notes'                => "Créé automatiquement via affectation rapide",

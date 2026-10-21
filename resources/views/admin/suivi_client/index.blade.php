@@ -29,7 +29,6 @@
     flex-shrink: 0;
 }
 
-/* ✅ Empêche la coupure dans toute la carte */
 .client-card {
     word-break: keep-all;
     overflow-wrap: normal;
@@ -40,7 +39,6 @@
     overflow-wrap: normal;
 }
 
-/* ✅ Sauf la partie bénéficiaires qui peut casser */
 .benef-detail-badges,
 .benef-detail-badges * {
     word-break: normal;
@@ -53,11 +51,23 @@
     background:#f1f5f9; border-radius:8px; padding:4px 10px;
     font-size:11px; color:#374151; margin-right:6px; margin-top:4px;
 }
+
+.mode-selector {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; background: #f8fafc;
+    border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.mode-selector label {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    padding: 4px 8px; border-radius: 6px;
+    transition: background 0.2s;
+}
+
 #search-live { font-size:15px; padding:10px 16px; border-radius:10px; border:2px solid #e2e8f0; }
 #search-live:focus { border-color:#1d4ed8; outline:none; }
 .highlight { background:#fef9c3; border-radius:3px; padding:0 2px; }
 
-/* BADGE NOUVEAU */
 .badge-new {
     background: #10b981; color: #fff;
     padding: 4px 12px; border-radius: 50px;
@@ -73,7 +83,6 @@
     display: inline-block; margin-left: 8px;
 }
 
-/* BADGE SEXE */
 .badge-sex-masculin {
     background: #dbeafe; color: #1d4ed8;
     padding: 2px 10px; border-radius: 50px;
@@ -92,7 +101,6 @@
     50% { transform: scale(1.05); opacity: 0.8; }
 }
 
-/* ✅ POINT ROUGE ANTIDATE CLIENT */
 .antidate-dot {
     display: inline-block;
     width: 12px;
@@ -116,7 +124,6 @@
     }
 }
 
-/* ✅ POINT ROUGE ANTIDATE DOSSIER */
 .dossier-antidate-dot {
     display: inline-block;
     width: 8px;
@@ -156,7 +163,6 @@
     background: #10b981; color: #fff; border-color: #10b981;
 }
 
-/* BARRE D'ACTIONS GROUPÉES */
 .action-bar {
     background: white; border-radius: 12px;
     padding: 12px 16px; margin-bottom: 16px;
@@ -207,7 +213,6 @@
     accent-color: #1d4ed8; margin-right: 8px; flex-shrink: 0;
 }
 
-/* BADGES LOTS AFFECTÉS */
 .lots-badge-container {
     display: flex; flex-wrap: wrap; gap: 4px;
     margin-top: 6px; align-items: center;
@@ -229,7 +234,6 @@
     border: 1.5px solid #86efac;
 }
 
-/* BÉNÉFICIAIRES INDÉPENDANTS */
 .benef-section {
     margin-top: 10px; padding: 12px;
     background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
@@ -405,7 +409,6 @@
     background: #faf5ff; color: #7c3aed;
 }
 
-/* MODAL ÉTAPE GROUPÉE */
 .etape-groupee-label {
     display:inline-flex; align-items:center; gap:6px;
     background:white; border:2px solid #e2e8f0;
@@ -414,7 +417,6 @@
     color:#64748b; transition:all 0.2s;
 }
 
-/* ✅ NOUVEAU BLOC LOGISTIQUE */
 .paiement-bloc.bloc-logistique {
     background: #eef2ff;
     border-left: 4px solid #6366f1;
@@ -439,9 +441,9 @@
         <button onclick="deselectionnerTout()" class="btn btn-outline-secondary btn-sm">
             ☐ Désélectionner
         </button>
-        <a href="{{ route('dossiers.export-excel', request()->all()) }}" class="btn btn-success btn-sm">
-            📥 Export Excel (filtres)
-        </a>
+       <button onclick="exporterFiltres()" class="btn btn-success btn-sm">
+    📥 Export Excel (filtres + sélection)
+</button>
         <button onclick="exporterPdf()" class="btn btn-danger btn-sm" title="Exporter en PDF">
             📄 PDF
         </button>
@@ -457,6 +459,23 @@
 
 {{-- BARRE D'ACTIONS GROUPÉES --}}
 <div class="action-bar" id="actionBar">
+    {{-- ✅ SÉLECTEUR DE MODE --}}
+    <div class="mode-selector">
+        <span style="font-size:10px;color:#64748b;font-weight:700;">Mode :</span>
+        <label id="mode-label-clients" style="background:white;">
+            <input type="radio" name="mode-selection" value="clients" onchange="changerModeSelection('clients')" style="width:12px;height:12px;">
+            👤 Clients
+        </label>
+        <label id="mode-label-benefs" style="background:white;">
+            <input type="radio" name="mode-selection" value="benefs" onchange="changerModeSelection('benefs')" style="width:12px;height:12px;">
+            👥 Bénéficiaires
+        </label>
+        <label id="mode-label-both" style="background:#dcfce7;">
+            <input type="radio" name="mode-selection" value="both" onchange="changerModeSelection('both')" style="width:12px;height:12px;" checked>
+            🔀 Les deux
+        </label>
+    </div>
+
     <span class="count" id="selectedCount">0</span>
     <span style="font-size:13px;color:#64748b;">élément(s) sélectionné(s)</span>
     <div class="btn-group">
@@ -465,19 +484,14 @@
         <button class="btn btn-warning" onclick="actionGroupee('mark_as_old')">📌 Anciens</button>
 
         <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                👤 Sexe
-            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">👤 Sexe</button>
             <ul class="dropdown-menu">
                 <li><button class="dropdown-item" onclick="actionGroupee('set_masculin')">👨 Masculin</button></li>
                 <li><button class="dropdown-item" onclick="actionGroupee('set_feminin')">👩 Féminin</button></li>
             </ul>
         </div>
 
-        <button class="btn" style="background:#f59e0b;color:white;" onclick="ouvrirModalEtapeGroupee()">
-            📊 Étape
-        </button>
+        <button class="btn" style="background:#f59e0b;color:white;" onclick="ouvrirModalEtapeGroupee()">📊 Étape</button>
 
         <button class="btn btn-primary" onclick="actionGroupee('export_whatsapp')">💬 WhatsApp</button>
         <button class="btn btn-success" onclick="actionGroupee('export_excel_selected')">📥 Excel sélection</button>
@@ -538,6 +552,14 @@
                 <option value="">Tous</option>
                 <option value="masculin" {{ request('sexe') == 'masculin' ? 'selected' : '' }}>👨 Masculin</option>
                 <option value="feminin" {{ request('sexe') == 'feminin' ? 'selected' : '' }}>👩 Féminin</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <label style="font-size:11px;font-weight:700;color:#7c3aed;">👥 Sexe bénéf.</label>
+            <select id="filtre-benef-sexe" class="form-control form-control-sm" onchange="appliquerFiltresServeur()">
+                <option value="">Tous</option>
+                <option value="masculin" {{ request('benef_sexe') == 'masculin' ? 'selected' : '' }}>👨 Masculin</option>
+                <option value="feminin" {{ request('benef_sexe') == 'feminin' ? 'selected' : '' }}>👩 Féminin</option>
             </select>
         </div>
         <div class="col-md-1">
@@ -609,13 +631,11 @@
                             <span>{{ $client->name }}</span>
 
                             @if($role === 'admin')
-                            {{-- ✅ Point rouge antidate --}}
                             <span class="antidate-dot"
                                   id="antidate-dot-{{ $client->id }}"
                                   style="{{ ($client->antidate ?? false) ? '' : 'display:none;' }}"
                                   title="Client avec bon(s) antidaté(s)"></span>
 
-                            {{-- ✅ Bouton retirer antidate --}}
                             <button class="btn-antidate-retirer"
                                     id="btn-antidate-{{ $client->id }}"
                                     style="{{ ($client->antidate ?? false) ? '' : 'display:none;' }}"
@@ -690,9 +710,7 @@
                     </div>
                     @endif
 
-                    {{-- ═══════════════════════════════════════════════════════════
-                         💰 STATUTS DE PAIEMENT PAR DOSSIER (CÔTE À CÔTE)
-                         ═══════════════════════════════════════════════════════════ --}}
+                    {{-- STATUTS DE PAIEMENT PAR DOSSIER --}}
                     @if($client->dossiers->count() > 0)
                     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:10px;margin-top:8px;">
                         @foreach($client->dossiers as $d)
@@ -707,7 +725,6 @@
                                 $rM = $d->prix_morcellement  ?? 0;
                                 $rL = $d->prix_logistique    ?? 0;
 
-                                // ✅ Détecter si AU MOINS un bon antidaté existe pour ce dossier
                                 $aBonAntidate = false;
                                 $bonsDuDossier = \App\Models\BonPaiement::where('dossier_client_id', $d->id)
                                     ->whereNotNull('date_bon')
@@ -732,21 +749,20 @@
                                 ];
 
                                 $totalPaye = $tD + $tT + $tL + $tM;
-$totalRef  = $rD + $rT + $rL + $rM;
+                                $totalRef  = $rD + $rT + $rL + $rM;
 
+                                $blocSolde = function($t, $r) {
+                                    if ($r == 0 && $t == 0) return true;
+                                    if ($r == 0 && $t > 0)  return false;
+                                    return $t >= $r;
+                                };
 
-$blocSolde = function($t, $r) {
-    if ($r == 0 && $t == 0) return true;    // rien à payer → neutre (OK)
-    if ($r == 0 && $t > 0)  return false;   // payé sans référence → incohérent
-    return $t >= $r;                        // prix configuré → doit être totalement payé
-};
+                                $tousSoldes = $blocSolde($tD, $rD)
+                                           && $blocSolde($tT, $rT)
+                                           && $blocSolde($tL, $rL)
+                                           && $blocSolde($tM, $rM);
 
-$tousSoldes = $blocSolde($tD, $rD)
-           && $blocSolde($tT, $rT)
-           && $blocSolde($tL, $rL)
-           && $blocSolde($tM, $rM);
-
-$pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
+                                $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                             @endphp
 
                             <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;">
@@ -754,7 +770,6 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
                                      title="{{ $d->nom_dossier }}">
                                     📂 {{ $d->nom_dossier }}
-                                    {{-- ✅ Point rouge si au moins un bon antidaté --}}
                                     @if($aBonAntidate)
                                         <span class="dossier-antidate-dot"
                                               title="Ce dossier a au moins un bon antidaté"></span>
@@ -765,9 +780,7 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                                     </span>
                                 </div>
 
-                                {{-- ✅ 4 BLOCS DE PAIEMENT : Dossier / Technique / Logistique / Morcellement --}}
                                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                                    {{-- BLOC DOSSIER --}}
                                     @if($tD > 0 || $rD > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutD]['bg'] }};color:{{ $couleurs[$statutD]['text'] }};border:1.5px solid {{ $couleurs[$statutD]['border'] }};">
                                         {{ $couleurs[$statutD]['icone'] }}
@@ -784,7 +797,6 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                                     </span>
                                     @endif
 
-                                    {{-- BLOC TECHNIQUE --}}
                                     @if($tT > 0 || $rT > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutT]['bg'] }};color:{{ $couleurs[$statutT]['text'] }};border:1.5px solid {{ $couleurs[$statutT]['border'] }};">
                                         {{ $couleurs[$statutT]['icone'] }}
@@ -801,7 +813,6 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                                     </span>
                                     @endif
 
-                                    {{-- ✅ BLOC LOGISTIQUE (NOUVEAU) --}}
                                     @if($tL > 0 || $rL > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutL]['bg'] }};color:{{ $couleurs[$statutL]['text'] }};border:1.5px solid {{ $couleurs[$statutL]['border'] }};">
                                         {{ $couleurs[$statutL]['icone'] }}
@@ -818,7 +829,6 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                                     </span>
                                     @endif
 
-                                    {{-- BLOC MORCELLEMENT --}}
                                     @if($tM > 0 || $rM > 0)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;background:{{ $couleurs[$statutM]['bg'] }};color:{{ $couleurs[$statutM]['text'] }};border:1.5px solid {{ $couleurs[$statutM]['border'] }};">
                                         {{ $couleurs[$statutM]['icone'] }}
@@ -856,9 +866,7 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                     </div>
                     @endif
 
-                    {{-- ═══════════════════════════════════════════════════════════
-                         👥 BÉNÉFICIAIRES
-                         ═══════════════════════════════════════════════════════════ --}}
+                    {{-- BÉNÉFICIAIRES --}}
                     @php
                         $tousBeneficiaires = collect();
                         foreach ($client->dossiers as $d) {
@@ -934,7 +942,7 @@ $pctGlobal = $totalRef > 0 ? round(($totalPaye / $totalRef) * 100) : 0;
                                 <div class="benef-info">
                                     <div class="benef-nom">
                                         <span class="benef-etape-dot {{ $etapeActive ? '' : 'vide' }}"></span>
-                                        👤 {{ $b->nom }}
+                                        👤 {{ $b->nom_avec_civilite }}
                                         @if($b->client_id)
                                             <span style="background:#dbeafe;color:#1d4ed8;font-size:8px;
                                                          padding:1px 6px;border-radius:5px;font-weight:700;">
@@ -1179,13 +1187,129 @@ let clientIdCourant = null;
 let selectedClients = new Set();
 let selectedBenefs  = new Set();
 
+let modeSelection = 'both';
+
+// ════════════════════════════════════════════════════════════════
+// ✅ MODE DE SÉLECTION (clients / benefs / both)
+// ════════════════════════════════════════════════════════════════
+function changerModeSelection(mode) {
+    modeSelection = mode;
+    ['clients','benefs','both'].forEach(m => {
+        const label = document.getElementById('mode-label-' + m);
+        if (label) {
+            label.style.background =
+                m === mode
+                    ? (m === 'clients' ? '#dbeafe' : m === 'benefs' ? '#ede9fe' : '#dcfce7')
+                    : 'white';
+        }
+    });
+
+    if (mode === 'clients') {
+        document.querySelectorAll('.benef-checkbox').forEach(cb => {
+            cb.disabled = true;
+            if (cb.checked) {
+                cb.checked = false;
+                cb.closest('.benef-card')?.classList.remove('selected');
+                selectedBenefs.delete(parseInt(cb.dataset.benefId));
+            }
+        });
+        document.querySelectorAll('.client-checkbox').forEach(cb => cb.disabled = false);
+    } else if (mode === 'benefs') {
+        document.querySelectorAll('.client-checkbox').forEach(cb => {
+            cb.disabled = true;
+            if (cb.checked) {
+                cb.checked = false;
+                cb.closest('.client-card')?.classList.remove('selected');
+                selectedClients.delete(parseInt(cb.dataset.clientId));
+            }
+        });
+        document.querySelectorAll('.benef-checkbox').forEach(cb => cb.disabled = false);
+    } else {
+        document.querySelectorAll('.client-checkbox, .benef-checkbox').forEach(cb => cb.disabled = false);
+    }
+    mettreAJourActionBar();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ EXPORT EXCEL — FILTRES + SÉLECTION (coches)
+//    Priorité : la sélection > les filtres
+// ════════════════════════════════════════════════════════════════
+function exporterFiltres() {
+    const params = new URLSearchParams();
+
+    const idsClients = Array.from(selectedClients);
+    const idsBenefs  = Array.from(selectedBenefs);
+
+    // ✅ CAS 1 : Des bénéficiaires cochés → UNIQUEMENT ces bénéficiaires
+    if (idsBenefs.length > 0) {
+        idsBenefs.forEach(id => params.append('beneficiaire_ids[]', id));
+
+        // Ajouter le filtre sexe bénéficiaire s'il est actif
+        const benefSexe = document.getElementById('filtre-benef-sexe')?.value;
+        if (benefSexe) params.append('benef_sexe', benefSexe);
+
+        window.location.href = '{{ route("dossiers.export-excel") }}?' + params.toString();
+        showToast(`✅ Export Excel de ${idsBenefs.length} bénéficiaire(s)`, 'success');
+        return;
+    }
+
+    // ✅ CAS 2 : Des clients cochés → ces clients + leurs bénéficiaires
+    if (idsClients.length > 0) {
+        idsClients.forEach(id => params.append('client_ids[]', id));
+
+        // Ajouter les filtres serveur (dates, site, etc.)
+        const filters = {
+            du:                 document.getElementById('filtre-du')?.value,
+            au:                 document.getElementById('filtre-au')?.value,
+            grand_site_id:      document.getElementById('filtre-site')?.value,
+            status:             document.getElementById('filtre-statut')?.value,
+            sexe:               document.getElementById('filtre-sexe')?.value,
+            benef_sexe:         document.getElementById('filtre-benef-sexe')?.value,
+            technique_solde:    document.getElementById('filtre-technique')?.value,
+            morcellement_solde: document.getElementById('filtre-morcellement')?.value,
+            dossier_solde:      document.getElementById('filtre-dossier')?.value,
+            logistique_solde:   document.getElementById('filtre-logistique')?.value,
+            lots:               document.getElementById('filtre-lots')?.value,
+        };
+
+        Object.entries(filters).forEach(([k, v]) => {
+            if (v) params.append(k, v);
+        });
+
+        window.location.href = '{{ route("dossiers.export-excel") }}?' + params.toString();
+        showToast(`✅ Export Excel de ${idsClients.length} client(s)`, 'success');
+        return;
+    }
+
+    // ✅ CAS 3 : Aucune coche → TOUT (avec filtres serveur)
+    const filters = {
+        q:                  document.getElementById('search-live')?.value,
+        du:                 document.getElementById('filtre-du')?.value,
+        au:                 document.getElementById('filtre-au')?.value,
+        grand_site_id:      document.getElementById('filtre-site')?.value,
+        status:             document.getElementById('filtre-statut')?.value,
+        sexe:               document.getElementById('filtre-sexe')?.value,
+        benef_sexe:         document.getElementById('filtre-benef-sexe')?.value,
+        technique_solde:    document.getElementById('filtre-technique')?.value,
+        morcellement_solde: document.getElementById('filtre-morcellement')?.value,
+        dossier_solde:      document.getElementById('filtre-dossier')?.value,
+        logistique_solde:   document.getElementById('filtre-logistique')?.value,
+        lots:               document.getElementById('filtre-lots')?.value,
+    };
+
+    Object.entries(filters).forEach(([k, v]) => {
+        if (v) params.append(k, v);
+    });
+
+    window.location.href = '{{ route("dossiers.export-excel") }}?' + params.toString();
+    showToast('✅ Export Excel complet (aucune sélection)', 'info');
+}
+
 // ════════════════════════════════════════════════════════════════
 // ✅ RETIRER LA MARQUE ANTIDATÉ (CLIENT)
 // ════════════════════════════════════════════════════════════════
 function retirerAntidate(clientId) {
-    if (!confirm('Retirer la marque ANTIDATÉ de ce client ?')) {
-        return;
-    }
+    if (!confirm('Retirer la marque ANTIDATÉ de ce client ?')) return;
 
     if (window.EdenLoader) window.EdenLoader.show();
 
@@ -1220,7 +1344,7 @@ function retirerAntidate(clientId) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// EXPORT PDF
+// EXPORT PDF CLIENTS (filtres globaux)
 // ════════════════════════════════════════════════════════════════
 function exporterPdf() {
     const q = document.getElementById('search-live')?.value || '';
@@ -1234,6 +1358,7 @@ function exporterPdf() {
     const dossier = document.getElementById('filtre-dossier')?.value || '';
     const logistique = document.getElementById('filtre-logistique')?.value || '';
     const lots = document.getElementById('filtre-lots')?.value || '';
+    const benefSexe = document.getElementById('filtre-benef-sexe')?.value || '';
 
     let url = '{{ route("suivi-client.export-pdf") }}?';
     if (q) url += 'q=' + encodeURIComponent(q) + '&';
@@ -1247,6 +1372,7 @@ function exporterPdf() {
     if (dossier) url += 'dossier_solde=' + dossier + '&';
     if (logistique) url += 'logistique_solde=' + logistique + '&';
     if (lots) url += 'lots=' + lots + '&';
+    if (benefSexe) url += 'benef_sexe=' + benefSexe + '&';
 
     window.open(url, '_blank');
 }
@@ -1255,6 +1381,7 @@ function exporterPdf() {
 // SÉLECTION CLIENTS
 // ════════════════════════════════════════════════════════════════
 function toggleSelection(checkbox, clientId) {
+    if (checkbox.disabled) return;
     if (checkbox.checked) {
         selectedClients.add(clientId);
         document.querySelector(`.client-card[data-id="${clientId}"]`)?.classList.add('selected');
@@ -1270,15 +1397,11 @@ function toggleSelection(checkbox, clientId) {
 // ════════════════════════════════════════════════════════════════
 function toggleBenefSelection(event, benefId) {
     event.stopPropagation();
-
     const cb = document.querySelector(`.benef-checkbox[data-benef-id="${benefId}"]`);
+    if (!cb || cb.disabled) return;
     const card = document.querySelector(`.benef-card[data-benef-id="${benefId}"]`);
 
-    if (event.target.type === 'checkbox') {
-        // déjà togglé
-    } else {
-        cb.checked = !cb.checked;
-    }
+    if (event.target.type === 'checkbox') {} else { cb.checked = !cb.checked; }
 
     if (cb.checked) {
         selectedBenefs.add(benefId);
@@ -1287,7 +1410,6 @@ function toggleBenefSelection(event, benefId) {
         selectedBenefs.delete(benefId);
         card?.classList.remove('selected');
     }
-
     mettreAJourActionBar();
 }
 
@@ -1299,6 +1421,7 @@ function selectionnerBenefsClient(clientId, select) {
     cards.forEach(card => {
         const benefId = parseInt(card.dataset.benefId);
         const cb = card.querySelector('.benef-checkbox');
+        if (cb.disabled) return;
 
         cb.checked = select;
         if (select) {
@@ -1314,23 +1437,24 @@ function selectionnerBenefsClient(clientId, select) {
 }
 
 function selectionnerTout() {
-    document.querySelectorAll('.client-card:not([style*="display: none"])').forEach(card => {
-        const cb = card.querySelector('.client-checkbox');
-        if (cb) {
+    if (modeSelection === 'clients' || modeSelection === 'both') {
+        document.querySelectorAll('.client-card:not([style*="display: none"])').forEach(card => {
+            const cb = card.querySelector('.client-checkbox');
+            if (cb && !cb.disabled) {
+                cb.checked = true;
+                selectedClients.add(parseInt(cb.dataset.clientId));
+                card.classList.add('selected');
+            }
+        });
+    }
+    if (modeSelection === 'benefs' || modeSelection === 'both') {
+        document.querySelectorAll('.client-card:not([style*="display: none"]) .benef-checkbox').forEach(cb => {
+            if (cb.disabled) return;
             cb.checked = true;
-            const id = parseInt(cb.dataset.clientId);
-            selectedClients.add(id);
-            card.classList.add('selected');
-        }
-    });
-
-    document.querySelectorAll('.client-card:not([style*="display: none"]) .benef-checkbox').forEach(cb => {
-        cb.checked = true;
-        const benefId = parseInt(cb.dataset.benefId);
-        selectedBenefs.add(benefId);
-        cb.closest('.benef-card')?.classList.add('selected');
-    });
-
+            selectedBenefs.add(parseInt(cb.dataset.benefId));
+            cb.closest('.benef-card')?.classList.add('selected');
+        });
+    }
     mettreAJourActionBar();
 }
 
@@ -1356,7 +1480,6 @@ function mettreAJourActionBar() {
     const bar = document.getElementById('actionBar');
     const summary = document.getElementById('selectionSummary');
     const total = selectedClients.size + selectedBenefs.size;
-
     document.getElementById('selectedCount').textContent = total;
 
     if (total > 0) {
@@ -1364,6 +1487,8 @@ function mettreAJourActionBar() {
         summary.style.display = 'flex';
         document.getElementById('count-clients').textContent = selectedClients.size + ' client(s)';
         document.getElementById('count-benefs').textContent = selectedBenefs.size + ' bénéficiaire(s)';
+        document.getElementById('count-clients').style.display = (modeSelection === 'benefs') ? 'none' : 'inline-block';
+        document.getElementById('count-benefs').style.display  = (modeSelection === 'clients') ? 'none' : 'inline-block';
     } else {
         bar.classList.remove('visible');
         summary.style.display = 'none';
@@ -1378,6 +1503,60 @@ function actionGroupee(action) {
     const idsBenefs  = Array.from(selectedBenefs);
     const ids = idsClients;
 
+    // ✅ MODE BÉNÉFICIAIRES : actions spécifiques
+    if (modeSelection === 'benefs' || (idsClients.length === 0 && idsBenefs.length > 0)) {
+
+        if (idsBenefs.length === 0) {
+            showToast('⚠️ Aucun bénéficiaire sélectionné', 'warning');
+            return;
+        }
+
+        if (action === 'delete') {
+            if (!confirm(`Supprimer définitivement ${idsBenefs.length} bénéficiaire(s) ?`)) return;
+            if (window.EdenLoader) window.EdenLoader.show();
+            Promise.all(idsBenefs.map(id =>
+                fetch(`/admin/beneficiaires/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+                }).then(r => r.json())
+            )).then(results => {
+                if (window.EdenLoader) window.EdenLoader.hide();
+                const success = results.filter(r => r.success).length;
+                showToast(`✅ ${success} bénéficiaire(s) supprimé(s)`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            }).catch(err => {
+                if (window.EdenLoader) window.EdenLoader.hide();
+                showToast('❌ ' + err.message, 'error');
+            });
+            return;
+        }
+
+        if (action === 'export_whatsapp') {
+            idsBenefs.forEach(id => window.open(`/admin/beneficiaires/${id}/whatsapp`, '_blank'));
+            showToast(`✅ ${idsBenefs.length} WhatsApp ouvert(s)`, 'success');
+            return;
+        }
+
+        if (action === 'export_pdf_selected') {
+            exporterPdfBenefSelection(idsBenefs);
+            return;
+        }
+
+        if (action === 'export_excel_selected') {
+            exporterExcelBenefSelection(idsBenefs);
+            return;
+        }
+
+        if (action === 'export_documents') {
+            showToast('⚠️ Récupération de documents non applicable aux bénéficiaires', 'warning');
+            return;
+        }
+
+        showToast('⚠️ Action non applicable aux bénéficiaires', 'warning');
+        return;
+    }
+
+    // ✅ MODE CLIENTS / BOTH
     if (idsClients.length === 0 && idsBenefs.length === 0) {
         showToast('⚠️ Aucun élément sélectionné', 'warning');
         return;
@@ -1488,7 +1667,6 @@ function executerActionConfirmee() {
         Promise.all(promises)
             .then(results => {
                 if (window.EdenLoader) window.EdenLoader.hide();
-
                 const success = results.filter(r => r.success).length;
                 const errors  = results.length - success;
 
@@ -1558,6 +1736,34 @@ function executerActionConfirmee() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// ✅ EXPORT PDF BÉNÉFICIAIRES
+// ════════════════════════════════════════════════════════════════
+function exporterPdfBenefSelection(ids) {
+    if (ids.length === 0) {
+        showToast('⚠️ Aucun bénéficiaire sélectionné', 'warning');
+        return;
+    }
+    const params = new URLSearchParams();
+    ids.forEach(id => params.append('beneficiaire_ids[]', id));
+    window.open('{{ route("beneficiaires.export-pdf") }}?' + params.toString(), '_blank');
+    showToast(`✅ Export PDF de ${ids.length} bénéficiaire(s) lancé`, 'success');
+}
+
+// ════════════════════════════════════════════════════════════════
+// ✅ EXPORT EXCEL BÉNÉFICIAIRES
+// ════════════════════════════════════════════════════════════════
+function exporterExcelBenefSelection(ids) {
+    if (ids.length === 0) {
+        showToast('⚠️ Aucun bénéficiaire sélectionné', 'warning');
+        return;
+    }
+    const params = new URLSearchParams();
+    ids.forEach(id => params.append('beneficiaire_ids[]', id));
+    window.location.href = '{{ route("beneficiaires.export-excel") }}?' + params.toString();
+    showToast(`✅ Export Excel de ${ids.length} bénéficiaire(s) lancé`, 'success');
+}
+
+// ════════════════════════════════════════════════════════════════
 // SUPPRIMER UN BÉNÉFICIAIRE
 // ════════════════════════════════════════════════════════════════
 function supprimerBenef(benefId, benefNom) {
@@ -1620,7 +1826,7 @@ function supprimerBenef(benefId, benefNom) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// EXPORT PDF SÉLECTION
+// EXPORT PDF SÉLECTION CLIENTS
 // ════════════════════════════════════════════════════════════════
 function exporterPdfSelection(ids) {
     if (window.EdenLoader) window.EdenLoader.show();
@@ -1655,7 +1861,7 @@ function exporterPdfSelection(ids) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// EXPORT DOCUMENTS
+// EXPORT DOCUMENTS (clients)
 // ════════════════════════════════════════════════════════════════
 function exporterDocuments(ids) {
     document.getElementById('modalProgressOverlay').style.display = 'block';
@@ -1879,7 +2085,6 @@ function filtrerClients(terme) {
         card.style.display = match ? '' : 'none';
         if (match) { visible++; if (isNew) nouveaux++; }
 
-        // ✅ Cible UNIQUEMENT le span du nom (pas tout le conteneur)
         const nomSpan = card.querySelector('.client-nom > span:first-child');
         if (nomSpan) {
             if (!nomSpan.dataset.original) {
@@ -1915,6 +2120,8 @@ function appliquerFiltresServeur() {
     const logistique = document.getElementById('filtre-logistique')?.value;
     const lots = document.getElementById('filtre-lots')?.value;
     const q = document.getElementById('search-live')?.value;
+    const benefSexe = document.getElementById('filtre-benef-sexe')?.value || '';
+
     const url = new URL(window.location.href);
     du ? url.searchParams.set('du', du) : url.searchParams.delete('du');
     au ? url.searchParams.set('au', au) : url.searchParams.delete('au');
@@ -1927,6 +2134,7 @@ function appliquerFiltresServeur() {
     logistique ? url.searchParams.set('logistique_solde', logistique) : url.searchParams.delete('logistique_solde');
     lots ? url.searchParams.set('lots', lots) : url.searchParams.delete('lots');
     q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
+    benefSexe ? url.searchParams.set('benef_sexe', benefSexe) : url.searchParams.delete('benef_sexe');
     window.location.href = url.toString();
 }
 
@@ -1958,20 +2166,19 @@ function sauvegarderNom() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-    const el = document.getElementById('nom-' + clientIdCourant);
-    if (el) {
-        // ✅ Cible le span du nom uniquement
-        const nomSpan = el.querySelector('span:first-child');
-        if (nomSpan) {
-            nomSpan.textContent = data.nom;
-            nomSpan.dataset.original = data.nom;
-        }
-        const card = el.closest('.client-card');
-        if (card) card.dataset.nom = data.nom.toLowerCase();
-    }
-    fermerEditNom();
-    showToast('✅ Nom mis à jour', 'success');
-}else alert(data.message || 'Erreur');
+            const el = document.getElementById('nom-' + clientIdCourant);
+            if (el) {
+                const nomSpan = el.querySelector('span:first-child');
+                if (nomSpan) {
+                    nomSpan.textContent = data.nom;
+                    nomSpan.dataset.original = data.nom;
+                }
+                const card = el.closest('.client-card');
+                if (card) card.dataset.nom = data.nom.toLowerCase();
+            }
+            fermerEditNom();
+            showToast('✅ Nom mis à jour', 'success');
+        } else alert(data.message || 'Erreur');
     });
 }
 
@@ -2098,10 +2305,17 @@ function validerEtapeGroupee() {
     });
 }
 
-// Scroll vers bénéficiaire si hash présent
+// ════════════════════════════════════════════════════════════════
+// INITIALISATION
+// ════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     const q = new URLSearchParams(window.location.search).get('q');
     if (q) filtrerClients(q);
+
+    const modeUrl = new URLSearchParams(window.location.search).get('mode');
+    if (modeUrl && ['clients','benefs','both'].includes(modeUrl)) {
+        document.querySelector(`input[name="mode-selection"][value="${modeUrl}"]`)?.click();
+    }
 
     if (window.location.hash && window.location.hash.startsWith('#benef-')) {
         const el = document.querySelector(window.location.hash);

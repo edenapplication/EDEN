@@ -291,6 +291,16 @@
             <input type="text" id="benefTelephone" class="form-control form-control-sm">
         </div>
 
+        {{-- ✅ SEXE — id corrigé en benefSexe --}}
+        <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;">Sexe</label>
+            <select name="sexe" id="benefSexe" class="form-control form-control-sm">
+                <option value="">— Non renseigné —</option>
+                <option value="masculin">👨 Masculin</option>
+                <option value="feminin">👩 Féminin</option>
+            </select>
+        </div>
+
         <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;">
                 CNI (obligatoire) <span style="color:#dc2626;">*</span>
@@ -324,11 +334,12 @@
 // ═══════════════════════════════════════════════════════════
 // DONNÉES
 // ═══════════════════════════════════════════════════════════
-const CSRF_TOKEN = '{{ csrf_token() }}';
-const DOSSIER_ID = {{ $dossier->id }};
-const CLIENT_ID  = {{ $dossier->client?->id ?? 0 }};
-const CLIENT_NOM = '{{ addslashes($dossier->client?->name ?? '') }}';
-const CLIENT_TEL = '{{ addslashes($dossier->client?->phone ?? '') }}';
+const CSRF_TOKEN  = '{{ csrf_token() }}';
+const DOSSIER_ID  = {{ $dossier->id }};
+const CLIENT_ID   = {{ $dossier->client?->id ?? 0 }};
+const CLIENT_NOM  = '{{ addslashes($dossier->client?->name ?? '') }}';
+const CLIENT_TEL  = '{{ addslashes($dossier->client?->phone ?? '') }}';
+const CLIENT_SEXE = '{{ $dossier->client?->sexe ?? '' }}';   // ✅ AJOUT
 
 const prixReferences = {
     dossier:      {{ $dossier->prix_superficie ?? 0 }},
@@ -344,16 +355,16 @@ const totauxDejaVerses = {
     morcellement: {{ $totaux['morcellement'] ?? 0 }}
 };
 
-// ✅ Récupérer les bénéficiaires existants
-let beneficiaires = @json($dossier->beneficiaires->map(fn($b) => ['id' => $b->id, 'nom' => $b->nom, 'telephone' => $b->telephone]));
-
+// ✅ Récupérer les bénéficiaires existants AVEC leur sexe
+let beneficiaires = @json($beneficiairesJson);
 // ✅ Ajouter le client/détenteur du dossier en PREMIER dans la liste
 const clientDetenteur = {
     id: CLIENT_ID,
     nom: CLIENT_NOM,
     telephone: CLIENT_TEL,
+    sexe: CLIENT_SEXE,                                    // ✅ AJOUT
     isClient: true,
-    isBeneficiaire: beneficiaires.some(b => b.id === CLIENT_ID)  // ✅ Est-il déjà bénéficiaire ?
+    isBeneficiaire: beneficiaires.some(b => b.id === CLIENT_ID)
 };
 
 // Insérer le client en premier s'il existe et n'est pas déjà dans la liste
@@ -375,6 +386,7 @@ function autoCreerBeneficiaireSiClient(benefId, callback) {
         const formData = new FormData();
         formData.append('nom', CLIENT_NOM);
         formData.append('telephone', CLIENT_TEL);
+        if (CLIENT_SEXE) formData.append('sexe', CLIENT_SEXE);   // ✅ AJOUT
         formData.append('client_id', CLIENT_ID);
 
         fetch(`/admin/dossiers/${DOSSIER_ID}/beneficiaires`, {
@@ -402,7 +414,6 @@ function autoCreerBeneficiaireSiClient(benefId, callback) {
                     return b;
                 });
 
-                // Appeler le callback avec le vrai ID bénéficiaire
                 if (callback) callback(data.beneficiaire.id, true);
             } else {
                 console.error('❌ Erreur création auto:', data.message);
@@ -414,7 +425,6 @@ function autoCreerBeneficiaireSiClient(benefId, callback) {
             if (callback) callback(null, false, err.message);
         });
     } else {
-        // Pas besoin de créer, utiliser l'ID tel quel
         if (callback) callback(benefId, true);
     }
 }
@@ -426,11 +436,9 @@ function ajouterVersementBenef() {
     versementCounter++;
     const id = versementCounter;
 
-    // ✅ Afficher les sous-totaux dès qu'on ajoute un versement
     const sousTotaux = document.getElementById('sousTotauxBenef');
     if (sousTotaux) sousTotaux.style.display = 'grid';
 
-    // ✅ Générer les options avec badge ⭐ pour le détenteur
     const optionsBenef = beneficiaires.map(b =>
         `<option value="${b.id}">${b.isClient ? '⭐ ' : ''}${b.nom}${b.telephone ? ' — ' + b.telephone : ''}${b.isClient ? ' (Détenteur)' : ''}</option>`
     ).join('');
@@ -490,14 +498,13 @@ function ajouterVersementBenef() {
                 </div>
             </div>
 
-            {{-- Type de paiement (côte à côte) --}}
+            {{-- Type de paiement --}}
             <div style="background:white;border-radius:8px;padding:10px;margin-bottom:10px;">
                 <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;">
-                    💰 Selectionner lee type de Paiement effectuer
+                    💰 Sélectionner le type de paiement effectué
                 </div>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    {{-- TECHNIQUE --}}
                     <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;padding:8px;">
                         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px;">
                             <input type="checkbox" class="tech-checkbox" data-id="${id}"
@@ -513,12 +520,11 @@ function ajouterVersementBenef() {
                         </div>
                     </div>
 
-                    {{-- LOGISTIQUE --}}
                     <div style="background:#faf5ff;border:2px solid #e9d5ff;border-radius:8px;padding:8px;">
                         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px;">
                             <input type="checkbox" class="logi-checkbox" data-id="${id}"
                                    onchange="onTypeChange(${id})">
-                            <span style="font-weight:700;color:#7c3aed;font-size:12px;">🚗 Paiement pour la Logistique d'implantion</span>
+                            <span style="font-weight:700;color:#7c3aed;font-size:12px;">🚗 Paiement pour la Logistique d'implantation</span>
                         </label>
 
                         <div class="logi-montant-block" data-id="${id}" style="display:none;">
@@ -543,7 +549,6 @@ function supprimerVersementBenef(id) {
         el.remove();
         calculerTotal();
 
-        // ✅ Cacher les sous-totaux si plus aucun versement
         const restants = document.querySelectorAll('.versement-benef').length;
         const sousTotaux = document.getElementById('sousTotauxBenef');
         if (sousTotaux && restants === 0) {
@@ -592,6 +597,13 @@ function ouvrirModalBenefPourVersement(versementId) {
     document.getElementById('benefDossierId').value = DOSSIER_ID;
     document.getElementById('benefNom').value = '';
     document.getElementById('benefTelephone').value = '';
+
+    // ✅ SEXE — Réinitialiser
+    const sexeSelect = document.getElementById('benefSexe');
+    if (sexeSelect) {
+        sexeSelect.value = '';
+    }
+
     document.getElementById('benefCni').value = '';
     document.getElementById('benefCniActuelle').innerHTML = '';
     document.getElementById('benefMessage').style.display = 'none';
@@ -635,11 +647,17 @@ function prefillBenefFromClient(select) {
     const opt = select.options[select.selectedIndex];
     if (!opt.value) {
         document.getElementById('benefClientInfo').textContent = '';
+        document.getElementById('benefSexe').value = '';
         return;
     }
     document.getElementById('benefNom').value = opt.dataset.nom || '';
     document.getElementById('benefTelephone').value = opt.dataset.phone || '';
-    const sexe = opt.dataset.sexe;
+    const sexe = opt.dataset.sexe || '';
+
+    // ✅ Pré-remplir le select avec le sexe du client
+    const sexeSelect = document.getElementById('benefSexe');
+    if (sexeSelect) sexeSelect.value = sexe;
+
     document.getElementById('benefClientInfo').textContent =
         sexe ? '👤 Sexe : ' + (sexe === 'masculin' ? 'Masculin' : 'Féminin') : '⚠️ Sexe non renseigné';
 
@@ -669,6 +687,7 @@ function sauvegarderBenef() {
     formData.append('telephone', document.getElementById('benefTelephone').value);
     if (cniFile) formData.append('cni', cniFile);
     if (clientId) formData.append('client_id', clientId);
+    formData.append('sexe', document.getElementById('benefSexe')?.value || '');
 
     const btn = document.getElementById('btnSaveBenef');
     btn.disabled = true;
@@ -689,9 +708,9 @@ function sauvegarderBenef() {
                 id: data.beneficiaire.id,
                 nom: data.beneficiaire.nom,
                 telephone: data.beneficiaire.telephone,
+                sexe: data.beneficiaire.sexe,   // ✅ AJOUT
             });
 
-            // ✅ Si c'était le client, marquer comme bénéficiaire
             if (clientId == CLIENT_ID) {
                 clientDetenteur.isBeneficiaire = true;
                 clientDetenteur.beneficiaire_id = data.beneficiaire.id;
@@ -829,7 +848,7 @@ function calculerTotal() {
 // ✅ SOUMISSION AVEC CRÉATION AUTOMATIQUE DU BÉNÉFICIAIRE
 // ═══════════════════════════════════════════════════════════
 document.getElementById('formBon').addEventListener('submit', function(e) {
-    e.preventDefault();  // ⚠️ On empêche l'envoi pour traiter les créations auto d'abord
+    e.preventDefault();
 
     const versements = [];
     let hasErreur = false;
@@ -856,7 +875,6 @@ document.getElementById('formBon').addEventListener('submit', function(e) {
             return;
         }
 
-        // ✅ Si c'est le client détenteur ET pas encore bénéficiaire → créer d'abord
         if (benefId == CLIENT_ID && !clientDetenteur.isBeneficiaire) {
             promesses.push(
                 new Promise((resolve) => {
@@ -906,7 +924,6 @@ document.getElementById('formBon').addEventListener('submit', function(e) {
         }
     });
 
-    // Attendre toutes les créations automatiques
     Promise.all(promesses).then(() => {
         if (hasErreur) return;
 
@@ -919,7 +936,6 @@ document.getElementById('formBon').addEventListener('submit', function(e) {
             return;
         }
 
-        // Injecter les champs cachés
         const container = document.getElementById('versementsHidden');
         container.innerHTML = '';
 
@@ -933,7 +949,6 @@ document.getElementById('formBon').addEventListener('submit', function(e) {
             }
         });
 
-        // ✅ Soumettre le formulaire normalement
         document.getElementById('formBon').submit();
     });
 });
@@ -942,11 +957,9 @@ document.getElementById('formBon').addEventListener('submit', function(e) {
 // INITIALISATION
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ Cacher les sous-totaux au chargement
     const sousTotaux = document.getElementById('sousTotauxBenef');
     if (sousTotaux) sousTotaux.style.display = 'none';
 
-    // ✅ Calculer le total
     calculerTotal();
 });
 </script>

@@ -74,21 +74,24 @@ class DossierClientController extends Controller
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ✅ EXPORT EXCEL (Sélection stricte)
+    // ✅ EXPORT EXCEL (Sélection stricte + filtres)
     // ════════════════════════════════════════════════════════════════
     // Règles :
     //   - Rien coché                → TOUT (clients + bénéficiaires)
     //   - Clients cochés            → CES clients + LEURS bénéficiaires
     //   - Bénéficiaires cochés      → CES bénéficiaires uniquement
     //   - Clients + Bénéf. cochés   → CES clients + CES bénéf. + bénéf. des clients
+    //   - Filtre benef_sexe         → appliqué aux bénéficiaires
+    //   - Filtre sexe               → appliqué aux clients
     // ════════════════════════════════════════════════════════════════
-
     public function exportExcel(Request $request)
     {
         try {
-            // ✅ Récupérer les IDs sélectionnés séparément
-            $clientIds = $request->input('client_ids', []);
-            $benefIds  = $request->input('beneficiaire_ids', []);
+            // ✅ Récupérer les IDs sélectionnés
+            $clientIds  = $request->input('client_ids', []);
+            $benefIds   = $request->input('beneficiaire_ids', []);
+            $benefSexe  = $request->input('benef_sexe');    // ✅ AJOUT
+            $clientSexe = $request->input('sexe');           // ✅ AJOUT
 
             // ✅ Compatibilité ancien format (ids[]) → traités comme clients
             $legacyIds = $request->input('ids', []);
@@ -107,32 +110,27 @@ class DossierClientController extends Controller
             // 1. CLIENTS
             // ═══════════════════════════════════════════════════════════
             if ($hasClientSelection) {
-                // ✅ Uniquement les clients sélectionnés
-                $dossiers = $this->getDossiersQuery($request)
+                $dossiers = $this->getDossiersQuery($request, $clientSexe)
                     ->whereIn('client_id', $clientIds)
                     ->orderByDesc('created_at')
                     ->get();
             } elseif (!$hasAnySelection) {
-                // ✅ Aucune sélection → tous les clients
-                $dossiers = $this->getDossiersQuery($request)
+                $dossiers = $this->getDossiersQuery($request, $clientSexe)
                     ->orderByDesc('created_at')
                     ->get();
             }
-            // Sinon (bénéfs cochés sans clients) → $dossiers reste vide
 
             // ═══════════════════════════════════════════════════════════
             // 2. BÉNÉFICIAIRES
             // ═══════════════════════════════════════════════════════════
             if ($hasBenefSelection && !$hasClientSelection) {
-                // ✅ Bénéficiaires cochés SANS clients → UNIQUEMENT ces bénéfs
-                $beneficiaires = $this->getBeneficiairesQuery($request)
+                $beneficiaires = $this->getBeneficiairesQuery($request, $benefSexe)
                     ->whereIn('id', $benefIds)
                     ->orderByDesc('created_at')
                     ->get();
 
             } elseif ($hasBenefSelection && $hasClientSelection) {
-                // ✅ Clients + bénéfs cochés → les bénéfs cochés + bénéfs des clients
-                $beneficiaires = $this->getBeneficiairesQuery($request)
+                $beneficiaires = $this->getBeneficiairesQuery($request, $benefSexe)
                     ->where(function ($q) use ($benefIds, $clientIds) {
                         $q->whereIn('id', $benefIds)
                           ->orWhereHas('dossier', fn($sub) => $sub->whereIn('client_id', $clientIds));
@@ -141,22 +139,17 @@ class DossierClientController extends Controller
                     ->get();
 
             } elseif ($hasClientSelection && !$hasBenefSelection) {
-                // ✅ Clients cochés SANS bénéfs → bénéfs de ces clients
-                $beneficiaires = $this->getBeneficiairesQuery($request)
+                $beneficiaires = $this->getBeneficiairesQuery($request, $benefSexe)
                     ->whereHas('dossier', fn($q) => $q->whereIn('client_id', $clientIds))
                     ->orderByDesc('created_at')
                     ->get();
 
             } else {
-                // ✅ Aucune sélection → tous les bénéfs
-                $beneficiaires = $this->getBeneficiairesQuery($request)
+                $beneficiaires = $this->getBeneficiairesQuery($request, $benefSexe)
                     ->orderByDesc('created_at')
                     ->get();
             }
 
-            // ═══════════════════════════════════════════════════════════
-            // 3. GÉNÉRER L'EXCEL
-            // ═══════════════════════════════════════════════════════════
             if ($dossiers->isEmpty() && $beneficiaires->isEmpty()) {
                 return $this->generateEmptyExcel();
             }
@@ -164,7 +157,9 @@ class DossierClientController extends Controller
             return $this->generateExcel($dossiers, $beneficiaires);
 
         } catch (\Throwable $e) {
-            Log::error('Erreur exportExcel: ' . $e->getMessage());
+            Log::error('Erreur exportExcel: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->with('error', 'Erreur lors de l\'export: ' . $e->getMessage());
         }
     }
@@ -173,7 +168,7 @@ class DossierClientController extends Controller
     // ✅ HELPERS : Requêtes avec relations + filtres
     // ════════════════════════════════════════════════════════════════
 
-    private function getDossiersQuery(Request $request)
+    private function getDossiersQuery(Request $request, ?string $clientSexe = null)
     {
         $query = DossierClient::with([
             'client',
@@ -187,10 +182,17 @@ class DossierClientController extends Controller
         if ($request->filled('au'))            $query->whereDate('created_at', '<=', $request->au);
         if ($request->filled('grand_site_id')) $query->where('grand_site_id', $request->grand_site_id);
 
+        // ✅ Filtre sexe CLIENT
+        if ($clientSexe && in_array($clientSexe, ['masculin', 'feminin'])) {
+            $query->whereHas('client', function ($q) use ($clientSexe) {
+                $q->where('sexe', $clientSexe);
+            });
+        }
+
         return $query;
     }
 
-    private function getBeneficiairesQuery(Request $request)
+    private function getBeneficiairesQuery(Request $request, ?string $benefSexe = null)
     {
         $query = Beneficiaire::with([
             'dossier.client',
@@ -204,6 +206,11 @@ class DossierClientController extends Controller
         if ($request->filled('du'))            $query->whereDate('created_at', '>=', $request->du);
         if ($request->filled('au'))            $query->whereDate('created_at', '<=', $request->au);
         if ($request->filled('grand_site_id')) $query->whereHas('dossier', fn($q) => $q->where('grand_site_id', $request->grand_site_id));
+
+        // ✅ Filtre sexe BÉNÉFICIAIRE
+        if ($benefSexe && in_array($benefSexe, ['masculin', 'feminin'])) {
+            $query->where('sexe', $benefSexe);
+        }
 
         return $query;
     }
@@ -353,8 +360,8 @@ class DossierClientController extends Controller
                     iconv('UTF-8','ASCII//TRANSLIT',$nom))).'@edengroup.cm'
                 : '';
 
-            // Sexe
-            $sexe = $client?->sexe ?? 'non_renseigne';
+            // Sexe — ✅ Utilise le sexe du bénéficiaire (pas du client)
+            $sexe = $benef->sexe ?? 'non_renseigne';
             $sexeLabel = match($sexe) {
                 'masculin' => 'Masculin',
                 'feminin'  => 'Féminin',

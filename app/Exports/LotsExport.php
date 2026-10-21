@@ -34,6 +34,12 @@ class LotsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             $query->where('disponible', $this->filters['disponible'] === '1');
         }
 
+        if (!empty($this->filters['beneficiaire_ids'])) {
+    $query->whereHas('affectation', function ($q) {
+        $q->whereIn('beneficiaire_id', $this->filters['beneficiaire_ids']);
+    });
+}
+
         return $query->orderBy('grand_site_id')
                      ->orderBy('bloc_id')
                      ->orderBy('numero')
@@ -52,6 +58,7 @@ class LotsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             'Superficie (m²)',
             'Statut',
             'Client affecté',
+            'Bénéficiaire',
             'Date affectation',
         ];
     }
@@ -68,6 +75,9 @@ class LotsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             $lot->superficie ? number_format($lot->superficie, 0, '.', '') : '',
             $lot->disponible ? 'Disponible' : 'Affecté',
             $lot->affectation?->client?->name ?? '',
+             $lot->affectation?->beneficiaire?->nom_avec_civilite
+            ?? $lot->affectation?->beneficiaire?->nom
+            ?? '', 
             $lot->affectation?->date_affectation?->format('d/m/Y') ?? '',
         ];
     }

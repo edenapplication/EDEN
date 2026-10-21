@@ -40,7 +40,12 @@ private const COLONNES_EXCLUES_PDF = [
             'sites'       => Site::with('grandSite')->orderBy('name')->get(),
             'tfs'         => Tf::with('site')->orderBy('title')->get(),
             'clients'     => Client::orderBy('name')->get(['id','name','phone']),
-            'types'       => ['disponible', 'indisponible', 'actif', 'inactif'],
+            'directions'  => [
+    'baffoussam'         => 'Baffoussam',
+    'bagante'            => 'Bagante',
+    'dschang'            => 'Dschang',
+    'direction_generale' => 'Direction Générale',
+],
             'statuts'     => ['none', 'en_cours', 'complet'],
 
             // ═══════════════════════════════════════════════════════════════
@@ -144,19 +149,10 @@ private const COLONNES_EXCLUES_PDF = [
             });
         }
 
-        // ── Filtre types/disponibilité ──
-        if ($request->filled('types') && is_array($request->types) && count($request->types) > 0) {
-            $query->whereHas('affectations', function($q) use ($request) {
-                $q->whereHas('lot', function($q2) use ($request) {
-                    $q2->where(function($subQ) use ($request) {
-                        if (in_array('disponible', $request->types))   $subQ->orWhere('disponible', true);
-                        if (in_array('indisponible', $request->types)) $subQ->orWhere('disponible', false);
-                        if (in_array('actif', $request->types))        $subQ->orWhere('actif', true);
-                        if (in_array('inactif', $request->types))      $subQ->orWhere('actif', false);
-                    });
-                });
-            });
-        }
+        // ── Filtre DIRECTION ──
+if ($request->filled('directions') && is_array($request->directions) && count($request->directions) > 0) {
+    $query->whereIn('direction', $request->directions);
+}
 
         // ── Filtre statut dossier ──
         if ($request->filled('statuts_dossier') && is_array($request->statuts_dossier) && count($request->statuts_dossier) > 0) {

@@ -352,6 +352,13 @@ Route::get('/api/grand-sites/{grandSite}/sites',
         Route::post  ('beneficiaires/{beneficiaire}/affecter-lots', [AffectationController::class, 'affecterBeneficiaire'])->name('beneficiaires.affecter-lots');
         Route::get   ('beneficiaires/{beneficiaire}/historique',    [AffectationController::class, 'historiqueBeneficiaire'])->name('beneficiaires.historique');
         Route::get   ('beneficiaires/{beneficiaire}/whatsapp',      [BeneficiaireController::class, 'whatsappBeneficiaire'])->name('beneficiaires.whatsapp');
+        Route::get('/beneficiaires/export-pdf',
+    [App\Http\Controllers\BeneficiaireController::class, 'exportPdf'])
+    ->name('beneficiaires.export-pdf');
+
+Route::get('/beneficiaires/export-excel',
+    [App\Http\Controllers\BeneficiaireController::class, 'exportExcel'])
+    ->name('beneficiaires.export-excel');
 
         Route::delete('affectations/groupe', [AffectationController::class, 'destroyGroupe'])->name('affectations.destroy-groupe');
         Route::delete('affectations/{affectation}',                 [AffectationController::class, 'destroy'])->name('affectations.destroy');

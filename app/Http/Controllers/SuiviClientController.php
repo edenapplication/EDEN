@@ -149,6 +149,14 @@ class SuiviClientController extends Controller
             }
         }
 
+        if ($request->filled('benef_sexe')) {
+    if (in_array($request->benef_sexe, ['masculin', 'feminin'])) {
+        $query->whereHas('dossiers.beneficiaires', function($q) use ($request) {
+            $q->where('sexe', $request->benef_sexe);
+        });
+    }
+}
+
         // ✅ Filtre par paiement logistique soldé
         if ($request->filled('logistique_solde')) {
             if ($request->logistique_solde == 'solde') {

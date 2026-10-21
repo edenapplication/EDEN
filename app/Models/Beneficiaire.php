@@ -15,6 +15,7 @@ class Beneficiaire extends Model
         'dossier_client_id',
         'nom',
         'telephone',
+        'sexe',  
         'cni_path',
         'lots_texte',
         'superficie_attribuee',
@@ -65,6 +66,30 @@ class Beneficiaire extends Model
     {
         return number_format($this->superficie_attribuee, 0, ',', ' ') . ' m²';
     }
+
+    // ✅ Helper pour afficher le sexe avec icône
+public function getSexeLabelAttribute(): string
+{
+    return match($this->sexe) {
+        'masculin' => '👨 Masculin',
+        'feminin'  => '👩 Féminin',
+        default    => '—',
+    };
+}
+
+/**
+ * ✅ Nom avec civilité : "M. NOM" ou "Mme NOM"
+ */
+public function getNomAvecCiviliteAttribute(): string
+{
+    $civilite = match($this->sexe) {
+        'masculin' => 'M.',
+        'feminin'  => 'Mme',
+        default    => '',          // Pas de sexe → pas de préfixe
+    };
+
+    return trim($civilite . ' ' . $this->nom);
+}
 
     // ════════════════════════════════════════════════════════════
     // ÉTAPES

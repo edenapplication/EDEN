@@ -23,6 +23,7 @@ public function store(Request $request, DossierClient $dossier)
         $request->validate([
             'nom'                  => 'required|string|max:255',
             'telephone'            => 'nullable|string|max:50',
+            'sexe'      => 'nullable|in:masculin,feminin', 
             'cni'                  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'notes'                => 'nullable|string|max:1000',
             'client_id'            => 'nullable|exists:clients,id',
@@ -78,6 +79,7 @@ public function store(Request $request, DossierClient $dossier)
             'dossier_client_id'    => $dossier->id,
             'client_id'            => $clientId,
             'nom'                  => $request->nom,
+            'sexe'      => $request->sexe, 
             'telephone'            => $request->telephone,
             'cni_path'             => $cniPath,
             'lots_texte'           => $lots->pluck('numero')->implode(', ') ?: null,
@@ -225,6 +227,7 @@ public function update(Request $request, Beneficiaire $beneficiaire)
         $request->validate([
             'nom'                  => 'required|string|max:255',
             'telephone'            => 'nullable|string|max:50',
+            'sexe'      => 'nullable|in:masculin,feminin',
             'cni'                  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'notes'                => 'nullable|string|max:1000',
         ]);
@@ -236,6 +239,7 @@ public function update(Request $request, Beneficiaire $beneficiaire)
             'nom'        => $request->nom,
             'telephone'  => $request->telephone,
             'notes'      => $request->notes,
+            'sexe'       => $request->sexe,
         ];
 
         $cniAjoutee = false;
@@ -383,6 +387,23 @@ private function buildModificationBenefMessage(
     if (($avant['telephone'] ?? null) !== ($apres['telephone'] ?? null)) {
         $changements[] = "le téléphone est passé de « " . ($avant['telephone'] ?? '(vide)') . " » à « " . ($apres['telephone'] ?? '(vide)') . " »";
     }
+
+    // Changement de sexe
+if (($avant['sexe'] ?? null) !== ($apres['sexe'] ?? null)) {
+    $avantSexe  = $avant['sexe']  ?? '(vide)';
+    $apresSexe  = $apres['sexe']  ?? '(vide)';
+    $labelAvant = match($avantSexe) {
+        'masculin' => 'Masculin',
+        'feminin'  => 'Féminin',
+        default    => '(vide)',
+    };
+    $labelApres = match($apresSexe) {
+        'masculin' => 'Masculin',
+        'feminin'  => 'Féminin',
+        default    => '(vide)',
+    };
+    $changements[] = "le sexe est passé de « {$labelAvant} » à « {$labelApres} »";
+}
 
     // Changement de notes
     if (($avant['notes'] ?? null) !== ($apres['notes'] ?? null)) {
@@ -621,6 +642,7 @@ public function majEtape(Request $request, Beneficiaire $beneficiaire)
             'id'                   => $b->id,
             'nom'                  => $b->nom,
             'telephone'            => $b->telephone,
+            'sexe'                 => $b->sexe,  
             'cni_url'              => $b->cni_url,
             'cni_path'             => $b->cni_path,
             'lots_texte'           => $b->lots_texte,
@@ -655,4 +677,62 @@ public function majEtape(Request $request, Beneficiaire $beneficiaire)
 
         return $changements ? implode(' ; ', $changements) : 'aucun changement détecté';
     }
+
+    public function exportPdf(Request $request)
+{
+    try {
+        $ids = $request->input('beneficiaire_ids', []);
+        if (empty($ids)) return response()->json(['error' => 'Aucun bénéficiaire sélectionné'], 400);
+
+        $clientIds = Beneficiaire::whereIn('id', $ids)->pluck('client_id')->filter()->unique()->values()->toArray();
+
+        $clients = \App\Models\Client::with([
+            'dossiers.grandSite','dossiers.affectations.grandSite','dossiers.affectations.bloc',
+            'dossiers.affectations.lot','dossiers.affectations.beneficiaire',
+            'dossiers.paiementsTechniques','dossiers.paiementsMorcellements',
+            'dossiers.paiements','dossiers.paiementsLogistiques',
+            'dossiers.beneficiaires','dossiers.historiques.user',
+        ])->whereIn('id', $clientIds)->get();
+
+        $clients->each(function($client) use ($ids) {
+            $client->dossiers->each(function($dossier) use ($ids) {
+                $dossier->setRelation('beneficiaires', $dossier->beneficiaires->whereIn('id', $ids)->values());
+                $dossier->setRelation('affectations', $dossier->affectations->whereIn('beneficiaire_id', $ids)->values());
+            });
+        });
+
+        $data = [
+            'clients'       => $clients,
+            'date_export'   => now()->format('d/m/Y H:i'),
+            'total_clients' => $clients->count(),
+            'titre'         => 'Export bénéficiaires sélectionnés',
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.suivi_client.export_pdf', $data);
+        $pdf->setPaper('A4', 'landscape');
+        return $pdf->download('beneficiaires_selectionnes_' . now()->format('Y-m-d') . '.pdf');
+
+    } catch (\Exception $e) {
+        Log::error('Erreur exportPdf benef: ' . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
+public function exportExcel(Request $request)
+{
+    try {
+        $ids = $request->input('beneficiaire_ids', []);
+        if (empty($ids)) return response()->json(['error' => 'Aucun bénéficiaire sélectionné'], 400);
+
+        $filename = 'beneficiaires_selectionnes_' . date('Y-m-d_H-i') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\LotsExport(['beneficiaire_ids' => $ids]),
+            $filename
+        );
+    } catch (\Exception $e) {
+        Log::error('Erreur exportExcel benef: ' . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
 }

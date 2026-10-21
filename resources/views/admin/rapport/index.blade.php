@@ -104,19 +104,15 @@
             </select>
         </div>
         <div class="col-md-2">
-            <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">🏷️ Disponibilité</label>
-            <select name="types[]" multiple class="select-multi">
-                @foreach($options['types'] as $t)
-                    <option value="{{ $t }}" {{ in_array($t, request('types',[])) ? 'selected' : '' }}>
-                        @if($t === 'disponible') 🟢 Disponible
-                        @elseif($t === 'indisponible') 🔴 Indisponible
-                        @elseif($t === 'actif') ✅ Actif
-                        @else ⛔ Inactif
-                        @endif
-                    </option>
-                @endforeach
-            </select>
-        </div>
+    <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">🧭 Direction</label>
+    <select name="directions[]" multiple class="select-multi">
+        @foreach($options['directions'] as $key => $label)
+            <option value="{{ $key }}" {{ in_array($key, request('directions', [])) ? 'selected' : '' }}>
+                {{ $label }}
+            </option>
+        @endforeach
+    </select>
+</div>
         <div class="col-md-3">
             <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">📅 Période paiements</label>
             <div class="d-flex gap-2">
