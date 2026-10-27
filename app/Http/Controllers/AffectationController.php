@@ -4074,27 +4074,43 @@ public function validerEtape1(Request $request)
                 ->whereIn('etape_programmation', ['nouvelle', 'date_attribuee'])
                 ->update(['etape_programmation' => 'cloturee']);
 
-            // ═══════════════════════════════════════════════════════
-            // 2. ✅ MISE À JOUR DES BÉNÉFICIAIRES
-            //    → implantation_prevue = date de la clôture
-            //    → etape_actuelle      = 'implantation_prevue'
-            // ═══════════════════════════════════════════════════════
-            $beneficiaireIds = Affectation::whereIn('id', $affectationIds)
-                ->pluck('beneficiaire_id')
-                ->filter()
-                ->unique()
-                ->values()
-                ->toArray();
+           // ═══════════════════════════════════════════════════════
+// 2. ✅ MISE À JOUR DES BÉNÉFICIAIRES
+//    → implantation_prevue = date du filtre `jour` (envoyée par le JS)
+//    → etape_actuelle      = 'implantation_prevue'
+// ═══════════════════════════════════════════════════════
+$beneficiaireIds = Affectation::whereIn('id', $affectationIds)
+    ->pluck('beneficiaire_id')
+    ->filter()
+    ->unique()
+    ->values()
+    ->toArray();
 
-            if (!empty($beneficiaireIds)) {
+if (!empty($beneficiaireIds)) {
 
-                // Date de référence : la date active de la session, sinon aujourd'hui
-                $dateImplantation = $this->getDateActiveSession() ?? now();
+    // ═════════════════════════════════════════════════════
+    // ✅ PRIORITÉ DE DATE (dans l'ordre) :
+    //    1. $jourFiltre      → date du filtre envoyée par le JS (LE PLUS FIABLE)
+    //    2. session('date_active') → date du calendrier setDimanche
+    //    3. date_implantation de la 1ère affectation
+    //    4. now()            → fallback ultime
+    // ═════════════════════════════════════════════════════
+    if ($jourFiltre) {
+        $dateImplantation = \Carbon\Carbon::parse($jourFiltre);
+    } elseif ($this->getDateActiveSession()) {
+        $dateImplantation = $this->getDateActiveSession();
+    } else {
+        $premiereAff = Affectation::whereIn('id', $affectationIds)
+            ->whereNotNull('date_implantation')
+            ->orderBy('date_implantation')
+            ->first();
+        $dateImplantation = $premiereAff?->date_implantation ?? now();
+    }
 
-                Beneficiaire::whereIn('id', $beneficiaireIds)->update([
-                    'implantation_prevue' => $dateImplantation->format('Y-m-d'),
-                    'etape_actuelle'      => 'implantation_prevue',
-                ]);
+    Beneficiaire::whereIn('id', $beneficiaireIds)->update([
+        'implantation_prevue' => $dateImplantation->format('Y-m-d'),
+        'etape_actuelle'      => 'implantation_prevue',
+    ]);
 
                 // ✅ Historique (optionnel mais recommandé)
                 $beneficiaires = Beneficiaire::whereIn('id', $beneficiaireIds)->get();

@@ -59,27 +59,80 @@
         margin-bottom: 10px; text-align: right;
     }
 
-    .info-table {
-        width: 48%; border-collapse: collapse;
-        display: inline-table; vertical-align: top;
-        margin-bottom: 8px; font-size: 8pt;
+    /* ═══════════════════════════════════════════════════════════ */
+    /* ✅ NOUVEAU : Tableau 2 lignes (Client + Site)              */
+    /* ═══════════════════════════════════════════════════════════ */
+    table.section-2lignes {
+        width: 100%; border-collapse: collapse;
+        margin: 0 0 8px 0; font-size: 7.5pt;
+        table-layout: auto;
     }
-    .info-table .bloc-titre {
-        background-color: #1e3a5f; color: white;
-        font-size: 7.5pt; font-weight: 700;
-        padding: 4px 10px; text-transform: uppercase; text-align: left;
+    table.section-2lignes thead { background: #1e3a5f; color: white; }
+    table.section-2lignes thead th {
+        padding: 5px 6px; font-size: 6.8pt; font-weight: 700;
+        text-align: center; text-transform: uppercase;
+        letter-spacing: 0.3px; border: 1px solid #1e3a5f;
+        word-wrap: break-word; line-height: 1.2;
     }
-    .info-table td.lbl {
-        font-size: 7.5pt; color: #64748b;
-        text-transform: uppercase; padding: 4px 10px;
-        border: 1px solid #f1f5f9; width: 40%;
+    table.section-2lignes tbody td {
+        padding: 7px 6px; text-align: center;
+        font-family: monospace; font-weight: 700;
+        font-size: 8pt; color: #1e3a5f;
+        border: 1px solid #e2e8f0; background: #ffffff;
+        word-wrap: break-word;
     }
-    .info-table td.val {
-        font-size: 8pt; font-weight: 700;
-        color: #1e3a5f; padding: 4px 10px;
-        border: 1px solid #f1f5f9;
+    table.section-2lignes tbody td.val-left {
+        text-align: center; font-family: DejaVu Sans, sans-serif;
+        font-weight: 700; color: #1d4ed8; font-size: 8.2pt;
     }
 
+    /* ═══════════════════════════════════════════════════════════ */
+    /* ✅ NOUVEAU : Section bénéficiaires (1 ligne par bénéf)     */
+    /* ═══════════════════════════════════════════════════════════ */
+    table.section-benef {
+        width: 100%; border-collapse: collapse;
+        margin: 10px 0; font-size: 8pt;
+        border: 1px solid #a855f7;
+    }
+    table.section-benef tbody td {
+        padding: 6px 10px;
+        border-bottom: 1px solid #e9d5ff;
+        vertical-align: middle;
+    }
+    table.section-benef tbody tr:last-child td {
+        border-bottom: none;
+    }
+    table.section-benef tbody td.td-benef-nom {
+        width: 42%; background: #faf5ff;
+        text-align: left; font-family: DejaVu Sans, sans-serif;
+        font-size: 8.2pt; color: #1e3a5f;
+    }
+    table.section-benef tbody td.td-benef-paiements {
+        width: 58%; background: white; text-align: left;
+    }
+    .num-badge {
+        display: inline-block; background: #7c3aed; color: white;
+        width: 18px; height: 18px; border-radius: 50%;
+        font-size: 8pt; font-weight: 800; text-align: center;
+        line-height: 18px; margin-right: 6px;
+    }
+    .paiement-chip {
+        display: inline-block; padding: 2px 8px; border-radius: 5px;
+        font-size: 7.2pt; font-weight: 700; margin: 2px 0;
+        font-family: monospace;
+    }
+    .paiement-chip .chip-type {
+        font-family: DejaVu Sans, sans-serif;
+        font-size: 6.8pt; opacity: 0.85;
+    }
+    .paiement-technique    { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+    .paiement-logistique   { background: #faf5ff; color: #7c3aed; border: 1px solid #e9d5ff; }
+    .paiement-morcellement { background: #fefce8; color: #ca8a04; border: 1px solid #fde68a; }
+    .paiement-dossier      { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* PRIX-LIGNE (conservé)                                       */
+    /* ═══════════════════════════════════════════════════════════ */
     .prix-ligne {
         display: flex; flex-wrap: wrap;
         gap: 4px 12px; padding: 6px 10px;
@@ -95,48 +148,8 @@
     .prix-item .p-valeur { font-weight: 700; }
 
     /* ═══════════════════════════════════════════════════════════ */
-    /* TABLEAU BÉNÉFICIAIRES DU BON COURANT */
+    /* VERSEMENTS DU JOUR (conservé)                               */
     /* ═══════════════════════════════════════════════════════════ */
-    .benef-table {
-        width: 100%; border-collapse: collapse;
-        margin: 10px 0; font-size: 8pt;
-    }
-    .benef-table thead tr { background-color: #7c3aed; color: white; }
-    .benef-table thead th {
-        padding: 6px 10px; font-size: 7.5pt;
-        font-weight: 700; text-align: left;
-        text-transform: uppercase; letter-spacing: 0.3px;
-    }
-    .benef-table thead th.tr { text-align: right; }
-    .benef-table tbody td {
-        padding: 6px 10px; border-bottom: 1px solid #e2e8f0;
-    }
-    .benef-table tbody td.tr {
-        text-align: right; font-family: monospace; font-weight: 700;
-    }
-    .benef-table tbody tr:nth-child(even) { background-color: #faf5ff; }
-    .benef-table tfoot td {
-        padding: 7px 10px; font-size: 9pt; font-weight: 900;
-        background-color: #f3e8ff; color: #6b21a8;
-        border-top: 2px solid #a855f7;
-    }
-    .benef-table tfoot .total-val {
-        text-align: right; font-family: monospace; color: #16a34a;
-    }
-
-    .badge-tech {
-        display: inline-block; background: #fff7ed; color: #ea580c;
-        padding: 2px 8px; border-radius: 4px;
-        font-size: 7pt; font-weight: 700;
-        border: 1px solid #fed7aa;
-    }
-    .badge-logi {
-        display: inline-block; background: #faf5ff; color: #7c3aed;
-        padding: 2px 8px; border-radius: 4px;
-        font-size: 7pt; font-weight: 700;
-        border: 1px solid #e9d5ff;
-    }
-
     .vers-table {
         width: 100%; border-collapse: collapse;
         margin: 8px 0; font-size: 8.5pt;
@@ -164,6 +177,9 @@
     .v-logi     { color: #7c3aed; font-weight: 600; }
     .v-morcel   { color: #ca8a04; font-weight: 600; }
 
+    /* ═══════════════════════════════════════════════════════════ */
+    /* CUMUL + RESTE (conservé)                                    */
+    /* ═══════════════════════════════════════════════════════════ */
     .cumul-table {
         width: 100%; border-collapse: collapse;
         margin: 6px 0; background-color: #f8fafc;
@@ -318,28 +334,46 @@
         | Émis le {{ $createdAt->format('d/m/Y à H:i') }}
     </div>
 
-    {{-- INFOS CLIENT --}}
-    <table class="info-table">
-        <tr><td colspan="2" class="bloc-titre">👤 Client</td></tr>
-        <tr><td class="lbl">Nom</td><td class="val">{{ $client?->name ?? '-' }}</td></tr>
-        <tr><td class="lbl">Téléphone</td><td class="val">{{ $client?->phone ?? '-' }}</td></tr>
+    {{-- ═══════════════════════════════════════════════════════════ --}}
+    {{-- ✅ MODIFICATION 1 : CLIENT + SITE (2 LIGNES)               --}}
+    {{-- ═══════════════════════════════════════════════════════════ --}}
+    <table class="section-2lignes">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Téléphone</th>
+                <th>Site</th>
+                <th>Superficie</th>
+                <th>Prix unitaire</th>
+                <th>Prix du Terrain</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="val-left">{{ $client?->name ?? '-' }}</td>
+                <td>{{ $client?->phone ?? '-' }}</td>
+                <td>{{ $site?->nom ?? $dossier?->nom_dossier ?? '-' }}</td>
+                <td>
+                    @if(($dossier?->superficie_voulue ?? 0) > 0)
+                        {{ number_format($dossier->superficie_voulue, 0, ',', ' ') }} m²
+                    @else
+                        —
+                    @endif
+                </td>
+                <td>
+                    @if($prixUnitaire > 0)
+                        {{ number_format($prixUnitaire, 0, ',', ' ') }} FCFA/m²
+                    @else
+                        —
+                    @endif
+                </td>
+                <td>{{ number_format($prixTerrain, 0, ',', ' ') }} FCFA</td>
+            </tr>
+        </tbody>
     </table>
 
-    {{-- INFOS SITE --}}
-    <table class="info-table">
-        <tr><td colspan="2" class="bloc-titre">🏢 Site</td></tr>
-        <tr><td class="lbl">Site</td><td class="val">{{ $site?->nom ?? $dossier?->nom_dossier ?? '-' }}</td></tr>
-        @if(($dossier?->superficie_voulue ?? 0) > 0)
-        <tr><td class="lbl">Superficie</td><td class="val">{{ number_format($dossier->superficie_voulue, 0, ',', ' ') }} m²</td></tr>
-        @endif
-        @if($prixUnitaire > 0)
-        <tr><td class="lbl">Prix unitaire</td><td class="val">{{ number_format($prixUnitaire, 0, ',', ' ') }} FCFA/m²</td></tr>
-        @endif
-        <tr><td class="lbl">💰 Prix Terrain</td><td class="val">{{ number_format($prixTerrain, 0, ',', ' ') }} FCFA</td></tr>
-    </table>
-
-    {{-- LIGNE DES PRIX --}}
-    <div style="margin-bottom: 8px; width: 48%; display: inline-table; vertical-align: top;">
+    {{-- LIGNE DES PRIX (CONSERVÉE TELLE QUELLE) --}}
+    <div style="margin-bottom: 8px; width: 100%;">
         <div style="background:#f8fafc; border-radius:6px; padding:6px 10px; border:1px solid #e2e8f0;">
             <div class="prix-ligne">
                 @if($prixTerrain > 0)
@@ -376,46 +410,61 @@
 
     <div class="clearfix"></div>
 
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    {{-- BÉNÉFICIAIRES DU BON COURANT                          --}}
-    {{-- ═══════════════════════════════════════════════════════ --}}
-    @if($benefPaiements->count() > 0)
-    <table class="benef-table">
-        <thead>
-            <tr>
-                <th style="width:8%;">#</th>
-                <th style="width:42%;">👤 Bénéficiaire</th>
-                <th style="width:25%;">💰 Type de versement</th>
-                <th class="tr" style="width:25%;">Montant (FCFA)</th>
-            </tr>
-        </thead>
+    {{-- ═══════════════════════════════════════════════════════════ --}}
+    {{-- ✅ MODIFICATION 2 : BÉNÉFICIAIRES (1 LIGNE PAR BÉNÉF)       --}}
+    {{-- ═══════════════════════════════════════════════════════════ --}}
+    @php
+        $benefGroupes = $benefPaiements->groupBy('beneficiaire_id')->map(function($items) {
+            $benef = $items->first()->beneficiaire;
+            $types = [];
+            foreach ($items as $item) {
+                $label = match($item->paiement_type) {
+                    'technique'    => 'Technique',
+                    'logistique'   => 'Logistique',
+                    'morcellement' => 'Morcellement',
+                    'dossier'      => 'Parcelle',
+                    default        => ucfirst($item->paiement_type),
+                };
+                $types[] = [
+                    'label'   => $label,
+                    'montant' => $item->montant,
+                    'class'   => 'paiement-' . strtolower($item->paiement_type),
+                ];
+            }
+            return [
+                'beneficiaire' => $benef,
+                'types'        => $types,
+            ];
+        })->values();
+    @endphp
+
+    @if($benefGroupes->count() > 0)
+    <table class="section-benef">
         <tbody>
-            @foreach($benefPaiements as $i => $bp)
+            @foreach($benefGroupes as $i => $groupe)
                 <tr>
-                    <td>{{ $i + 1 }}</td>
-                    <td>
-                        <strong>{{ $bp->beneficiaire?->nom ?? 'Inconnu' }}</strong>
-                        @if($bp->beneficiaire?->telephone)
-                            <br><span style="font-size:7pt;color:#64748b;">📞 {{ $bp->beneficiaire->telephone }}</span>
-                        @endif
+                    <td class="td-benef-nom">
+                        <span class="num-badge">{{ $i + 1 }}</span>
+                        <strong>{{ $groupe['beneficiaire']?->nom_avec_civilite ?? $groupe['beneficiaire']?->nom ?? 'Inconnu' }}</strong>
                     </td>
-                    <td>
-                        @if($bp->paiement_type === 'technique')
-                            <span class="badge-tech">🛠️ Technique</span>
-                        @elseif($bp->paiement_type === 'logistique')
-                            <span class="badge-logi">🚗 Logistique</span>
-                        @else
-                            <span style="font-size:7pt;color:#64748b;">{{ $bp->paiement_type }}</span>
-                        @endif
+                    <td class="td-benef-paiements">
+                        @foreach($groupe['types'] as $j => $t)
+                            <span class="paiement-chip {{ $t['class'] }}">
+                                {{ number_format($t['montant'], 0, ',', ' ') }} FCFA
+                                <span class="chip-type">({{ $t['label'] }})</span>
+                            </span>
+                            @if(!$loop->last)
+                                <span style="color:#94a3b8;">, </span>
+                            @endif
+                        @endforeach
                     </td>
-                    <td class="tr">{{ number_format($bp->montant, 0, ',', ' ') }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
     @endif
 
-    {{-- VERSEMENTS DU JOUR --}}
+    {{-- VERSEMENTS DU JOUR (CONSERVÉE TELLE QUELLE) --}}
     <table class="vers-table">
         <thead>
             <tr>
@@ -457,7 +506,7 @@
         </tfoot>
     </table>
 
-    {{-- CUMUL + RESTE --}}
+    {{-- CUMUL + RESTE (CONSERVÉE TELLE QUELLE) --}}
     <table class="cumul-table">
         <tr>
             <td class="c-lbl" style="font-weight:700; color:#1e3a5f;" colspan="2">
