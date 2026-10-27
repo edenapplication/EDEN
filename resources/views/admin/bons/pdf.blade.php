@@ -444,9 +444,12 @@
             @foreach($benefGroupes as $i => $groupe)
                 <tr>
                     <td class="td-benef-nom">
-                        <span class="num-badge">{{ $i + 1 }}</span>
-                        <strong>{{ $groupe['beneficiaire']?->nom_avec_civilite ?? $groupe['beneficiaire']?->nom ?? 'Inconnu' }}</strong>
-                    </td>
+    <span class="num-badge">{{ $i + 1 }}</span>
+    <strong>{{ $groupe['beneficiaire']?->nom_avec_civilite ?? $groupe['beneficiaire']?->nom ?? 'Inconnu' }}</strong>
+    @if($groupe['beneficiaire']?->telephone)
+        <span style="color:#64748b;font-weight:600;font-size:7.5pt;">({{ $groupe['beneficiaire']->telephone }})</span>
+    @endif
+</td>
                     <td class="td-benef-paiements">
                         @foreach($groupe['types'] as $j => $t)
                             <span class="paiement-chip {{ $t['class'] }}">
