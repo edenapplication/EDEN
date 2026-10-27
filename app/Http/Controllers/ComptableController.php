@@ -557,7 +557,7 @@ public function payerMulti(Request $request, DossierClient $dossier)
         });
     }
 
-    $dossiers   = $query->paginate(50)->withQueryString();
+   $dossiers = $query->get();
     $grandSites = GrandSite::orderBy('nom')->get();
     $stats      = $this->calculerStatsLogistique($request);
      $activite = $this->calculerActiviteComptable($request);

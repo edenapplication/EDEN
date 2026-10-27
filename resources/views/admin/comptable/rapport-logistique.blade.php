@@ -508,10 +508,6 @@
 </table>
 </div>
 
-<div class="mt-3 d-flex justify-content-center">
-    {{ $dossiers->links() }}
-</div>
-
 @else
     <div class="alert alert-info" style="text-align:center;padding:60px 20px;background:white;border-radius:12px;">
         <div style="font-size:48px;">📭</div>
